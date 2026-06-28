@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pediatric Clinical Workspace · Growth · Cardio-Renal · FRAX</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: #f0f2f5; }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.12) !important;
+        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        .tab-active { background: white; color: #1e293b; box-shadow: 0 1px 4px rgba(0,0,0,0.10); }
+        .tab-inactive { color: #64748b; }
+        .tab-inactive:hover { color: #1e293b; background: rgba(255,255,255,0.5); }
+
+        .metric-card { transition: box-shadow 0.15s ease; }
+        .metric-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+
+        .sds-track { position: relative; height: 8px; border-radius: 99px; background: linear-gradient(to right, #ef4444 0%, #f97316 18%, #eab308 30%, #22c55e 43%, #22c55e 57%, #eab308 70%, #f97316 82%, #ef4444 100%); }
+        .sds-marker { position: absolute; top: -4px; width: 16px; height: 16px; border-radius: 50%; background: white; border: 3px solid #4f46e5; box-shadow: 0 1px 4px rgba(0,0,0,0.2); transform: translateX(-50%); transition: left 0.3s ease; }
+
+        .prob-track { position: relative; height: 8px; border-radius: 99px; background: linear-gradient(to right, #22c55e 0%, #eab308 40%, #f97316 65%, #ef4444 100%); }
+        .prob-marker { position: absolute; top: -4px; width: 16px; height: 16px; border-radius: 50%; background: white; border: 3px solid #4f46e5; box-shadow: 0 1px 4px rgba(0,0,0,0.2); transform: translateX(-50%); }
+
+        .pulse-badge { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+        .card { background: white; border-radius: 16px; border: 1px solid #e8ecf0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .card-lg { background: white; border-radius: 20px; border: 1px solid #e8ecf0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+
+        .toggle-pill { display: flex; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 2px; gap: 2px; }
+        .toggle-btn { padding: 4px 14px; border-radius: 6px; font-size: 11px; font-weight: 700; transition: all 0.15s; cursor: pointer; border: none; background: transparent; }
+        .toggle-on { background: white; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+        .toggle-off { color: #94a3b8; }
+        .toggle-off:hover { color: #475569; }
+
+        .input-field { width: 100%; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 9px 12px; font-size: 13px; font-weight: 600; color: #1e293b; transition: border-color 0.15s, box-shadow 0.15s; }
+        .input-field::placeholder { color: #cbd5e1; font-weight: 400; }
+
+        .gender-btn { flex: 1; padding: 9px; border-radius: 10px; border: 1.5px solid #e2e8f0; font-size: 12px; font-weight: 700; transition: all 0.15s; cursor: pointer; text-align: center; }
+        .gender-active { background: #eef2ff; border-color: #818cf8; color: #4338ca; }
+        .gender-inactive { background: white; color: #64748b; }
+        .gender-inactive:hover { background: #f8fafc; }
+
+        .alb-btn { flex: 1; padding: 8px 4px; border-radius: 10px; border: 1.5px solid #e2e8f0; transition: all 0.15s; cursor: pointer; text-align: center; }
+        .alb-active { background: #eef2ff; border-color: #818cf8; }
+        .alb-inactive { background: white; }
+        .alb-inactive:hover { background: #f8fafc; }
+
+        .section-label { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; }
+        .field-label { font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #64748b; margin-bottom: 5px; display: block; }
+
+        .ckd-stage { display: flex; gap: 4px; }
+        .ckd-chip { flex: 1; text-align: center; padding: 6px 4px; border-radius: 8px; font-size: 10px; font-weight: 800; border: 2px solid transparent; transition: all 0.15s; }
+        .ckd-active-g1 { background: #1e293b; color: white; border-color: #1e293b; }
+        .ckd-active-g2 { background: #eab308; color: white; border-color: #ca8a04; }
+        .ckd-active-g3 { background: #f97316; color: white; border-color: #ea580c; }
+        .ckd-active-g4 { background: #ef4444; color: white; border-color: #dc2626; }
+        .ckd-active-g5 { background: #7f1d1d; color: white; border-color: #991b1b; }
+        .ckd-inactive { background: #f8fafc; color: #94a3b8; border-color: #e2e8f0; }
+
+        .risk-badge-low { background: #f0fdf4; color: #16a34a; border: 1.5px solid #bbf7d0; }
+        .risk-badge-mid { background: #fffbeb; color: #d97706; border: 1.5px solid #fde68a; }
+        .risk-badge-high { background: #fff1f2; color: #dc2626; border: 1.5px solid #fecaca; }
+    </style>
+</head>
+<body class="min-h-screen antialiased text-slate-900">
+
+    <!-- Top accent bar -->
+    <div style="height:4px;background:linear-gradient(90deg,#4f46e5,#7c3aed,#db2777)"></div>
+
+    <div id="root" class="flex flex-col min-h-screen"></div>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        // Bone-age AI backend (FastAPI · bone_age_server.py). Override with ?api=URL if needed.
+        const BONE_AGE_API = (new URLSearchParams(location.search).get('api'))
+            || (location.protocol === 'http:' || location.protocol === 'https:'
+                ? `${location.origin}/api/bone-age`
+                : 'http://localhost:8077/api/bone-age');
+
+        // Vaman Khadilkar 2015 Indian pediatric reference data (2 to 18 Years)
+        const GROWTH_REFERENCE = {
+          boys: {
+            2:  [87.8,  3.5, 12.2, 1.2], 3:  [96.1,  3.8, 14.3, 1.4],
+            4:  [103.3, 4.1, 16.2, 1.7], 5:  [110.0, 4.4, 18.3, 2.0],
+            6:  [116.0, 4.7, 20.5, 2.4], 7:  [121.7, 5.0, 22.9, 2.9],
+            8:  [127.3, 5.3, 25.6, 3.5], 9:  [132.7, 5.6, 28.6, 4.2],
+            10: [137.9, 5.9, 32.0, 5.0], 11: [143.1, 6.3, 35.8, 6.0],
+            12: [148.7, 6.8, 40.1, 7.1], 13: [154.9, 7.3, 44.9, 8.2],
+            14: [161.4, 7.6, 50.1, 9.1], 15: [167.0, 7.6, 55.2, 9.7],
+            16: [171.0, 7.2, 59.4, 9.9], 17: [173.2, 6.7, 62.4, 9.8],
+            18: [174.5, 6.5, 64.5, 9.5]
+          },
+          girls: {
+            2:  [86.4,  3.6, 11.5, 1.2], 3:  [95.1,  3.9, 13.7, 1.5],
+            4:  [102.7, 4.2, 15.8, 1.8], 5:  [109.4, 4.5, 17.9, 2.2],
+            6:  [115.4, 4.8, 20.0, 2.6], 7:  [120.9, 5.1, 22.4, 3.1],
+            8:  [126.2, 5.5, 25.1, 3.7], 9:  [131.5, 5.9, 28.2, 4.5],
+            10: [137.0, 6.3, 31.8, 5.4], 11: [142.8, 6.7, 35.9, 6.3],
+            12: [148.6, 7.0, 40.4, 7.2], 13: [153.6, 7.0, 44.9, 7.9],
+            14: [157.1, 6.6, 48.9, 8.3], 15: [159.1, 6.1, 51.8, 8.4],
+            16: [160.1, 5.7, 53.6, 8.3], 17: [160.7, 5.5, 54.7, 8.2],
+            18: [161.0, 5.4, 55.5, 8.1]
+          }
+        };
+
+        // ── Bayley-Pinneau "% of mature (adult) height attained at a given skeletal age" ──
+        // Source: Bayley N & Pinneau SR, J Pediatr 1952; tables as reproduced in
+        // Greulich WW & Pyle SI, Radiographic Atlas of Skeletal Development of the Hand
+        // and Wrist, 2nd ed. (1959), pp. 231–251. Three maturation groups per sex:
+        //   average  → |chronological age − bone age| ≤ 1 yr
+        //   accelerated (advanced) → bone age > chronological age + 1 yr (early maturer)
+        //   retarded (delayed)     → bone age < chronological age − 1 yr (late maturer)
+        // Predicted Adult Height = current height ÷ (% / 100).
+        const BP_PERCENT = {
+          boys: {
+            average: { 7:69.5, 7.5:70.9, 8:72.3, 8.5:73.9, 9:75.2, 9.5:76.9, 10:78.4, 10.5:79.5,
+                       11:80.4, 11.5:81.8, 12:83.4, 12.5:85.3, 13:87.6, 13.5:90.2, 14:92.7, 14.5:94.8,
+                       15:96.8, 15.5:97.6, 16:98.2, 16.5:98.7, 17:99.1, 17.5:99.3, 18:99.6, 18.5:99.8, 19:100.0 },
+            accelerated: { 7:67.0, 8:70.3, 9:73.3, 10:76.7, 11:78.6, 12:81.2, 13:85.8, 14:91.0,
+                           15:95.8, 16:98.0, 17:99.1, 18:99.6 },
+            retarded: { 8:73.2, 9:76.2, 10:79.0, 11:81.6, 12:84.7, 13:88.3, 14:92.9, 15:96.4,
+                        16:98.3, 17:99.3, 18:99.8 }
+          },
+          girls: {
+            average: { 6:72.0, 6.5:73.8, 7:75.7, 7.5:77.2, 8:79.0, 8.5:80.9, 9:82.7, 9.5:84.4,
+                       10:86.2, 10.5:88.4, 11:90.6, 11.5:92.6, 12:94.5, 12.5:95.8, 13:96.8, 13.5:97.6,
+                       14:98.3, 14.5:98.9, 15:99.3, 15.5:99.6, 16:99.8, 16.5:99.9, 17:100.0 },
+            accelerated: { 7:71.2, 8:75.0, 9:79.0, 10:82.8, 11:87.4, 12:92.2, 13:96.3, 14:98.6,
+                           15:99.5, 16:99.9, 17:100.0 },
+            retarded: { 6:73.3, 7:76.9, 8:80.1, 9:84.1, 10:87.4, 11:91.8, 12:94.6, 13:96.7,
+                        14:98.3, 15:99.3, 16:99.8, 17:100.0 }
+          }
+        };
+
+        function getBPPercent(boneAge, gender, category) {
+          const table = (BP_PERCENT[gender] && BP_PERCENT[gender][category]) || BP_PERCENT[gender].average;
+          const keys = Object.keys(table).map(Number).sort((a, b) => a - b);
+          if (boneAge <= keys[0]) return table[keys[0]];
+          if (boneAge >= keys[keys.length - 1]) return table[keys[keys.length - 1]];
+          for (let i = 0; i < keys.length - 1; i++) {
+            const k0 = keys[i], k1 = keys[i + 1];
+            if (boneAge >= k0 && boneAge <= k1) {
+              const w = (boneAge - k0) / (k1 - k0);
+              return table[k0] + w * (table[k1] - table[k0]);
+            }
+          }
+          return table[keys[keys.length - 1]];
+        }
+
+        function maturationCategory(boneAge, chronoAge) {
+          const diff = boneAge - chronoAge;
+          if (diff > 1.0) return 'accelerated';
+          if (diff < -1.0) return 'retarded';
+          return 'average';
+        }
+
+        function normalCDF(z) {
+          const t = 1 / (1 + 0.2316419 * Math.abs(z));
+          const d = 0.39894228 * Math.exp(-z * z / 2);
+          const p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+          return z >= 0 ? 1 - p : p;
+        }
+
+        function getInterpolatedGrowthReference(age, gender) {
+          const dataset = GROWTH_REFERENCE[gender];
+          const floorAge = Math.floor(age);
+          const ceilAge = Math.ceil(age);
+          if (age <= 2) return { htMean: dataset[2][0], htSD: dataset[2][1], wtMean: dataset[2][2], wtSD: dataset[2][3] };
+          if (age >= 18) return { htMean: dataset[18][0], htSD: dataset[18][1], wtMean: dataset[18][2], wtSD: dataset[18][3] };
+          if (floorAge === ceilAge) return { htMean: dataset[floorAge][0], htSD: dataset[floorAge][1], wtMean: dataset[floorAge][2], wtSD: dataset[floorAge][3] };
+          const w = age - floorAge;
+          const f = dataset[floorAge], c = dataset[ceilAge];
+          return { htMean: f[0]+w*(c[0]-f[0]), htSD: f[1]+w*(c[1]-f[1]), wtMean: f[2]+w*(c[2]-f[2]), wtSD: f[3]+w*(c[3]-f[3]) };
+        }
+
+        function calculateHeightAge(height, gender) {
+          const dataset = GROWTH_REFERENCE[gender];
+          if (height < dataset[2][0]) return { decimal: null, label: "Below 2.0 Yr Median" };
+          if (height > dataset[18][0]) return { decimal: null, label: "Above 18.0 Yr Median" };
+          for (let a = 2; a < 18; a++) {
+            const cur = dataset[a][0], nxt = dataset[a+1][0];
+            if (height >= cur && height <= nxt) {
+              const frac = (height - cur) / (nxt - cur);
+              const dec = a + frac;
+              return { decimal: dec, label: `${dec.toFixed(1)} yrs` };
+            }
+          }
+          return { decimal: null, label: "N/A" };
+        }
+
+        function calculateWeightAge(weight, gender) {
+          const dataset = GROWTH_REFERENCE[gender];
+          if (weight < dataset[2][2]) return { decimal: null, label: "Below 2.0 Yr Median" };
+          if (weight > dataset[18][2]) return { decimal: null, label: "Above 18.0 Yr Median" };
+          for (let a = 2; a < 18; a++) {
+            const cur = dataset[a][2], nxt = dataset[a+1][2];
+            if (weight >= cur && weight <= nxt) {
+              const frac = (weight - cur) / (nxt - cur);
+              const dec = a + frac;
+              return { decimal: dec, label: `${dec.toFixed(1)} yrs` };
+            }
+          }
+          return { decimal: null, label: "N/A" };
+        }
+
+        // SDS bar: maps z from -4..+4 to 0..100%
+        function sdsToPercent(z) { return Math.min(Math.max(((z + 4) / 8) * 100, 2), 98); }
+
+        // Probability bar: maps % to 0..100% capped
+        function probToPercent(p, max) { return Math.min(Math.max((p / max) * 100, 1), 99); }
+
+        function SDSBar({ z }) {
+          const left = sdsToPercent(z);
+          return (
+            <div style={{ paddingTop: '8px', paddingBottom: '4px' }}>
+              <div className="sds-track">
+                <div className="sds-marker" style={{ left: `${left}%` }}></div>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', marginTop:'6px', fontSize:'9px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.05em', textTransform:'uppercase' }}>
+                <span>−4</span><span>−2</span><span>0</span><span>+2</span><span>+4</span>
+              </div>
+            </div>
+          );
+        }
+
+        function ProbBar({ prob, maxProb, threshold, label }) {
+          const left = probToPercent(prob, maxProb);
+          const threshLeft = probToPercent(threshold, maxProb);
+          return (
+            <div style={{ paddingTop: '8px', paddingBottom: '4px' }}>
+              <div className="prob-track" style={{ position:'relative' }}>
+                {/* threshold line */}
+                <div style={{ position:'absolute', top:'-6px', left:`${threshLeft}%`, width:'2px', height:'20px', background:'#475569', borderRadius:'1px', transform:'translateX(-50%)' }}></div>
+                <div className="prob-marker" style={{ left: `${left}%` }}></div>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', marginTop:'6px', fontSize:'9px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.05em', textTransform:'uppercase' }}>
+                <span>0%</span>
+                <span style={{ color:'#475569' }}>Tx threshold: {threshold}%</span>
+                <span>{maxProb}%</span>
+              </div>
+            </div>
+          );
+        }
+
+        function StatusBadge({ text, variant }) {
+          const styles = {
+            low:  'risk-badge-low',
+            mid:  'risk-badge-mid',
+            high: 'risk-badge-high',
+            info: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+            neutral: 'bg-slate-100 text-slate-600 border border-slate-200',
+          };
+          return (
+            <span style={{ display:'inline-flex', alignItems:'center', padding:'3px 10px', borderRadius:'99px', fontSize:'11px', fontWeight:'700' }} className={styles[variant] || styles.neutral}>
+              {text}
+            </span>
+          );
+        }
+
+        function MetricRow({ label, value, unit, sub, children, accent }) {
+          return (
+            <div style={{ display:'flex', flexDirection:'column', gap:'6px', padding:'14px 0', borderBottom:'1px solid #f1f5f9' }}>
+              <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:'12px', flexWrap:'wrap' }}>
+                <span style={{ fontSize:'11px', fontWeight:'700', letterSpacing:'0.05em', textTransform:'uppercase', color:'#64748b', paddingTop:'6px' }}>{label}</span>
+                <div style={{ textAlign:'right' }}>
+                  <span style={{ fontSize:'32px', fontWeight:'900', color: accent || '#1e293b', lineHeight:1 }}>{value}</span>
+                  {unit && <span style={{ fontSize:'12px', fontWeight:'500', color:'#94a3b8', marginLeft:'6px' }}>{unit}</span>}
+                  {sub && <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px' }}>{sub}</div>}
+                </div>
+              </div>
+              {children}
+            </div>
+          );
+        }
+
+        function SectionHeader({ title, subtitle, badge, badgeVariant }) {
+          return (
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:'14px', borderBottom:'1.5px solid #f1f5f9', marginBottom:'4px', gap:'8px' }}>
+              <div>
+                <h3 style={{ fontSize:'13px', fontWeight:'800', color:'#334155', letterSpacing:'0.01em' }}>{title}</h3>
+                {subtitle && <p style={{ fontSize:'11px', color:'#94a3b8', marginTop:'3px' }}>{subtitle}</p>}
+              </div>
+              {badge && <StatusBadge text={badge} variant={badgeVariant || 'info'} />}
+            </div>
+          );
+        }
+
+        function FraxToggleRow({ label, value, setter }) {
+          return (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #f8fafc' }}>
+              <span style={{ fontSize:'12px', fontWeight:'600', color:'#475569' }}>{label}</span>
+              <div className="toggle-pill">
+                <button className={`toggle-btn ${value === 'yes' ? 'toggle-on' : 'toggle-off'}`} onClick={() => setter('yes')}>Yes</button>
+                <button className={`toggle-btn ${value === 'no' ? 'toggle-on' : 'toggle-off'}`} onClick={() => setter('no')}>No</button>
+              </div>
+            </div>
+          );
+        }
+
+        function InputWithUnit({ label, value, onChange, placeholder, step, unit, accent }) {
+          return (
+            <div style={{ minWidth:0 }}>
+              <label className="field-label">{label}</label>
+              <div style={{ position:'relative', display:'flex', alignItems:'center' }}>
+                <input
+                  type="number"
+                  step={step || 'any'}
+                  placeholder={placeholder || '—'}
+                  value={value}
+                  onChange={onChange}
+                  className="input-field"
+                  style={{
+                    paddingRight: unit ? '44px' : '12px',
+                    color: accent || '#1e293b',
+                    minWidth:0,
+                    width:'100%',
+                  }}
+                />
+                {unit && (
+                  <span style={{ position:'absolute', right:'10px', fontSize:'10px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', pointerEvents:'none', whiteSpace:'nowrap' }}>{unit}</span>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        function App() {
+          const [activeTab, setActiveTab] = useState('growth');
+          const [age, setAge] = useState("");
+          const [gender, setGender] = useState("");
+          const [height, setHeight] = useState("");
+          const [weight, setWeight] = useState("");
+          const [creatinine, setCreatinine] = useState("");
+          const [albuminuria, setAlbuminuria] = useState("");
+          const [systolic, setSystolic] = useState("");
+          const [diastolic, setDiastolic] = useState("");
+          const [ast, setAst] = useState("");
+          const [alt, setAlt] = useState("");
+          const [platelets, setPlatelets] = useState("");
+          const [prevFracture, setPrevFracture] = useState("no");
+          const [parentHipFracture, setParentHipFracture] = useState("no");
+          const [smoking, setSmoking] = useState("no");
+          const [glucocorticoids, setGlucocorticoids] = useState("no");
+          const [rheumatoid, setRheumatoid] = useState("no");
+          const [secondaryOsteo, setSecondaryOsteo] = useState("no");
+          const [alcohol, setAlcohol] = useState("no");
+          const [timeline, setTimeline] = useState([]);
+          const [boneAge, setBoneAge] = useState("");
+          const [boneMethod, setBoneMethod] = useState("GP");
+          const [boneCategory, setBoneCategory] = useState("auto");
+          const [fatherHeight, setFatherHeight] = useState("");
+          const [motherHeight, setMotherHeight] = useState("");
+          const [xrayImage, setXrayImage] = useState(null);
+          const [aiStatus, setAiStatus] = useState("idle"); // idle | analyzing | done | error
+          const [aiResult, setAiResult] = useState(null);
+
+          const evalAge = useMemo(() => age !== "" ? parseFloat(age) : 9.0, [age]);
+          const evalGender = useMemo(() => gender !== "" ? gender : 'girls', [gender]);
+          const evalHeight = useMemo(() => height !== "" ? parseFloat(height) : 131.5, [height]);
+          const evalWeight = useMemo(() => weight !== "" ? parseFloat(weight) : 28.2, [weight]);
+          const evalCreatinine = useMemo(() => creatinine !== "" ? parseFloat(creatinine) : 0.50, [creatinine]);
+          const evalAlbuminuria = useMemo(() => albuminuria !== "" ? albuminuria : 'A1', [albuminuria]);
+          const evalSystolic = useMemo(() => systolic !== "" ? parseFloat(systolic) : 110, [systolic]);
+          const evalDiastolic = useMemo(() => diastolic !== "" ? parseFloat(diastolic) : 70, [diastolic]);
+          const evalAst = useMemo(() => ast !== "" ? parseFloat(ast) : 25, [ast]);
+          const evalAlt = useMemo(() => alt !== "" ? parseFloat(alt) : 20, [alt]);
+          const evalPlatelets = useMemo(() => platelets !== "" ? parseFloat(platelets) : 250, [platelets]);
+
+          const hasManualGrowth = age !== "" && gender !== "" && height !== "" && weight !== "";
+          const hasManualRenal = age !== "" && gender !== "" && height !== "" && creatinine !== "";
+          const hasManualLiver = age !== "" && ast !== "" && alt !== "" && platelets !== "";
+
+          const loadPreset = (type) => {
+            if (type === 'child') {
+              setAge(9.0); setGender('girls'); setHeight(120.9); setWeight(22.4);
+              setCreatinine(0.50); setAlbuminuria('A1'); setSystolic(104); setDiastolic(64);
+              setAst(22); setAlt(18); setPlatelets(280);
+              setPrevFracture("no"); setParentHipFracture("no"); setSmoking("no");
+              setGlucocorticoids("no"); setRheumatoid("no"); setSecondaryOsteo("no"); setAlcohol("no");
+            } else {
+              setAge(58); setGender('boys'); setHeight(171.0); setWeight(79.5);
+              setCreatinine(1.35); setAlbuminuria('A2'); setSystolic(138); setDiastolic(88);
+              setAst(44); setAlt(42); setPlatelets(165);
+              setPrevFracture("yes"); setParentHipFracture("no"); setSmoking("yes");
+              setGlucocorticoids("yes"); setRheumatoid("no"); setSecondaryOsteo("yes"); setAlcohol("no");
+            }
+          };
+
+          const growthMetrics = useMemo(() => {
+            const ref = getInterpolatedGrowthReference(evalAge, evalGender);
+            const heightZ = (evalHeight - ref.htMean) / ref.htSD;
+            const weightZ = (evalWeight - ref.wtMean) / ref.wtSD;
+            const heightPct = normalCDF(heightZ) * 100;
+            const weightPct = normalCDF(weightZ) * 100;
+            const heightAgeObj = calculateHeightAge(evalHeight, evalGender);
+            const weightAgeObj = calculateWeightAge(evalWeight, evalGender);
+            let stuntingClass = "Normal", stuntingVariant = "low";
+            if (heightZ < -3) { stuntingClass = "Severe Stunting"; stuntingVariant = "high"; }
+            else if (heightZ < -2) { stuntingClass = "Stunted"; stuntingVariant = "high"; }
+            else if (heightZ > 2) { stuntingClass = "Tall Stature"; stuntingVariant = "mid"; }
+            let underweightClass = "Normal", underweightVariant = "low";
+            if (weightZ < -3) { underweightClass = "Severe Underweight"; underweightVariant = "high"; }
+            else if (weightZ < -2) { underweightClass = "Underweight"; underweightVariant = "high"; }
+            else if (weightZ < -1) { underweightClass = "Mild Underweight"; underweightVariant = "mid"; }
+            else if (weightZ > 2) { underweightClass = "Overweight / Obese"; underweightVariant = "mid"; }
+            return { heightZ, weightZ, heightPct, weightPct, stuntingClass, stuntingVariant, underweightClass, underweightVariant, heightAge: heightAgeObj, weightAge: weightAgeObj, ref };
+          }, [evalAge, evalGender, evalHeight, evalWeight]);
+
+          const renalMetrics = useMemo(() => {
+            const isPediatric = evalAge < 18;
+            let egfr = 0, formulaName = '';
+            if (isPediatric) {
+              egfr = (0.413 * evalHeight) / evalCreatinine;
+              formulaName = "Modified Bedside Schwartz (2009)";
+            } else {
+              const isFemale = evalGender === 'girls';
+              const kappa = isFemale ? 0.7 : 0.9, alpha = isFemale ? -0.241 : -0.302;
+              const gConst = isFemale ? 1.012 : 1;
+              const term1 = evalCreatinine / kappa;
+              egfr = 142 * Math.pow(Math.min(term1,1), alpha) * Math.pow(Math.max(term1,1), -1.200) * Math.pow(0.9938, evalAge) * gConst;
+              formulaName = "2021 CKD-EPI Creatinine";
+            }
+            let cg = null, mdrd = null;
+            if (!isPediatric && evalWeight > 0) {
+              const isFemale = evalGender === 'girls';
+              cg = ((140-evalAge)*evalWeight) / (72*evalCreatinine) * (isFemale ? 0.85 : 1);
+              mdrd = 175 * Math.pow(evalCreatinine,-1.154) * Math.pow(evalAge,-0.203) * (isFemale ? 0.742 : 1);
+            }
+            let ckdStage = 'G1', ckdStageDesc = "Normal / High", stageVariant = "low";
+            if (egfr < 15) { ckdStage = 'G5'; ckdStageDesc = "Kidney Failure"; stageVariant = "high"; }
+            else if (egfr < 30) { ckdStage = 'G4'; ckdStageDesc = "Severely Decreased"; stageVariant = "high"; }
+            else if (egfr < 60) { ckdStage = 'G3'; ckdStageDesc = "Moderately Decreased"; stageVariant = "mid"; }
+            else if (egfr < 90) { ckdStage = 'G2'; ckdStageDesc = "Mildly Decreased"; stageVariant = "mid"; }
+            return { egfr, formulaName, cg, mdrd, ckdStage, ckdStageDesc, stageVariant, isPediatric };
+          }, [evalAge, evalGender, evalHeight, evalWeight, evalCreatinine]);
+
+          const liverMetrics = useMemo(() => {
+            const fib4 = (evalAge * evalAst) / (evalPlatelets * Math.sqrt(evalAlt));
+            let interpretation = "Low Risk", variant = "low", details = "Low probability of advanced fibrosis.";
+            const highThresh = 2.67, midThresh = evalAge > 65 ? 2.0 : 1.30;
+            if (fib4 > highThresh) { interpretation = "High Risk"; variant = "high"; details = "High risk of advanced liver fibrosis — referral recommended."; }
+            else if (fib4 > midThresh) { interpretation = "Indeterminate"; variant = "mid"; details = "Intermediate range — further evaluation required."; }
+            return { fib4, interpretation, variant, details };
+          }, [evalAge, evalAst, evalAlt, evalPlatelets]);
+
+          const fraxMetrics = useMemo(() => {
+            const fraxAge = Math.min(Math.max(evalAge, 40), 90);
+            const hMeter = evalHeight / 100;
+            const bmi = evalWeight / (hMeter * hMeter);
+            let mofLogit = -3.8 + 0.055*(fraxAge-50) - 0.035*(bmi-25);
+            let hfLogit = -5.8 + 0.085*(fraxAge-50) - 0.055*(bmi-25);
+            if (evalGender === 'girls') { mofLogit += 0.35; hfLogit += 0.45; }
+            if (prevFracture === 'yes') { mofLogit += 1.15; hfLogit += 1.05; }
+            if (parentHipFracture === 'yes') { mofLogit += 0.95; hfLogit += 1.25; }
+            if (smoking === 'yes') { mofLogit += 0.35; hfLogit += 0.45; }
+            if (glucocorticoids === 'yes') { mofLogit += 0.85; hfLogit += 0.95; }
+            if (rheumatoid === 'yes') { mofLogit += 0.45; hfLogit += 0.55; }
+            if (secondaryOsteo === 'yes') { mofLogit += 0.35; hfLogit += 0.35; }
+            if (alcohol === 'yes') { mofLogit += 0.25; hfLogit += 0.35; }
+            const mofProb = 100 / (1 + Math.exp(-mofLogit));
+            const hfProb = 100 / (1 + Math.exp(-hfLogit));
+            return { mofProb, hfProb, isHighMof: mofProb >= 20, isHighHf: hfProb >= 3, fraxAge };
+          }, [evalAge, evalGender, evalHeight, evalWeight, prevFracture, parentHipFracture, smoking, glucocorticoids, rheumatoid, secondaryOsteo, alcohol]);
+
+          const chronicityStatus = useMemo(() => {
+            if (timeline.length < 2) return { status: "Add at least 2 snapshots (≥ 90 days apart) to assess CKD chronicity.", cls: "risk-badge-neutral", bgClass: "bg-slate-50 border-slate-200 text-slate-500" };
+            const sorted = [...timeline].sort((a,b) => new Date(a.date)-new Date(b.date));
+            const diffDays = Math.ceil((new Date(sorted[sorted.length-1].date) - new Date(sorted[0].date)) / 86400000);
+            if (diffDays < 90) return { status: `Observation window: ${diffDays} days — need 90 days minimum to confirm chronicity.`, bgClass: "bg-amber-50 border-amber-200 text-amber-700" };
+            const initDmg = sorted[0].egfr < 60 || sorted[0].albuminuria !== 'A1';
+            const curDmg = sorted[sorted.length-1].egfr < 60 || sorted[sorted.length-1].albuminuria !== 'A1';
+            if (initDmg && curDmg) return { status: `Chronicity CONFIRMED — Persistent indicators across ${diffDays}-day window.`, bgClass: "bg-rose-50 border-rose-200 text-rose-700 font-bold" };
+            return { status: `Transient profile — markers did not persist over ${diffDays} days.`, bgClass: "bg-emerald-50 border-emerald-200 text-emerald-700" };
+          }, [timeline]);
+
+          const generalMetrics = useMemo(() => {
+            const bmi = evalWeight / Math.pow(evalHeight/100, 2);
+            const map = evalDiastolic + (evalSystolic - evalDiastolic) / 3;
+            let bmiCat = "Normal", bmiVariant = "low";
+            if (bmi < 18.5) { bmiCat = "Underweight"; bmiVariant = "mid"; }
+            else if (bmi >= 27.5) { bmiCat = "Obese"; bmiVariant = "high"; }
+            else if (bmi >= 23.0) { bmiCat = "Overweight"; bmiVariant = "mid"; }
+            let mapCat = "Normal", mapVariant = "low";
+            if (map < 70) { mapCat = "Low"; mapVariant = "mid"; }
+            else if (map > 100) { mapCat = "Elevated"; mapVariant = "mid"; }
+            else if (map > 110) { mapCat = "High"; mapVariant = "high"; }
+            return { bmi, bmiCat, bmiVariant, map, mapCat, mapVariant };
+          }, [evalHeight, evalWeight, evalSystolic, evalDiastolic]);
+
+          const boneMetrics = useMemo(() => {
+            const ba = boneAge !== "" ? parseFloat(boneAge) : null;
+            if (ba === null || isNaN(ba) || evalHeight <= 0) return null;
+            const diff = ba - evalAge;
+            const autoCat = maturationCategory(ba, evalAge);
+            const category = boneCategory === 'auto' ? autoCat : boneCategory;
+            const pct = getBPPercent(ba, evalGender, category);
+            const pah = pct ? evalHeight / (pct / 100) : null;          // predicted adult height (cm)
+            const remaining = pah !== null ? pah - evalHeight : null;    // cm left to grow
+
+            // Contextualize against Khadilkar (WHO–IAP) adult reference @ 18 yrs
+            const adult = GROWTH_REFERENCE[evalGender][18];
+            const pahZ = pah !== null ? (pah - adult[0]) / adult[1] : null;
+            const pahPct = pahZ !== null ? normalCDF(pahZ) * 100 : null;
+
+            // Mid-parental (target) height — Tanner
+            const fh = fatherHeight !== "" ? parseFloat(fatherHeight) : null;
+            const mh = motherHeight !== "" ? parseFloat(motherHeight) : null;
+            let mph = null, mphLow = null, mphHigh = null, withinTarget = null;
+            if (fh && mh && fh > 0 && mh > 0) {
+              mph = evalGender === 'boys' ? (fh + mh + 13) / 2 : (fh + mh - 13) / 2;
+              mphLow = mph - 8.5; mphHigh = mph + 8.5;  // ≈ ±2 SD target channel
+              if (pah !== null) withinTarget = pah >= mphLow && pah <= mphHigh;
+            }
+
+            const outOfRange = ba < (evalGender === 'girls' ? 6 : 7) || ba > (evalGender === 'girls' ? 17 : 19);
+            return { ba, diff, autoCat, category, pct, pah, remaining, pahZ, pahPct,
+                     mph, mphLow, mphHigh, withinTarget, adult, outOfRange };
+          }, [boneAge, boneCategory, evalAge, evalGender, evalHeight, fatherHeight, motherHeight]);
+
+          const resetAll = () => {
+            setAge(""); setGender(""); setHeight(""); setWeight("");
+            setCreatinine(""); setAlbuminuria(""); setSystolic(""); setDiastolic("");
+            setAst(""); setAlt(""); setPlatelets("");
+            setPrevFracture("no"); setParentHipFracture("no"); setSmoking("no");
+            setGlucocorticoids("no"); setRheumatoid("no"); setSecondaryOsteo("no"); setAlcohol("no");
+            setTimeline([]); setActiveTab('growth');
+            setBoneAge(""); setBoneMethod("GP"); setBoneCategory("auto");
+            setFatherHeight(""); setMotherHeight(""); setXrayImage(null);
+          };
+
+          const logCurrentData = () => {
+            setTimeline(prev => [{
+              id: Date.now().toString(),
+              date: new Date().toISOString().split('T')[0],
+              age: evalAge, height: evalHeight, weight: evalWeight,
+              creatinine: evalCreatinine,
+              egfr: Number(renalMetrics.egfr.toFixed(1)),
+              fib4: liverMetrics ? Number(liverMetrics.fib4.toFixed(2)) : null,
+              albuminuria: evalAlbuminuria
+            }, ...prev]);
+          };
+
+          const analyzeXray = async (fileObj) => {
+            setAiStatus('analyzing'); setAiResult(null);
+            try {
+              const fd = new FormData();
+              fd.append('file', fileObj);
+              fd.append('sex', evalGender);
+              fd.append('chronological_age', age !== "" ? String(age) : "");
+              const res = await fetch(BONE_AGE_API, { method: 'POST', body: fd });
+              const data = await res.json();
+              if (!res.ok) {
+                setAiStatus('error');
+                setAiResult({ message: data.detail || data.error || `Server error ${res.status}` });
+                return;
+              }
+              if (typeof data.bone_age_years === 'number') {
+                setBoneAge(Number(data.bone_age_years.toFixed(1)));
+                setBoneCategory('auto');
+              }
+              setAiStatus('done'); setAiResult(data);
+            } catch (err) {
+              setAiStatus('error');
+              setAiResult({ message: `Could not reach the AI backend at ${BONE_AGE_API}. Start it with: python -m uvicorn backend.server:app --reload --port 8077` });
+            }
+          };
+
+          const TABS = [
+            { id: 'growth',   label: 'Growth' },
+            { id: 'boneage',  label: 'Bone Age' },
+            { id: 'renal',    label: 'Renal GFR' },
+            { id: 'liver',    label: 'FIB-4 Liver' },
+            { id: 'frax',     label: 'FRAX Plus' },
+            { id: 'timeline', label: 'Ledger' },
+          ];
+
+          return (
+            <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh' }}>
+
+              {/* ── HEADER ── */}
+              <header style={{ background:'white', borderBottom:'1px solid #e8ecf0', position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 4px rgba(0,0,0,0.05)' }}>
+                <div style={{ maxWidth:'1400px', margin:'0 auto', padding:'0 24px', height:'60px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:'16px' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                    <div style={{ width:'36px', height:'36px', borderRadius:'10px', background:'linear-gradient(135deg,#4f46e5,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <div style={{ fontSize:'15px', fontWeight:'900', color:'#0f172a', letterSpacing:'-0.01em', lineHeight:1.2 }}>Pediatric Clinical Workspace</div>
+                      <div style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.06em', textTransform:'uppercase' }}>Growth · Bone Age · Cardio-Renal · FRAX · FIB-4</div>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:'8px', flexShrink:0 }}>
+                    <button
+                      onClick={resetAll}
+                      style={{ display:'flex', alignItems:'center', gap:'7px', padding:'8px 18px', background:'white', border:'1.5px solid #fca5a5', borderRadius:'9px', fontSize:'13px', fontWeight:'700', color:'#dc2626', cursor:'pointer', whiteSpace:'nowrap', transition:'all 0.15s', boxShadow:'0 1px 3px rgba(220,38,38,0.08)' }}
+                      onMouseEnter={e => { e.currentTarget.style.background='#fff1f2'; e.currentTarget.style.borderColor='#f87171'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background='white'; e.currentTarget.style.borderColor='#fca5a5'; }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.77"/>
+                      </svg>
+                      Reset Patient
+                    </button>
+                  </div>
+                </div>
+              </header>
+
+              {/* ── MAIN ── */}
+              <main style={{ flex:1, maxWidth:'1400px', margin:'0 auto', width:'100%', padding:'20px', display:'grid', gridTemplateColumns:'minmax(0,5fr) minmax(0,7fr)', gap:'20px', alignItems:'start' }}>
+
+                {/* ─── LEFT COLUMN: Inputs ─── */}
+                <div style={{ minWidth:0, display:'flex', flexDirection:'column', gap:'16px' }}>
+
+                  {/* Card: Demographics */}
+                  <div className="card" style={{ padding:'20px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'16px', paddingBottom:'12px', borderBottom:'1px solid #f1f5f9' }}>
+                      <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#4f46e5', flexShrink:0 }}></div>
+                      <span className="section-label">Demographics</span>
+                      {!hasManualGrowth && <span className="pulse-badge" style={{ marginLeft:'auto', fontSize:'9px', fontWeight:'800', background:'#eef2ff', color:'#4f46e5', padding:'2px 8px', borderRadius:'99px', letterSpacing:'0.06em', textTransform:'uppercase' }}>Baseline</span>}
+                    </div>
+
+                    <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+                      {/* Age */}
+                      <InputWithUnit
+                        label="Chronological Age"
+                        value={age}
+                        onChange={e => setAge(e.target.value === "" ? "" : parseFloat(e.target.value))}
+                        placeholder="e.g. 9.5"
+                        step="0.1"
+                        unit="yrs"
+                        unitPosition="right"
+                        accent="#4f46e5"
+                      />
+
+                      {/* Gender */}
+                      <div>
+                        <label className="field-label">Biological Sex</label>
+                        <div style={{ display:'flex', gap:'8px' }}>
+                          <button className={`gender-btn ${gender === 'boys' ? 'gender-active' : 'gender-inactive'}`} onClick={() => setGender('boys')}>
+                            ♂ Male
+                          </button>
+                          <button className={`gender-btn ${gender === 'girls' ? 'gender-active' : 'gender-inactive'}`} onClick={() => setGender('girls')}>
+                            ♀ Female
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Height + Weight */}
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:'12px' }}>
+                        <InputWithUnit label="Height" value={height} onChange={e => setHeight(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="cm" unit="cm" />
+                        <InputWithUnit label="Weight" value={weight} onChange={e => setWeight(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="kg" unit="kg" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card: Labs */}
+                  <div className="card" style={{ padding:'20px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'16px', paddingBottom:'12px', borderBottom:'1px solid #f1f5f9' }}>
+                      <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#0891b2', flexShrink:0 }}></div>
+                      <span className="section-label">Clinical Labs & Parameters</span>
+                    </div>
+
+                    <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
+                      {/* Creatinine */}
+                      <InputWithUnit
+                        label="Serum Creatinine"
+                        value={creatinine}
+                        onChange={e => setCreatinine(e.target.value === "" ? "" : parseFloat(e.target.value))}
+                        placeholder="mg/dL"
+                        step="0.01"
+                        unit="mg/dL"
+                        accent="#0891b2"
+                      />
+
+                      {/* Albuminuria */}
+                      <div>
+                        <label className="field-label">Albuminuria / ACR Stage</label>
+                        <div style={{ display:'flex', gap:'8px' }}>
+                          {[['A1','< 30 mg/g'],['A2','30–300 mg/g'],['A3','> 300 mg/g']].map(([lv, desc]) => (
+                            <button key={lv} className={`alb-btn ${albuminuria === lv ? 'alb-active' : 'alb-inactive'}`} onClick={() => setAlbuminuria(lv)}>
+                              <div style={{ fontSize:'12px', fontWeight:'800', color: albuminuria === lv ? '#4338ca' : '#334155' }}>{lv}</div>
+                              <div style={{ fontSize:'9px', color:'#94a3b8', marginTop:'2px' }}>{desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* BP */}
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:'12px' }}>
+                        <InputWithUnit label="Systolic BP" value={systolic} onChange={e => setSystolic(e.target.value === "" ? "" : parseInt(e.target.value))} placeholder="mmHg" unit="mmHg" />
+                        <InputWithUnit label="Diastolic BP" value={diastolic} onChange={e => setDiastolic(e.target.value === "" ? "" : parseInt(e.target.value))} placeholder="mmHg" unit="mmHg" />
+                      </div>
+
+                      {/* Liver enzymes */}
+                      <div style={{ paddingTop:'12px', borderTop:'1px solid #f1f5f9' }}>
+                        <label className="field-label" style={{ marginBottom:'10px' }}>Hepatic Enzymes & Platelets</label>
+                        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,minmax(0,1fr))', gap:'10px', alignItems:'end' }}>
+                          {[
+                            ['AST', 'SGOT · U/L', ast, e => setAst(e.target.value === "" ? "" : parseFloat(e.target.value))],
+                            ['ALT', 'SGPT · U/L', alt, e => setAlt(e.target.value === "" ? "" : parseFloat(e.target.value))],
+                            ['PLT', '×10³ / µL', platelets, e => setPlatelets(e.target.value === "" ? "" : parseFloat(e.target.value))],
+                          ].map(([lbl, sub, val, fn]) => (
+                            <div key={lbl} style={{ display:'flex', flexDirection:'column', alignItems:'stretch' }}>
+                              <span style={{ fontSize:'12px', fontWeight:'800', color:'#334155', textAlign:'center', display:'block', marginBottom:'2px' }}>{lbl}</span>
+                              <span style={{ fontSize:'9px', fontWeight:'600', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em', textAlign:'center', display:'block', marginBottom:'6px' }}>{sub}</span>
+                              <input
+                                type="number"
+                                placeholder="—"
+                                value={val}
+                                onChange={fn}
+                                className="input-field"
+                                style={{ textAlign:'center', padding:'9px 8px', width:'100%', boxSizing:'border-box' }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card: FRAX */}
+                  <div className="card" style={{ padding:'20px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'14px', paddingBottom:'12px', borderBottom:'1px solid #f1f5f9' }}>
+                      <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#d97706', flexShrink:0 }}></div>
+                      <span className="section-label">FRAX Risk Factors</span>
+                      <span style={{ marginLeft:'auto', fontSize:'9px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em' }}>India · No BMD</span>
+                    </div>
+                    <div>
+                      <FraxToggleRow label="Previous Fracture" value={prevFracture} setter={setPrevFracture} />
+                      <FraxToggleRow label="Parent Hip Fracture" value={parentHipFracture} setter={setParentHipFracture} />
+                      <FraxToggleRow label="Current Smoking" value={smoking} setter={setSmoking} />
+                      <FraxToggleRow label="Glucocorticoids" value={glucocorticoids} setter={setGlucocorticoids} />
+                      <FraxToggleRow label="Rheumatoid Arthritis" value={rheumatoid} setter={setRheumatoid} />
+                      <FraxToggleRow label="Secondary Osteoporosis" value={secondaryOsteo} setter={setSecondaryOsteo} />
+                      <FraxToggleRow label="Alcohol ≥ 3 units/day" value={alcohol} setter={setAlcohol} />
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* ─── RIGHT COLUMN: Results ─── */}
+                <div style={{ minWidth:0, display:'flex', flexDirection:'column', gap:'16px' }}>
+
+                  {/* Tab Bar */}
+                  <div className="card" style={{ padding:'6px' }}>
+                    <div style={{ display:'flex', background:'#f1f5f9', borderRadius:'12px', padding:'4px', gap:'4px', overflowX:'auto' }}>
+                      {TABS.map(tab => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={activeTab === tab.id ? 'tab-active' : 'tab-inactive'}
+                          style={{ flex:1, minWidth:'90px', padding:'8px 12px', borderRadius:'9px', border:'none', cursor:'pointer', fontSize:'12px', fontWeight:'700', transition:'all 0.15s', whiteSpace:'nowrap' }}>
+                          {tab.label}
+                          {tab.id === 'timeline' && timeline.length > 0 && (
+                            <span style={{ marginLeft:'6px', background:'#4f46e5', color:'white', fontSize:'9px', fontWeight:'800', padding:'1px 6px', borderRadius:'99px' }}>{timeline.length}</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Result Panel */}
+                  <div className="card-lg" style={{ padding:'28px', minHeight:'500px', display:'flex', flexDirection:'column' }}>
+
+                    {/* ══ GROWTH TAB ══ */}
+                    {activeTab === 'growth' && (
+                      <div style={{ flex:1 }}>
+                        <SectionHeader
+                          title="Pediatric Growth Engine · Khadilkar 2015"
+                          subtitle="Continuous LMS interpolation — Indian reference standard (ages 2–18 yrs)"
+                          badge={!hasManualGrowth ? "Baseline Active" : null}
+                          badgeVariant="info"
+                        />
+
+                        {evalAge >= 18 ? (
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, gap:'12px', padding:'40px 0', textAlign:'center' }}>
+                            <div style={{ width:'56px', height:'56px', borderRadius:'50%', background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                            </div>
+                            <div style={{ fontSize:'14px', fontWeight:'700', color:'#475569' }}>Pediatric workspace inactive</div>
+                            <div style={{ fontSize:'12px', color:'#94a3b8', maxWidth:'280px', lineHeight:'1.6' }}>Khadilkar reference applies to ages 2–18 years. Switch to age ≤ 18 to use the growth engine.</div>
+                          </div>
+                        ) : (
+                          <div style={{ marginTop:'4px' }}>
+                            {/* Summary strip */}
+                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginBottom:'16px', marginTop:'12px' }}>
+                              <div style={{ background: growthMetrics.stuntingVariant === 'low' ? '#f0fdf4' : growthMetrics.stuntingVariant === 'mid' ? '#fffbeb' : '#fff1f2', borderRadius:'12px', padding:'14px 16px', border:`1px solid ${growthMetrics.stuntingVariant === 'low' ? '#bbf7d0' : growthMetrics.stuntingVariant === 'mid' ? '#fde68a' : '#fecaca'}` }}>
+                                <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.06em', color:'#94a3b8', marginBottom:'4px' }}>Height Status</div>
+                                <div style={{ fontSize:'15px', fontWeight:'900', color: growthMetrics.stuntingVariant === 'low' ? '#16a34a' : growthMetrics.stuntingVariant === 'mid' ? '#d97706' : '#dc2626' }}>{growthMetrics.stuntingClass}</div>
+                                <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px' }}>{growthMetrics.heightPct.toFixed(1)}th percentile</div>
+                              </div>
+                              <div style={{ background: growthMetrics.underweightVariant === 'low' ? '#f0fdf4' : growthMetrics.underweightVariant === 'mid' ? '#fffbeb' : '#fff1f2', borderRadius:'12px', padding:'14px 16px', border:`1px solid ${growthMetrics.underweightVariant === 'low' ? '#bbf7d0' : growthMetrics.underweightVariant === 'mid' ? '#fde68a' : '#fecaca'}` }}>
+                                <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.06em', color:'#94a3b8', marginBottom:'4px' }}>Weight Status</div>
+                                <div style={{ fontSize:'15px', fontWeight:'900', color: growthMetrics.underweightVariant === 'low' ? '#16a34a' : growthMetrics.underweightVariant === 'mid' ? '#d97706' : '#dc2626' }}>{growthMetrics.underweightClass}</div>
+                                <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px' }}>{growthMetrics.weightPct.toFixed(1)}th percentile</div>
+                              </div>
+                            </div>
+
+                            {/* Metric rows */}
+                            <MetricRow label="Chronological Age" value={evalAge.toFixed(1)} unit="yrs" />
+                            <MetricRow label="Expected Weight for Age" value={growthMetrics.ref.wtMean.toFixed(1)} unit="kg" sub={`Actual: ${evalWeight} kg`} />
+                            <MetricRow label="Expected Height for Age" value={growthMetrics.ref.htMean.toFixed(1)} unit="cm" sub={`Actual: ${evalHeight} cm`} />
+                            <MetricRow label="Height Age (HA)" value={growthMetrics.heightAge.decimal ? growthMetrics.heightAge.decimal.toFixed(1) : "N/A"} unit="yrs equiv." />
+                            <MetricRow label="Weight Age (WA)" value={growthMetrics.weightAge.decimal ? growthMetrics.weightAge.decimal.toFixed(1) : "N/A"} unit="yrs equiv." />
+
+                            {/* Height SDS with bar */}
+                            <div style={{ padding:'14px 0', borderBottom:'1px solid #f1f5f9' }}>
+                              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'10px' }}>
+                                <span style={{ fontSize:'11px', fontWeight:'700', letterSpacing:'0.05em', textTransform:'uppercase', color:'#64748b' }}>Height SDS</span>
+                                <div>
+                                  <span style={{ fontSize:'32px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{growthMetrics.heightZ >= 0 ? '+' : ''}{growthMetrics.heightZ.toFixed(2)}</span>
+                                  <span style={{ fontSize:'11px', color:'#94a3b8', marginLeft:'6px' }}>SD</span>
+                                </div>
+                              </div>
+                              <SDSBar z={growthMetrics.heightZ} />
+                            </div>
+
+                            {/* Weight SDS with bar */}
+                            <div style={{ padding:'14px 0' }}>
+                              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'10px' }}>
+                                <span style={{ fontSize:'11px', fontWeight:'700', letterSpacing:'0.05em', textTransform:'uppercase', color:'#64748b' }}>Weight SDS</span>
+                                <div>
+                                  <span style={{ fontSize:'32px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{growthMetrics.weightZ >= 0 ? '+' : ''}{growthMetrics.weightZ.toFixed(2)}</span>
+                                  <span style={{ fontSize:'11px', color:'#94a3b8', marginLeft:'6px' }}>SD</span>
+                                </div>
+                              </div>
+                              <SDSBar z={growthMetrics.weightZ} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* ══ BONE AGE TAB ══ */}
+                    {activeTab === 'boneage' && (
+                      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+                        <SectionHeader
+                          title="Adult Height Prediction · Bayley-Pinneau"
+                          subtitle="From skeletal (bone) age & current height — contextualized on WHO–IAP Khadilkar reference"
+                          badge={boneMetrics ? `${boneMethod} bone age` : "Enter bone age"}
+                          badgeVariant="info"
+                        />
+
+                        {/* Input row: bone age + method + maturation override */}
+                        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginTop:'16px' }}>
+                          <InputWithUnit
+                            label="Skeletal / Bone Age"
+                            value={boneAge}
+                            onChange={e => setBoneAge(e.target.value === "" ? "" : parseFloat(e.target.value))}
+                            placeholder="e.g. 10.5"
+                            step="0.1"
+                            unit="yrs"
+                            accent="#7c3aed"
+                          />
+                          <div>
+                            <label className="field-label">Reading Method</label>
+                            <div style={{ display:'flex', gap:'8px' }}>
+                              <button className={`gender-btn ${boneMethod === 'GP' ? 'gender-active' : 'gender-inactive'}`} onClick={() => setBoneMethod('GP')}>Greulich-Pyle</button>
+                              <button className={`gender-btn ${boneMethod === 'TW3' ? 'gender-active' : 'gender-inactive'}`} onClick={() => setBoneMethod('TW3')}>TW3</button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Maturation category selector */}
+                        <div style={{ marginTop:'12px' }}>
+                          <label className="field-label">Maturation Table {boneCategory === 'auto' && boneMetrics ? `(auto → ${boneMetrics.autoCat})` : ''}</label>
+                          <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
+                            {[['auto','Auto'],['average','Average'],['accelerated','Accelerated'],['retarded','Delayed']].map(([v, lbl]) => (
+                              <button key={v} onClick={() => setBoneCategory(v)}
+                                className={`gender-btn ${boneCategory === v ? 'gender-active' : 'gender-inactive'}`}
+                                style={{ flex:'1 1 0', minWidth:'70px' }}>{lbl}</button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Parental heights */}
+                        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginTop:'12px' }}>
+                          <InputWithUnit label="Father's Height" value={fatherHeight} onChange={e => setFatherHeight(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="cm (optional)" unit="cm" />
+                          <InputWithUnit label="Mother's Height" value={motherHeight} onChange={e => setMotherHeight(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="cm (optional)" unit="cm" />
+                        </div>
+
+                        {/* X-ray upload */}
+                        <div style={{ marginTop:'12px' }}>
+                          <label className="field-label">Hand–Wrist X-ray (left hand) · optional</label>
+                          <div style={{ display:'flex', gap:'12px', alignItems:'flex-start' }}>
+                            <label style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'6px', padding:'18px', border:'1.5px dashed #c7d2fe', borderRadius:'12px', background:'#f5f3ff', cursor:'pointer', textAlign:'center' }}>
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                              <span style={{ fontSize:'11px', fontWeight:'700', color:'#7c3aed' }}>{xrayImage ? 'Replace image' : 'Upload X-ray to auto-estimate'}</span>
+                              <span style={{ fontSize:'10px', color:'#a78bfa' }}>Runs locally on this computer · research baseline · verify</span>
+                              <input type="file" accept="image/*" style={{ display:'none' }}
+                                onChange={e => {
+                                  const f = e.target.files && e.target.files[0];
+                                  if (!f) return;
+                                  const r = new FileReader();
+                                  r.onload = ev => setXrayImage(ev.target.result);
+                                  r.readAsDataURL(f);
+                                  analyzeXray(f);
+                                }} />
+                            </label>
+                            {xrayImage && (
+                              <div style={{ position:'relative', flexShrink:0 }}>
+                                <img src={xrayImage} alt="bone age x-ray" style={{ width:'120px', height:'120px', objectFit:'cover', borderRadius:'12px', border:'1px solid #e2e8f0', background:'#0f172a' }} />
+                                <button onClick={() => { setXrayImage(null); setAiStatus('idle'); setAiResult(null); }} style={{ position:'absolute', top:'-8px', right:'-8px', width:'22px', height:'22px', borderRadius:'50%', background:'#dc2626', color:'white', border:'2px solid white', fontSize:'12px', fontWeight:'800', cursor:'pointer', lineHeight:1 }}>×</button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* AI analysis status / result */}
+                        {aiStatus === 'analyzing' && (
+                          <div style={{ marginTop:'12px', display:'flex', alignItems:'center', gap:'10px', background:'#eef2ff', border:'1px solid #c7d2fe', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#4338ca', fontWeight:'600' }}>
+                            <span className="pulse-badge" style={{ width:'10px', height:'10px', borderRadius:'50%', background:'#6366f1', display:'inline-block' }}></span>
+                            Analyzing X-ray locally… checking image quality and estimating bone age.
+                          </div>
+                        )}
+                        {aiStatus === 'done' && aiResult && (
+                          <div style={{ marginTop:'12px', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'10px', padding:'12px 14px' }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px' }}>
+                              <span style={{ fontSize:'12px', fontWeight:'800', color:'#16a34a' }}>
+                                Local estimate: bone age {typeof aiResult.bone_age_years === 'number' ? aiResult.bone_age_years.toFixed(1) : '—'} yr
+                              </span>
+                              {aiResult.confidence && <StatusBadge text={`${aiResult.confidence} confidence`} variant={aiResult.confidence === 'high' ? 'low' : aiResult.confidence === 'moderate' ? 'mid' : 'high'} />}
+                            </div>
+                            {aiResult.key_findings && <div style={{ fontSize:'11px', color:'#15803d', marginTop:'6px', lineHeight:'1.5' }}>{aiResult.key_findings}</div>}
+                            {aiResult.image_quality && aiResult.image_quality !== 'adequate' && (
+                              <div style={{ fontSize:'11px', color:'#b45309', marginTop:'4px', fontWeight:'700' }}>⚠ Image quality: {aiResult.image_quality}</div>
+                            )}
+                            <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'6px' }}>
+                              {aiResult.model ? `${aiResult.model} · ` : ''}Auto-filled above — edit after clinician review. {aiResult.disclaimer || 'Local research estimate, verify clinically.'}
+                            </div>
+                          </div>
+                        )}
+                        {aiStatus === 'error' && aiResult && (
+                          <div style={{ marginTop:'12px', background:'#fff1f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'12px 14px', fontSize:'11px', color:'#b91c1c', lineHeight:'1.6' }}>
+                            <strong>Local auto-read unavailable.</strong> {aiResult.message} You can still enter the bone age manually above.
+                          </div>
+                        )}
+
+                        {!boneMetrics ? (
+                          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, gap:'12px', padding:'36px 0', textAlign:'center' }}>
+                            <div style={{ width:'52px', height:'52px', borderRadius:'50%', background:'#f5f3ff', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><path d="M18 8a6 6 0 0 0-9.33-5"/><path d="M6 16a6 6 0 0 0 9.33 5"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
+                            </div>
+                            <div style={{ fontSize:'13px', fontWeight:'700', color:'#64748b' }}>Enter a bone age & height to predict adult height</div>
+                            <div style={{ fontSize:'12px', color:'#94a3b8', maxWidth:'320px', lineHeight:'1.6' }}>Read the left hand–wrist film (Greulich-Pyle atlas or TW3 RUS score), then type the skeletal age above. Height is taken from Demographics.</div>
+                          </div>
+                        ) : (
+                          <div>
+                            {boneMetrics.outOfRange && (
+                              <div style={{ marginTop:'14px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#92400e', lineHeight:'1.6' }}>
+                                ⚠ Bone age is outside the Bayley-Pinneau table range — the nearest tabulated value is used (extrapolation).
+                              </div>
+                            )}
+
+                            {/* Predicted adult height hero */}
+                            <div style={{ background:'linear-gradient(135deg,#f5f3ff,#eef2ff)', border:'1.5px solid #ddd6fe', borderRadius:'16px', padding:'24px', marginTop:'16px', display:'flex', justifyContent:'space-between', alignItems:'center', gap:'16px', flexWrap:'wrap' }}>
+                              <div>
+                                <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.08em', color:'#7c3aed', marginBottom:'8px' }}>Predicted Adult Height</div>
+                                <div style={{ display:'flex', alignItems:'baseline', gap:'10px' }}>
+                                  <span style={{ fontSize:'52px', fontWeight:'900', color:'#5b21b6', lineHeight:1 }}>{boneMetrics.pah.toFixed(1)}</span>
+                                  <span style={{ fontSize:'13px', color:'#7c3aed', fontWeight:'600' }}>cm</span>
+                                </div>
+                                <div style={{ fontSize:'11px', color:'#8b5cf6', marginTop:'4px' }}>
+                                  ≈ {Math.floor(boneMetrics.pah/30.48)}′{Math.round((boneMetrics.pah/2.54)%12)}″ · {boneMetrics.remaining.toFixed(1)} cm left to grow
+                                </div>
+                              </div>
+                              <div style={{ textAlign:'right' }}>
+                                <StatusBadge text={`${boneMetrics.category} table`} variant="info" />
+                                <div style={{ marginTop:'10px', fontSize:'12px', color:'#7c3aed', fontWeight:'700' }}>{boneMetrics.pct.toFixed(1)}% of adult height reached</div>
+                                <div style={{ fontSize:'11px', color:'#a78bfa', marginTop:'2px' }}>at bone age {boneMetrics.ba.toFixed(1)} yr</div>
+                              </div>
+                            </div>
+
+                            {/* Khadilkar context strip */}
+                            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginTop:'16px' }}>
+                              <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e8ecf0' }}>
+                                <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Adult Height on Khadilkar</div>
+                                <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
+                                  <span style={{ fontSize:'26px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{boneMetrics.pahZ >= 0 ? '+' : ''}{boneMetrics.pahZ.toFixed(2)}</span>
+                                  <span style={{ fontSize:'12px', color:'#94a3b8' }}>SDS</span>
+                                </div>
+                                <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{boneMetrics.pahPct.toFixed(1)}th percentile · vs {evalGender === 'boys' ? 'male' : 'female'} adult ({boneMetrics.adult[0]} cm)</div>
+                              </div>
+                              <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e8ecf0' }}>
+                                <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Bone Age vs Chronological</div>
+                                <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
+                                  <span style={{ fontSize:'26px', fontWeight:'900', color: Math.abs(boneMetrics.diff) > 2 ? '#d97706' : '#1e293b', lineHeight:1 }}>{boneMetrics.diff >= 0 ? '+' : ''}{boneMetrics.diff.toFixed(1)}</span>
+                                  <span style={{ fontSize:'12px', color:'#94a3b8' }}>yr</span>
+                                </div>
+                                <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{boneMetrics.diff > 1 ? 'Advanced maturation' : boneMetrics.diff < -1 ? 'Delayed maturation' : 'Concordant with age'}</div>
+                              </div>
+                            </div>
+
+                            {/* Mid-parental target */}
+                            {boneMetrics.mph !== null ? (
+                              <div style={{ marginTop:'16px', background:'#f8fafc', borderRadius:'12px', padding:'16px', border:'1px solid #e2e8f0' }}>
+                                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'10px' }}>
+                                  <span style={{ fontSize:'11px', fontWeight:'700', letterSpacing:'0.05em', textTransform:'uppercase', color:'#64748b' }}>Mid-Parental Target Height</span>
+                                  <div>
+                                    <span style={{ fontSize:'24px', fontWeight:'900', color:'#1e293b' }}>{boneMetrics.mph.toFixed(1)}</span>
+                                    <span style={{ fontSize:'11px', color:'#94a3b8', marginLeft:'5px' }}>cm</span>
+                                  </div>
+                                </div>
+                                {/* target channel bar */}
+                                {(() => {
+                                  const lo = boneMetrics.mphLow, hi = boneMetrics.mphHigh;
+                                  const span = hi - lo;
+                                  const pos = Math.min(Math.max(((boneMetrics.pah - lo) / span) * 100, -8), 108);
+                                  return (
+                                    <div>
+                                      <div style={{ position:'relative', height:'10px', borderRadius:'99px', background:'#e9d5ff' }}>
+                                        <div style={{ position:'absolute', top:'-3px', left:`${Math.min(Math.max(pos,1),99)}%`, width:'16px', height:'16px', borderRadius:'50%', background:'white', border:'3px solid #7c3aed', transform:'translateX(-50%)', boxShadow:'0 1px 4px rgba(0,0,0,0.2)' }}></div>
+                                      </div>
+                                      <div style={{ display:'flex', justifyContent:'space-between', marginTop:'8px', fontSize:'10px', fontWeight:'700', color:'#94a3b8' }}>
+                                        <span>{lo.toFixed(0)} cm</span>
+                                        <span style={{ color: boneMetrics.withinTarget ? '#16a34a' : '#d97706' }}>{boneMetrics.withinTarget ? 'Prediction within target range ✓' : 'Prediction outside target range'}</span>
+                                        <span>{hi.toFixed(0)} cm</span>
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
+                            ) : (
+                              <div style={{ marginTop:'16px', background:'#f8fafc', borderRadius:'10px', padding:'12px 14px', fontSize:'11px', color:'#94a3b8', lineHeight:'1.6', border:'1px solid #e2e8f0' }}>
+                                Add both parents' heights to compare the prediction with the mid-parental target channel.
+                              </div>
+                            )}
+
+                            {/* Detail rows */}
+                            <MetricRow label="Current Height" value={evalHeight.toFixed(1)} unit="cm" sub={`Chronological age ${evalAge.toFixed(1)} yr`} />
+                            <MetricRow label="% Adult Height Attained" value={boneMetrics.pct.toFixed(1)} unit="%" sub={`Bayley-Pinneau · ${boneMetrics.category} maturer`} />
+                          </div>
+                        )}
+
+                        {/* Method note */}
+                        <div style={{ marginTop:'16px', background:'#eef2ff', border:'1px solid #c7d2fe', borderRadius:'10px', padding:'12px 14px', fontSize:'11px', color:'#4338ca', lineHeight:'1.7' }}>
+                          <strong>How to read the film accurately:</strong> Use a <strong>left</strong> hand–wrist PA radiograph. GP = overall atlas match; TW3 = score the 13 RUS bones (radius, ulna, metacarpals 1·3·5, proximal/middle/distal phalanges 1·3·5) A→I, sum to SMS, convert to bone age. Two independent reads ±0.5 yr is acceptable. The Bayley-Pinneau % tables are GP-based — if you read TW3, the prediction is approximate.
+                        </div>
+
+                        <div style={{ marginTop:'auto', paddingTop:'18px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
+                          Bayley &amp; Pinneau (J Pediatr 1952) tables per Greulich-Pyle Atlas 2nd ed. · Prediction SD ≈ ±4–6 cm (best at bone age 10–14 yr). Adult-height SDS/percentile uses Khadilkar (WHO–IAP) 18-yr reference. Decision support only.
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ══ RENAL TAB ══ */}
+                    {activeTab === 'renal' && (
+                      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+                        <SectionHeader
+                          title="Renal Workspace · eGFR"
+                          subtitle={`Multi-equation clearance monitoring · ${renalMetrics.formulaName}`}
+                          badge={!hasManualRenal ? "Baseline Active" : null}
+                          badgeVariant="info"
+                        />
+
+                        {/* eGFR hero */}
+                        <div style={{ background:'linear-gradient(135deg,#eef2ff,#f5f3ff)', border:'1.5px solid #c7d2fe', borderRadius:'16px', padding:'24px', marginTop:'16px', display:'flex', justifyContent:'space-between', alignItems:'center', gap:'16px', flexWrap:'wrap' }}>
+                          <div>
+                            <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.08em', color:'#6366f1', marginBottom:'8px' }}>Estimated GFR</div>
+                            <div style={{ display:'flex', alignItems:'baseline', gap:'10px' }}>
+                              <span style={{ fontSize:'52px', fontWeight:'900', color:'#3730a3', lineHeight:1 }}>{renalMetrics.egfr.toFixed(1)}</span>
+                              <span style={{ fontSize:'13px', color:'#6366f1', fontWeight:'600' }}>mL/min/1.73 m²</span>
+                            </div>
+                            <div style={{ fontSize:'11px', color:'#818cf8', marginTop:'4px' }}>via {renalMetrics.formulaName}</div>
+                          </div>
+                          <div style={{ textAlign:'right' }}>
+                            <StatusBadge text={`Stage ${renalMetrics.ckdStage} · ${renalMetrics.ckdStageDesc}`} variant={renalMetrics.stageVariant} />
+                            <div style={{ marginTop:'10px', fontSize:'11px', color:'#6366f1', fontWeight:'600' }}>
+                              {renalMetrics.isPediatric ? '▸ Pediatric Mode' : '▸ Adult Mode'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* CKD Stage chips */}
+                        <div style={{ marginTop:'16px' }}>
+                          <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'8px' }}>KDIGO CKD Stage Map</div>
+                          <div className="ckd-stage">
+                            {[
+                              ['G1','≥ 90','Normal'],
+                              ['G2','60–89','Mild ↓'],
+                              ['G3','30–59','Mod ↓'],
+                              ['G4','15–29','Severe ↓'],
+                              ['G5','< 15','Failure'],
+                            ].map(([stage, range, desc]) => (
+                              <div key={stage} className={`ckd-chip ${renalMetrics.ckdStage === stage ? `ckd-active-${stage.toLowerCase()}` : 'ckd-inactive'}`}>
+                                <div style={{ fontWeight:'900', fontSize:'11px' }}>{stage}</div>
+                                <div style={{ fontSize:'9px', marginTop:'2px', fontWeight:'600', opacity:0.85 }}>{range}</div>
+                                <div style={{ fontSize:'9px', marginTop:'1px', opacity:0.7 }}>{desc}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Alternate equations */}
+                        {!renalMetrics.isPediatric && (
+                          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginTop:'16px' }}>
+                            <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px', border:'1px solid #e2e8f0' }}>
+                              <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'6px' }}>Cockcroft-Gault CrCl</div>
+                              <div style={{ fontSize:'22px', fontWeight:'900', color:'#334155' }}>{renalMetrics.cg ? renalMetrics.cg.toFixed(1) : '—'}</div>
+                              <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>mL/min</div>
+                            </div>
+                            <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px', border:'1px solid #e2e8f0' }}>
+                              <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'6px' }}>MDRD Clearance</div>
+                              <div style={{ fontSize:'22px', fontWeight:'900', color:'#334155' }}>{renalMetrics.mdrd ? renalMetrics.mdrd.toFixed(1) : '—'}</div>
+                              <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>mL/min/1.73 m²</div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div style={{ marginTop:'auto', paddingTop:'20px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
+                          KDIGO G1 ≥ 90 · G2 60–89 · G3 30–59 · G4 15–29 · G5 &lt; 15 mL/min/1.73 m²
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ══ LIVER TAB ══ */}
+                    {activeTab === 'liver' && (
+                      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+                        <SectionHeader
+                          title="Liver Fibrosis · FIB-4 Index"
+                          subtitle="Non-invasive hepatic fibrosis staging — Age · AST · ALT · Platelets"
+                          badge={!hasManualLiver ? "Baseline Active" : null}
+                          badgeVariant="info"
+                        />
+
+                        {/* FIB-4 hero */}
+                        <div style={{ background:'#f8fafc', border:'1.5px solid #e2e8f0', borderRadius:'16px', padding:'24px', marginTop:'16px', display:'flex', justifyContent:'space-between', alignItems:'center', gap:'16px', flexWrap:'wrap' }}>
+                          <div>
+                            <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.08em', color:'#64748b', marginBottom:'8px' }}>FIB-4 Score</div>
+                            <div style={{ display:'flex', alignItems:'baseline', gap:'10px' }}>
+                              <span style={{ fontSize:'52px', fontWeight:'900', color:'#0f172a', lineHeight:1 }}>{liverMetrics.fib4.toFixed(2)}</span>
+                              <span style={{ fontSize:'13px', color:'#64748b', fontWeight:'600' }}>index</span>
+                            </div>
+                            <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>Formula: (Age × AST) / (Platelets × √ALT)</div>
+                          </div>
+                          <div>
+                            <StatusBadge text={liverMetrics.interpretation} variant={liverMetrics.variant} />
+                            <div style={{ fontSize:'12px', color:'#64748b', marginTop:'10px', maxWidth:'200px', lineHeight:'1.5' }}>{liverMetrics.details}</div>
+                          </div>
+                        </div>
+
+                        {/* FIB-4 scale bar */}
+                        <div style={{ marginTop:'20px', background:'#f8fafc', borderRadius:'12px', padding:'16px', border:'1px solid #e2e8f0' }}>
+                          <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'12px' }}>Risk Scale</div>
+                          <div style={{ position:'relative', height:'10px', borderRadius:'99px', background:'linear-gradient(to right, #22c55e 0%, #22c55e 48%, #eab308 48%, #eab308 74%, #ef4444 74%, #ef4444 100%)' }}>
+                            {/* marker at FIB-4 value (max ~5) */}
+                            <div style={{ position:'absolute', top:'-4px', left:`${Math.min(Math.max((liverMetrics.fib4/5)*100,1),99)}%`, width:'18px', height:'18px', borderRadius:'50%', background:'white', border:'3px solid #334155', transform:'translateX(-50%)', boxShadow:'0 1px 4px rgba(0,0,0,0.2)' }}></div>
+                          </div>
+                          <div style={{ display:'flex', justifyContent:'space-between', marginTop:'8px', fontSize:'10px', fontWeight:'700', color:'#94a3b8' }}>
+                            <span>0</span>
+                            <span style={{ color:'#16a34a' }}>Low &lt; 1.30</span>
+                            <span style={{ color:'#d97706' }}>Indeterminate 1.30–2.67</span>
+                            <span style={{ color:'#dc2626' }}>High &gt; 2.67</span>
+                          </div>
+                        </div>
+
+                        {evalAge < 18 && (
+                          <div style={{ marginTop:'12px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#92400e', lineHeight:'1.6' }}>
+                            ⚠ FIB-4 is not validated in pediatric cohorts (age &lt; 18). Interpret with caution.
+                          </div>
+                        )}
+
+                        <div style={{ marginTop:'auto', paddingTop:'20px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
+                          FIB-4 ranges — Low: &lt; 1.30 · Indeterminate: 1.30–2.67 · High: ≥ 2.67
+                          {evalAge > 65 ? '  (Age > 65 — indeterminate threshold adjusted to 2.0)' : ''}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ══ FRAX TAB ══ */}
+                    {activeTab === 'frax' && (
+                      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+                        <SectionHeader
+                          title="FRAX Plus · 10-Year Fracture Risk"
+                          subtitle="India (Asian) · No femoral neck BMD · Sheffield intervention thresholds"
+                          badge={!hasManualGrowth ? "Baseline Active" : null}
+                          badgeVariant="info"
+                        />
+
+                        {evalAge < 40 && (
+                          <div style={{ marginTop:'12px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#92400e', lineHeight:'1.6' }}>
+                            ⚠ FRAX is calibrated for ages 40–90. Current age adjusted to the age-40 baseline model.
+                          </div>
+                        )}
+
+                        {/* MOF card */}
+                        <div style={{ background:'#f8fafc', border:'1.5px solid #e2e8f0', borderRadius:'16px', padding:'22px', marginTop:'16px' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'16px', flexWrap:'wrap', gap:'8px' }}>
+                            <div>
+                              <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'6px' }}>Major Osteoporotic Fracture</div>
+                              <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
+                                <span style={{ fontSize:'44px', fontWeight:'900', color: fraxMetrics.isHighMof ? '#dc2626' : '#16a34a', lineHeight:1 }}>{fraxMetrics.mofProb.toFixed(1)}</span>
+                                <span style={{ fontSize:'18px', fontWeight:'700', color:'#64748b' }}>%</span>
+                              </div>
+                              <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'3px' }}>10-yr probability — spine, hip, forearm, shoulder</div>
+                            </div>
+                            <StatusBadge text={fraxMetrics.isHighMof ? 'High Risk ≥ 20%' : 'Low Risk < 20%'} variant={fraxMetrics.isHighMof ? 'high' : 'low'} />
+                          </div>
+                          <ProbBar prob={fraxMetrics.mofProb} maxProb={40} threshold={20} />
+                        </div>
+
+                        {/* HF card */}
+                        <div style={{ background:'#f8fafc', border:'1.5px solid #e2e8f0', borderRadius:'16px', padding:'22px', marginTop:'12px' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'16px', flexWrap:'wrap', gap:'8px' }}>
+                            <div>
+                              <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'6px' }}>Hip Fracture</div>
+                              <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
+                                <span style={{ fontSize:'44px', fontWeight:'900', color: fraxMetrics.isHighHf ? '#dc2626' : '#16a34a', lineHeight:1 }}>{fraxMetrics.hfProb.toFixed(1)}</span>
+                                <span style={{ fontSize:'18px', fontWeight:'700', color:'#64748b' }}>%</span>
+                              </div>
+                              <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'3px' }}>10-yr probability of hip fracture</div>
+                            </div>
+                            <StatusBadge text={fraxMetrics.isHighHf ? 'High Risk ≥ 3%' : 'Low Risk < 3%'} variant={fraxMetrics.isHighHf ? 'high' : 'low'} />
+                          </div>
+                          <ProbBar prob={fraxMetrics.hfProb} maxProb={15} threshold={3} />
+                        </div>
+
+                        <div style={{ marginTop:'auto', paddingTop:'20px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
+                          Sheffield thresholds: Treatment recommended when MOF ≥ 20% or Hip Fracture ≥ 3% (10-year absolute risk).
+                        </div>
+                      </div>
+                    )}
+
+                    {/* ══ TIMELINE TAB ══ */}
+                    {activeTab === 'timeline' && (
+                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'16px' }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', paddingBottom:'14px', borderBottom:'1.5px solid #f1f5f9' }}>
+                          <div>
+                            <h3 style={{ fontSize:'13px', fontWeight:'800', color:'#334155' }}>CKD Progression Ledger</h3>
+                            <p style={{ fontSize:'11px', color:'#94a3b8', marginTop:'3px' }}>Session snapshots — chronicity assessment over ≥ 90 days</p>
+                          </div>
+                          <div style={{ display:'flex', gap:'8px' }}>
+                            <button onClick={logCurrentData} style={{ padding:'7px 16px', background:'#4f46e5', color:'white', border:'none', borderRadius:'9px', fontSize:'12px', fontWeight:'700', cursor:'pointer', boxShadow:'0 1px 4px rgba(79,70,229,0.3)', transition:'background 0.15s' }}
+                              onMouseEnter={e=>e.target.style.background='#4338ca'} onMouseLeave={e=>e.target.style.background='#4f46e5'}>
+                              + Log Snapshot
+                            </button>
+                            {timeline.length > 0 && (
+                              <button onClick={() => setTimeline([])} style={{ padding:'7px 14px', background:'white', color:'#64748b', border:'1.5px solid #e2e8f0', borderRadius:'9px', fontSize:'12px', fontWeight:'600', cursor:'pointer', transition:'all 0.15s' }}
+                                onMouseEnter={e=>e.target.style.background='#f8fafc'} onMouseLeave={e=>e.target.style.background='white'}>
+                                Reset
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Chronicity status */}
+                        <div style={{ padding:'14px 16px', borderRadius:'12px', fontSize:'12px', lineHeight:'1.6' }} className={chronicityStatus.bgClass}>
+                          <span style={{ fontWeight:'800', fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'3px' }}>Chronicity Assessment</span>
+                          {chronicityStatus.status}
+                        </div>
+
+                        {/* GFR sparkline */}
+                        {timeline.length > 0 && (
+                          <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'16px', border:'1px solid #e2e8f0' }}>
+                            <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'10px' }}>eGFR Timeline</div>
+                            <svg width="100%" height="100" viewBox="0 0 500 100" preserveAspectRatio="none" style={{ borderRadius:'8px', background:'white', border:'1px solid #f1f5f9' }}>
+                              <line x1="0" y1="22" x2="500" y2="22" stroke="#f1f5f9" strokeWidth="1.5"/>
+                              <line x1="0" y1="50" x2="500" y2="50" stroke="#f1f5f9" strokeWidth="1.5"/>
+                              <line x1="0" y1="78" x2="500" y2="78" stroke="#f1f5f9" strokeWidth="1.5"/>
+                              {(() => {
+                                const sorted = [...timeline].sort((a,b) => new Date(a.date)-new Date(b.date));
+                                const pts = sorted.map((e,i) => ({
+                                  x: sorted.length > 1 ? (i/(sorted.length-1))*440+30 : 250,
+                                  y: 90 - ((Math.min(e.egfr,150)/150)*70),
+                                  e
+                                }));
+                                return (
+                                  <g>
+                                    {pts.length > 1 && <polyline fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={pts.map(p=>`${p.x},${p.y}`).join(' ')} />}
+                                    {pts.map((p,i) => (
+                                      <g key={p.e.id}>
+                                        <circle cx={p.x} cy={p.y} r="4" fill="#4f46e5" />
+                                        <text x={p.x} y={p.y-9} textAnchor="middle" fill="#4338ca" fontSize="9" fontWeight="bold">{p.e.egfr}</text>
+                                        <text x={p.x} y="96" textAnchor="middle" fill="#94a3b8" fontSize="8">{p.e.date.slice(5)}</text>
+                                      </g>
+                                    ))}
+                                  </g>
+                                );
+                              })()}
+                            </svg>
+                          </div>
+                        )}
+
+                        {/* Table */}
+                        {timeline.length === 0 ? (
+                          <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 0', gap:'12px', textAlign:'center' }}>
+                            <div style={{ width:'52px', height:'52px', borderRadius:'50%', background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                            </div>
+                            <div style={{ fontSize:'13px', fontWeight:'700', color:'#64748b' }}>No snapshots logged yet</div>
+                            <div style={{ fontSize:'12px', color:'#94a3b8' }}>Enter patient data and click "Log Snapshot" to begin tracking.</div>
+                          </div>
+                        ) : (
+                          <div style={{ overflowX:'auto', borderRadius:'12px', border:'1px solid #e2e8f0' }} className="custom-scrollbar">
+                            <table style={{ width:'100%', borderCollapse:'collapse', minWidth:'580px', fontSize:'12px' }}>
+                              <thead>
+                                <tr style={{ background:'#f8fafc', borderBottom:'1px solid #e2e8f0' }}>
+                                  {['Date','Age','Ht / Wt','SCr','eGFR','ACR','FIB-4'].map(h => (
+                                    <th key={h} style={{ padding:'10px 12px', textAlign:'left', fontWeight:'800', color:'#64748b', fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {timeline.map((item, idx) => (
+                                  <tr key={item.id} style={{ borderBottom:'1px solid #f1f5f9', background: idx % 2 === 0 ? 'white' : '#fafbfc' }}>
+                                    <td style={{ padding:'10px 12px', fontWeight:'700', color:'#1e293b' }}>{item.date}</td>
+                                    <td style={{ padding:'10px 12px', color:'#475569' }}>{item.age.toFixed(1)} y</td>
+                                    <td style={{ padding:'10px 12px', color:'#64748b' }}>{item.height} / {item.weight}</td>
+                                    <td style={{ padding:'10px 12px', fontWeight:'700', color:'#475569' }}>{item.creatinine}</td>
+                                    <td style={{ padding:'10px 12px', fontWeight:'800', color:'#4f46e5' }}>{item.egfr}</td>
+                                    <td style={{ padding:'10px 12px' }}>
+                                      <span style={{ padding:'2px 8px', borderRadius:'99px', fontSize:'10px', fontWeight:'700', background:'#eef2ff', color:'#4338ca', border:'1px solid #c7d2fe' }}>{item.albuminuria}</span>
+                                    </td>
+                                    <td style={{ padding:'10px 12px', fontWeight:'700', color:'#059669' }}>{item.fib4 !== null ? item.fib4 : '—'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  </div>
+
+                  {/* ── General Health Strip ── */}
+                  <div className="card" style={{ padding:'20px' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'14px', paddingBottom:'12px', borderBottom:'1px solid #f1f5f9' }}>
+                      <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#0891b2', flexShrink:0 }}></div>
+                      <span className="section-label">General Health Indicators</span>
+                    </div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px' }}>
+                      <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e8ecf0' }}>
+                        <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Body Mass Index</div>
+                        <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
+                          <span style={{ fontSize:'28px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{generalMetrics.bmi.toFixed(1)}</span>
+                          <span style={{ fontSize:'12px', color:'#94a3b8' }}>kg/m²</span>
+                        </div>
+                        <div style={{ marginTop:'6px' }}>
+                          <StatusBadge text={generalMetrics.bmiCat} variant={generalMetrics.bmiVariant} />
+                        </div>
+                        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'4px' }}>Asian cutoffs: Normal &lt; 23, OW ≥ 23, Obese ≥ 27.5</div>
+                      </div>
+                      <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e8ecf0' }}>
+                        <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Mean Arterial Pressure</div>
+                        <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
+                          <span style={{ fontSize:'28px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{generalMetrics.map.toFixed(1)}</span>
+                          <span style={{ fontSize:'12px', color:'#94a3b8' }}>mmHg</span>
+                        </div>
+                        <div style={{ marginTop:'6px' }}>
+                          <StatusBadge text={generalMetrics.mapCat} variant={generalMetrics.mapVariant} />
+                        </div>
+                        <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'4px' }}>Normal range: 70–100 mmHg</div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </main>
+
+              {/* ── FOOTER ── */}
+              <footer style={{ borderTop:'1px solid #e8ecf0', background:'white', padding:'14px 24px', textAlign:'center', fontSize:'11px', color:'#94a3b8', fontWeight:'500' }}>
+                Reference: Khadilkar V et al. (2015) Indian Pediatrics · Bayley-Pinneau (1952) / Greulich-Pyle · CKD-EPI 2021 · Modified Bedside Schwartz (2009) · FRAX India Asian · FIB-4 (Sterling et al.) · For clinical decision support only.
+              </footer>
+
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

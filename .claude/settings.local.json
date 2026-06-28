@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.getzenquery.com)",
+      "WebFetch(domain:ajbsr.net)",
+      "WebFetch(domain:bonexpert.com)",
+      "Read(//c/Users/SPANDAN/.claude/projects/C--Users-SPANDAN-Desktop-website/c080d8ad-4e2b-4847-add1-5e664ca09d51/tool-results/**)",
+      "Bash(python -c \"import pypdf; r=pypdf.PdfReader\\('webfetch-1782493311392-igpw7n.pdf'\\); print\\(len\\(r.pages\\)\\); print\\(r.pages[0].extract_text\\(\\)[:1500]\\)\")",
+      "Bash(python -c \"import pdfplumber; print\\('pdfplumber ok'\\)\")",
+      "Bash(python -c \"import fitz; print\\('pymupdf ok'\\)\")",
+      "Bash(pip list *)",
+      "Bash(python -c ' *)"
+    ]
+  }
+}
