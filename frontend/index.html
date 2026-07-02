@@ -154,7 +154,7 @@
     <script src="vendor/babel.min.js"></script>
 
     <script type="text/babel">
-        const { useState, useMemo } = React;
+        const { useState, useMemo, useEffect } = React;
 
         // Vaman Khadilkar 2015 Indian pediatric reference data (2 to 18 Years)
         const GROWTH_REFERENCE = {
@@ -183,45 +183,19 @@
         };
 
         // ═══════════════════════════════════════════════════════════════════════════
-        //  TW3 (Tanner–Whitehouse Mark 3) skeletal maturity framework
+        //  TW3-C RUS (Chinese) skeletal maturity — scoring lives in the BACKEND
         // ═══════════════════════════════════════════════════════════════════════════
-        //  Bayley–Pinneau has been REMOVED. Bone age uses the TW3 RUS method only:
-        //  stage each of the 13 RUS bones A→I, look up its point-score, sum to a
-        //  maturity score (0–1000), then convert the score to a bone age.
+        //  The 13 RUS bones are graded 1–8 by the clinician; the deterministic engine
+        //  (backend/tw3/scoring.py) sums the sex-specific points → RUS maturity score →
+        //  bone age. The frontend NEVER re-implements the scoring: it fetches the bone
+        //  list + allowed grades from /api/bone-age/config and posts confirmed grades to
+        //  /api/bone-age/score (single source of truth — directive §38). The score→age
+        //  curve is currently PROVISIONAL (digitized); the backend flags this.
         //
-        //  SAFETY / LICENSING: the TW3 per-stage point-scores and the RUS-score→bone-age
-        //  conversion are COPYRIGHTED (Tanner, Healy, Goldstein, Cameron — "Assessment of
-        //  Skeletal Maturity and Prediction of Adult Height (TW3 Method)", 2001). They are
-        //  NOT bundled and are NOT invented here. A clinician licensed for TW3 must enter
-        //  them once into TW3_CONFIG below. Until then the app computes the staging
-        //  framework but reports "calibration required" instead of a fabricated bone age.
-        const RUS_BONES = [
-          { key: 'radius', label: 'Radius' },
-          { key: 'ulna',   label: 'Ulna' },
-          { key: 'mc1',    label: 'Metacarpal I' },
-          { key: 'mc3',    label: 'Metacarpal III' },
-          { key: 'mc5',    label: 'Metacarpal V' },
-          { key: 'pp1',    label: 'Prox. phalanx I' },
-          { key: 'pp3',    label: 'Prox. phalanx III' },
-          { key: 'pp5',    label: 'Prox. phalanx V' },
-          { key: 'mp3',    label: 'Mid. phalanx III' },
-          { key: 'mp5',    label: 'Mid. phalanx V' },
-          { key: 'dp1',    label: 'Dist. phalanx I' },
-          { key: 'dp3',    label: 'Dist. phalanx III' },
-          { key: 'dp5',    label: 'Dist. phalanx V' },
-        ];
-        const RUS_STAGES = ['A','B','C','D','E','F','G','H','I'];
-
-        // ── Clinician-supplied calibration (licensed TW3 values go here) ─────────────
-        // stageScores[sex][boneKey][stage] = RUS points for that bone at that stage.
-        // scoreToAge[sex] = ascending [rusScore, boneAgeYears] anchor points.
-        // pctAdultHeight[sex] = ascending [boneAgeYears, %ofAdultHeightAttained] anchors
-        //                       (the skeletal adult-height prediction reference).
-        // Leaving any of these empty disables ONLY the piece that needs it — nothing is
-        // guessed. See README "Calibration required" for how to populate them.
+        //  The skeletal adult-height prediction below still needs a clinician-supplied
+        //  "% of adult height attained by bone age" reference; leaving it empty disables
+        //  ONLY that prediction — nothing is guessed.
         const TW3_CONFIG = {
-          stageScores:   { boys: {}, girls: {} },
-          scoreToAge:    { boys: [], girls: [] },
           pctAdultHeight:{ boys: [], girls: [] },
         };
 
@@ -238,28 +212,6 @@
             }
           }
           return anchors[anchors.length - 1][1];
-        }
-
-        // Sum staged RUS bones → maturity score. Reports whether calibration exists and
-        // whether any staged bone is missing a score.
-        function rusMaturityScore(stages, sex) {
-          const tbl = (TW3_CONFIG.stageScores && TW3_CONFIG.stageScores[sex]) || {};
-          const calibrated = Object.keys(tbl).length > 0;
-          let score = 0, staged = 0, missingScore = false;
-          for (const b of RUS_BONES) {
-            const st = stages[b.key];
-            if (!st) continue;
-            staged++;
-            const pts = tbl[b.key] && tbl[b.key][st];
-            if (typeof pts === 'number') score += pts;
-            else missingScore = true;   // bone staged but no licensed point-score present
-          }
-          return { score, staged, total: RUS_BONES.length, calibrated, missingScore,
-                   complete: staged === RUS_BONES.length };
-        }
-
-        function rusScoreToBoneAge(score, sex) {
-          return interpAnchors(TW3_CONFIG.scoreToAge && TW3_CONFIG.scoreToAge[sex], score);
         }
 
         // Skeletal adult-height prediction: % of adult height attained at this bone age →
@@ -587,9 +539,11 @@
           const [secondaryOsteo, setSecondaryOsteo] = useState("no");
           const [alcohol, setAlcohol] = useState("no");
           const [timeline, setTimeline] = useState([]);
-          const [boneAge, setBoneAge] = useState("");        // TW3 bone age (RUS-derived, AI-suggested, or manual)
-          const [boneAgeSource, setBoneAgeSource] = useState("manual"); // manual | rus | ai
-          const [rusStages, setRusStages] = useState({});    // { boneKey: 'A'..'I' }
+          const [boneAge, setBoneAge] = useState("");        // TW3 bone age (RUS-derived or manual)
+          const [boneAgeSource, setBoneAgeSource] = useState("manual"); // manual | rus
+          const [rusStages, setRusStages] = useState({});    // { boneCode: '1'..'8' }
+          const [tw3Config, setTw3Config] = useState(null);  // /api/bone-age/config
+          const [rusResult, setRusResult] = useState(null);  // /api/bone-age/score
           const [fatherHeight, setFatherHeight] = useState("");
           const [motherHeight, setMotherHeight] = useState("");
 
@@ -744,13 +698,40 @@
             return { bmi, bmiCat, bmiVariant, map, mapCat, mapVariant };
           }, [evalHeight, evalWeight, evalSystolic, evalDiastolic]);
 
-          // TW3 RUS staging → maturity score → (if calibrated) suggested bone age
-          const rusMetrics = useMemo(() => {
-            const m = rusMaturityScore(rusStages, evalGender);
-            const suggestedAge = (m.calibrated && m.complete && !m.missingScore)
-              ? rusScoreToBoneAge(m.score, evalGender) : null;
-            return { ...m, suggestedAge };
+          // TW3-C RUS staging is scored by the BACKEND deterministic engine.
+          // Fetch the bone list + allowed grades once.
+          useEffect(() => {
+            fetch('/api/bone-age/config').then(r => r.json()).then(setTw3Config).catch(() => {});
+          }, []);
+
+          // Re-score whenever the confirmed grades or sex change.
+          useEffect(() => {
+            if ((evalGender !== 'boys' && evalGender !== 'girls') ||
+                Object.keys(rusStages).length === 0) {
+              setRusResult(null);
+              return;
+            }
+            const ctrl = new AbortController();
+            fetch('/api/bone-age/score', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sex: evalGender, stages: rusStages }),
+              signal: ctrl.signal,
+            }).then(r => r.json()).then(setRusResult).catch(() => {});
+            return () => ctrl.abort();
           }, [rusStages, evalGender]);
+
+          // Normalised view of the backend result for the UI.
+          const rusMetrics = useMemo(() => ({
+            staged: rusResult ? rusResult.staged_count : 0,
+            total: (tw3Config && tw3Config.bones ? tw3Config.bones.length : 13),
+            score: rusResult ? rusResult.total_rus_score : 0,
+            calibrated: rusResult ? rusResult.calibrated : (tw3Config ? true : false),
+            complete: rusResult ? rusResult.complete : false,
+            suggestedAge: rusResult ? rusResult.bone_age_years : null,
+            status: rusResult ? rusResult.status : null,
+            provisional: rusResult ? rusResult.provisional_curve : (tw3Config ? tw3Config.provisional_curve : false),
+          }), [rusResult, tw3Config]);
 
           const boneMetrics = useMemo(() => {
             const ba = boneAge !== "" ? parseFloat(boneAge) : null;
@@ -1125,49 +1106,54 @@
                     {activeTab === 'boneage' && (
                       <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
                         <SectionHeader
-                          title="Bone Age & Adult Height · TW3 (RUS)"
-                          subtitle="Tanner–Whitehouse 3 skeletal maturity — Indian (Khadilkar) adult-height context"
-                          badge={boneMetrics && boneMetrics.hasBone ? "TW3 bone age set" : "Stage the film"}
+                          title="Bone Age & Adult Height · TW3-C (RUS)"
+                          subtitle="TW3-C RUS skeletal maturity (grades 1–8) — Indian (Khadilkar) adult-height context"
+                          badge={boneMetrics && boneMetrics.hasBone ? "TW3 bone age set" : "Grade the film"}
                           badgeVariant="info"
                         />
 
-                        {/* TW3 RUS staging grid */}
+                        {/* TW3-C RUS grading grid (bones + allowed grades from the backend) */}
                         <div style={{ marginTop:'16px', background:'#faf5ff', border:'1px solid #e9d5ff', borderRadius:'12px', padding:'16px' }}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', flexWrap:'wrap', gap:'8px' }}>
-                            <span style={{ fontSize:'11px', fontWeight:'800', color:'#6b21a8', textTransform:'uppercase', letterSpacing:'0.05em' }}>TW3 RUS staging · left hand–wrist</span>
-                            <button onClick={() => setRusStages({})} style={{ padding:'5px 12px', background:'white', color:'#7c3aed', border:'1.5px solid #ddd6fe', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>Clear stages</button>
+                            <span style={{ fontSize:'11px', fontWeight:'800', color:'#6b21a8', textTransform:'uppercase', letterSpacing:'0.05em' }}>TW3-C RUS grading · left hand–wrist · grades 1–8</span>
+                            <button onClick={() => setRusStages({})} style={{ padding:'5px 12px', background:'white', color:'#7c3aed', border:'1.5px solid #ddd6fe', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>Clear grades</button>
                           </div>
+                          {!tw3Config ? (
+                            <div style={{ fontSize:'12px', color:'#7c3aed' }}>Loading TW3-C bone list from the local engine…</div>
+                          ) : (
                           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:'8px' }}>
-                            {RUS_BONES.map(b => (
-                              <div key={b.key}>
+                            {tw3Config.bones.map(b => (
+                              <div key={b.code}>
                                 <label style={{ fontSize:'10px', fontWeight:'700', color:'#7c3aed', display:'block', marginBottom:'3px' }}>{b.label}</label>
                                 <select
-                                  value={rusStages[b.key] || ''}
-                                  onChange={e => setRusStages(s => { const n = { ...s }; if (e.target.value) n[b.key] = e.target.value; else delete n[b.key]; return n; })}
+                                  value={rusStages[b.code] || ''}
+                                  onChange={e => setRusStages(s => { const n = { ...s }; if (e.target.value) n[b.code] = e.target.value; else delete n[b.code]; return n; })}
                                   className="input-field" style={{ padding:'7px 8px', width:'100%' }}>
-                                  <option value="">— stage —</option>
-                                  {RUS_STAGES.map(st => <option key={st} value={st}>{st}</option>)}
+                                  <option value="">— grade —</option>
+                                  {b.stages.map(st => <option key={st} value={st}>{st}</option>)}
                                 </select>
                               </div>
                             ))}
                           </div>
+                          )}
 
-                          {/* score + calibration state */}
+                          {/* score state (scoring performed by the backend engine) */}
                           <div style={{ marginTop:'14px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px', fontSize:'12px', fontWeight:'700' }}>
-                            <span style={{ color:'#6b21a8' }}>Bones staged: {rusMetrics.staged}/{rusMetrics.total}</span>
-                            {rusMetrics.calibrated
-                              ? <span style={{ color:'#6b21a8' }}>RUS maturity score: {rusMetrics.score}</span>
-                              : <span style={{ color:'#b45309' }}>⚠ TW3 point-scores not calibrated</span>}
+                            <span style={{ color:'#6b21a8' }}>Bones graded: {rusMetrics.staged}/{rusMetrics.total}</span>
+                            <span style={{ color:'#6b21a8' }}>RUS maturity score: {rusMetrics.score}</span>
                           </div>
 
                           {rusMetrics.suggestedAge !== null ? (
-                            <div style={{ marginTop:'10px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'8px', padding:'10px 12px' }}>
-                              <span style={{ fontSize:'12px', fontWeight:'700', color:'#16a34a' }}>Suggested TW3 bone age: {rusMetrics.suggestedAge.toFixed(1)} yr</span>
+                            <div style={{ marginTop:'10px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'8px', padding:'10px 12px', flexWrap:'wrap', gap:'8px' }}>
+                              <span style={{ fontSize:'12px', fontWeight:'700', color:'#16a34a' }}>
+                                TW3-C bone age: {rusMetrics.suggestedAge.toFixed(1)} yr
+                                {rusMetrics.provisional && <span style={{ fontSize:'10px', fontWeight:'700', color:'#b45309' }}> · provisional curve (±~0.5 yr)</span>}
+                              </span>
                               <button onClick={() => { setBoneAge(Number(rusMetrics.suggestedAge.toFixed(1))); setBoneAgeSource('rus'); }} style={{ padding:'5px 12px', background:'#16a34a', color:'white', border:'none', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>Use this</button>
                             </div>
                           ) : (
-                            <div style={{ marginTop:'10px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'10px 12px', fontSize:'11px', color:'#92400e', lineHeight:'1.6' }}>
-                              <strong>Calibration required.</strong> The TW3 per-stage point-scores and the RUS-score→bone-age table are copyrighted (TW3, 2001) and are not bundled. A TW3-licensed clinician must enter them once into <code>TW3_CONFIG</code> (see README). Until then, enter the TW3 bone age manually below or use the local X-ray estimate as a suggestion.
+                            <div style={{ marginTop:'10px', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'8px', padding:'10px 12px', fontSize:'11px', color:'#1e40af', lineHeight:'1.6' }}>
+                              Grade all {rusMetrics.total} bones to compute the TW3-C bone age.{rusMetrics.status && rusMetrics.staged > 0 ? ` (${rusMetrics.status})` : ''} You can also enter a bone age manually below.
                             </div>
                           )}
                         </div>

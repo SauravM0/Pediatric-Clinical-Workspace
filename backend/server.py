@@ -22,6 +22,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from backend.api_bone_age import router as bone_age_router
+
 APP_ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = APP_ROOT / "frontend"
 INDEX_HTML = FRONTEND_DIR / "index.html"
@@ -72,6 +74,9 @@ if FRONTEND_DIR.exists():
         # Locally vendored JS (React, Babel, Tailwind) referenced as ``vendor/*``
         # from index.html — served here so the app is fully offline.
         app.mount("/vendor", StaticFiles(directory=vendor_dir), name="vendor")
+
+
+app.include_router(bone_age_router)
 
 
 @app.get("/api/health")
