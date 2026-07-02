@@ -1,0 +1,285 @@
+"""Assessment lifecycle service (directive §16, §17, §19).
+
+Pure DB logic, kept out of the HTTP layer. Enforces:
+* one Patient per patient_code,
+* exactly 13 bone rows per assessment,
+* legal state transitions (draft → ready_for_review → approved/rejected;
+  approved → superseded via a new revision),
+* immutability of approved assessments (edits create a new revision),
+* an audit trail for every meaningful action.
+
+Scoring is delegated entirely to the deterministic engine (backend.tw3).
+"""
+
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+from typing import Optional
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from backend.config import APP_VERSION
+from backend.models import AuditEvent, BoneAssessment, Patient, TW3Assessment
+from backend.tw3 import (
+    AssessmentStatus,
+    RUS_BONES,
+    ScoringError,
+    calculate_strict,
+    compute,
+    load_tables,
+)
+
+
+class AssessmentError(ValueError):
+    """Invalid lifecycle operation (maps to HTTP 409/422 at the API layer)."""
+
+
+def _utcnow() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _audit(db: Session, *, assessment_id: Optional[int], patient_id: Optional[int],
+           event_type: str, actor: str, previous=None, new=None,
+           reason: Optional[str] = None, model_version: Optional[str] = None) -> None:
+    db.add(AuditEvent(
+        assessment_id=assessment_id, patient_id=patient_id, event_type=event_type,
+        actor=actor, previous_value=None if previous is None else json.dumps(previous),
+        new_value=None if new is None else json.dumps(new), reason=reason,
+        application_version=APP_VERSION, model_version=model_version,
+    ))
+
+
+def get_or_create_patient(db: Session, *, patient_code: str, sex: str,
+                          name: Optional[str] = None,
+                          date_of_birth: Optional[datetime] = None) -> Patient:
+    patient = db.execute(
+        select(Patient).where(Patient.patient_code == patient_code)
+    ).scalar_one_or_none()
+    if patient is None:
+        patient = Patient(patient_code=patient_code, sex_at_birth=sex,
+                          name=name, date_of_birth=date_of_birth)
+        db.add(patient)
+        db.flush()
+    return patient
+
+
+def create_assessment(db: Session, *, patient_code: str, sex: str,
+                      name: Optional[str] = None,
+                      date_of_birth: Optional[datetime] = None,
+                      chronological_age_months: Optional[int] = None,
+                      actor: str = "local-user") -> TW3Assessment:
+    if sex not in ("boys", "girls"):
+        raise AssessmentError(f"unsupported sex: {sex!r}")
+    patient = get_or_create_patient(db, patient_code=patient_code, sex=sex,
+                                    name=name, date_of_birth=date_of_birth)
+    assessment = TW3Assessment(
+        patient_id=patient.id, sex_at_birth=sex,
+        chronological_age_months=chronological_age_months,
+        assessment_status=AssessmentStatus.DRAFT.value,
+        application_version=APP_VERSION,
+    )
+    db.add(assessment)
+    db.flush()
+    # Create exactly 13 bone rows (directive §9.4).
+    for bone in RUS_BONES:
+        db.add(BoneAssessment(assessment_id=assessment.id, bone_code=bone))
+    _audit(db, assessment_id=assessment.id, patient_id=patient.id,
+           event_type="create", actor=actor, new={"status": "draft", "sex": sex})
+    db.flush()
+    return assessment
+
+
+def get_assessment(db: Session, assessment_id: int) -> TW3Assessment:
+    a = db.get(TW3Assessment, assessment_id)
+    if a is None:
+        raise AssessmentError(f"assessment {assessment_id} not found")
+    return a
+
+
+def _confirmed_stages(a: TW3Assessment) -> dict[str, str]:
+    return {b.bone_code: b.confirmed_stage for b in a.bones if b.confirmed_stage}
+
+
+def set_bone_stage(db: Session, assessment_id: int, bone_code: str, stage: Optional[str],
+                   *, actor: str = "local-user", reason: Optional[str] = None) -> TW3Assessment:
+    a = get_assessment(db, assessment_id)
+    if a.assessment_status == AssessmentStatus.APPROVED.value:
+        raise AssessmentError("assessment is approved and immutable; open a revision to edit")
+    if a.assessment_status == AssessmentStatus.SUPERSEDED.value:
+        raise AssessmentError("assessment is superseded; edit the current revision")
+    if bone_code not in RUS_BONES:
+        raise AssessmentError(f"unknown bone code: {bone_code!r}")
+
+    tables = load_tables()
+    if stage is not None and stage not in tables.stages_for(bone_code):
+        raise AssessmentError(f"invalid grade {stage!r} for {bone_code}")
+
+    row = next((b for b in a.bones if b.bone_code == bone_code), None)
+    if row is None:  # defensive; creation guarantees 13 rows
+        row = BoneAssessment(assessment_id=a.id, bone_code=bone_code)
+        db.add(row)
+    previous = row.confirmed_stage
+    row.doctor_stage = stage
+    row.confirmed_stage = stage
+    if row.ai_suggested_stage and stage and stage != row.ai_suggested_stage:
+        row.doctor_modified_ai_result = True
+        row.modification_reason = reason
+
+    # Editing after a calculation invalidates it: return to draft.
+    if a.assessment_status == AssessmentStatus.READY_FOR_REVIEW.value:
+        a.assessment_status = AssessmentStatus.DRAFT.value
+        a.total_rus_score = a.bone_age_years = a.bone_age_months = None
+        a.bone_age_difference_months = None
+
+    event = "stage_modification" if previous else "stage_assignment"
+    _audit(db, assessment_id=a.id, patient_id=a.patient_id, event_type=event, actor=actor,
+           previous={bone_code: previous}, new={bone_code: stage}, reason=reason)
+    db.flush()
+    return a
+
+
+def calculate(db: Session, assessment_id: int, *, actor: str = "local-user") -> TW3Assessment:
+    a = get_assessment(db, assessment_id)
+    if a.assessment_status == AssessmentStatus.APPROVED.value:
+        raise AssessmentError("assessment is approved; open a revision to recalculate")
+
+    tables = load_tables()
+    stages = _confirmed_stages(a)
+    try:
+        result = calculate_strict(stages, a.sex_at_birth, tables)
+    except ScoringError as exc:
+        raise AssessmentError(str(exc)) from exc
+
+    # Persist per-bone scores.
+    score_by_bone = {b.bone_code: b.score for b in result.bones}
+    for row in a.bones:
+        row.sex_specific_score = score_by_bone.get(row.bone_code)
+
+    a.total_rus_score = result.total_rus_score
+    a.bone_age_months = result.bone_age_months
+    a.bone_age_years = result.bone_age_years
+    a.scoring_table_version = result.table_version
+    a.assessment_method = result.method
+    if a.chronological_age_months is not None and result.bone_age_months is not None:
+        a.bone_age_difference_months = result.bone_age_months - a.chronological_age_months
+    a.assessment_status = AssessmentStatus.READY_FOR_REVIEW.value
+
+    _audit(db, assessment_id=a.id, patient_id=a.patient_id, event_type="calculation",
+           actor=actor, new={"total_rus_score": result.total_rus_score,
+                             "bone_age_months": result.bone_age_months,
+                             "table_version": result.table_version})
+    db.flush()
+    return a
+
+
+def approve(db: Session, assessment_id: int, *, approved_by: str) -> TW3Assessment:
+    a = get_assessment(db, assessment_id)
+    if a.assessment_status != AssessmentStatus.READY_FOR_REVIEW.value:
+        raise AssessmentError(
+            f"cannot approve from status '{a.assessment_status}'; calculate first")
+    a.doctor_approved = True
+    a.approved_by = approved_by
+    a.approved_at = _utcnow()
+    a.assessment_status = AssessmentStatus.APPROVED.value
+    _audit(db, assessment_id=a.id, patient_id=a.patient_id, event_type="approval",
+           actor=approved_by, new={"status": "approved", "bone_age_months": a.bone_age_months})
+    db.flush()
+    return a
+
+
+def reject(db: Session, assessment_id: int, *, actor: str, reason: str) -> TW3Assessment:
+    a = get_assessment(db, assessment_id)
+    if a.assessment_status == AssessmentStatus.APPROVED.value:
+        raise AssessmentError("approved assessment cannot be rejected; open a revision")
+    a.assessment_status = AssessmentStatus.REJECTED.value
+    _audit(db, assessment_id=a.id, patient_id=a.patient_id, event_type="rejection",
+           actor=actor, reason=reason, new={"status": "rejected"})
+    db.flush()
+    return a
+
+
+def revise(db: Session, assessment_id: int, *, actor: str,
+           reason: Optional[str] = None) -> TW3Assessment:
+    """Create a new draft revision from an existing (usually approved) assessment,
+    copying the patient, sex, chronological age and bone grades. The original is
+    marked superseded and never overwritten (directive §19)."""
+    old = get_assessment(db, assessment_id)
+    new = TW3Assessment(
+        patient_id=old.patient_id, radiograph_id=old.radiograph_id,
+        sex_at_birth=old.sex_at_birth,
+        chronological_age_months=old.chronological_age_months,
+        assessment_method=old.assessment_method,
+        assessment_status=AssessmentStatus.DRAFT.value,
+        revision=old.revision + 1, supersedes_id=old.id,
+        application_version=APP_VERSION,
+    )
+    db.add(new)
+    db.flush()
+    for b in old.bones:
+        db.add(BoneAssessment(
+            assessment_id=new.id, bone_code=b.bone_code,
+            doctor_stage=b.doctor_stage, confirmed_stage=b.confirmed_stage,
+            ai_suggested_stage=b.ai_suggested_stage,
+        ))
+    old.assessment_status = AssessmentStatus.SUPERSEDED.value
+    _audit(db, assessment_id=old.id, patient_id=old.patient_id, event_type="reopening",
+           actor=actor, reason=reason, new={"superseded_by_revision": new.revision})
+    _audit(db, assessment_id=new.id, patient_id=new.patient_id, event_type="create",
+           actor=actor, reason=reason, previous={"revision": old.revision},
+           new={"revision": new.revision})
+    db.flush()
+    return new
+
+
+# ── Serialization ─────────────────────────────────────────────────────────────
+
+def assessment_to_dict(db: Session, a: TW3Assessment, *, include_audit: bool = False) -> dict:
+    tables = load_tables()
+    live = compute(_confirmed_stages(a), a.sex_at_birth, tables) if a.bones else None
+    data = {
+        "id": a.id,
+        "patient_id": a.patient_id,
+        "patient_code": a.patient.patient_code if a.patient else None,
+        "sex_at_birth": a.sex_at_birth,
+        "chronological_age_months": a.chronological_age_months,
+        "assessment_method": a.assessment_method,
+        "assessment_status": a.assessment_status,
+        "revision": a.revision,
+        "supersedes_id": a.supersedes_id,
+        "total_rus_score": a.total_rus_score,
+        "bone_age_years": a.bone_age_years,
+        "bone_age_months": a.bone_age_months,
+        "bone_age_difference_months": a.bone_age_difference_months,
+        "scoring_table_version": a.scoring_table_version,
+        "doctor_approved": a.doctor_approved,
+        "approved_by": a.approved_by,
+        "approved_at": a.approved_at.isoformat() if a.approved_at else None,
+        "application_version": a.application_version,
+        "staged_count": live.staged_count if live else 0,
+        "live_status": live.status if live else None,
+        "bones": [
+            {
+                "bone_code": b.bone_code,
+                "confirmed_stage": b.confirmed_stage,
+                "ai_suggested_stage": b.ai_suggested_stage,
+                "sex_specific_score": b.sex_specific_score,
+                "doctor_modified_ai_result": b.doctor_modified_ai_result,
+            }
+            for b in sorted(a.bones, key=lambda x: RUS_BONES.index(x.bone_code))
+        ],
+    }
+    if include_audit:
+        events = db.execute(
+            select(AuditEvent).where(AuditEvent.assessment_id == a.id)
+            .order_by(AuditEvent.timestamp)
+        ).scalars().all()
+        data["audit"] = [
+            {"event_type": e.event_type, "actor": e.actor,
+             "timestamp": e.timestamp.isoformat(), "reason": e.reason,
+             "previous_value": e.previous_value, "new_value": e.new_value,
+             "application_version": e.application_version}
+            for e in events
+        ]
+    return data

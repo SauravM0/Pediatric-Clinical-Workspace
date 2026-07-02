@@ -23,6 +23,9 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from backend.api_bone_age import router as bone_age_router
+from backend.api_assessments import router as assessments_router
+from backend.config import APP_VERSION
+from backend.db import init_db
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = APP_ROOT / "frontend"
@@ -49,7 +52,9 @@ def _load_env_file(path: Path) -> None:
 
 _load_env_file(ENV_FILE)
 
-app = FastAPI(title="Pediatric Clinical Workspace", version="1.2.0")
+app = FastAPI(title="Pediatric Clinical Workspace", version=APP_VERSION)
+
+init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -77,6 +82,7 @@ if FRONTEND_DIR.exists():
 
 
 app.include_router(bone_age_router)
+app.include_router(assessments_router)
 
 
 @app.get("/api/health")
