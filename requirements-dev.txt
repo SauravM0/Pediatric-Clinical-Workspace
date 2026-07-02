@@ -1,0 +1,4 @@
+# Development / test tooling only. Not required to run the app.
+pytest>=8.0
+# Used once to read the scanned TW3 research PDFs during table reconstruction.
+pymupdf>=1.24
