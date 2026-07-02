@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pediatric Clinical Workspace · Growth · Cardio-Renal · FRAX</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Vendored locally for fully-offline operation (cleanup §6.4). No CDN, no external calls. -->
+    <script src="vendor/tailwind.min.js"></script>
     <style>
-        * { font-family: 'Inter', sans-serif; letter-spacing: 0 !important; }
+        * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; letter-spacing: 0 !important; }
         body { background: #f0f2f5; }
 
         input:focus, select:focus {
@@ -149,18 +149,12 @@
 
     <div id="root" class="flex flex-col min-h-screen"></div>
 
-    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+    <script src="vendor/react.production.min.js"></script>
+    <script src="vendor/react-dom.production.min.js"></script>
+    <script src="vendor/babel.min.js"></script>
 
     <script type="text/babel">
         const { useState, useMemo } = React;
-
-        // Bone-age AI backend (FastAPI · bone_age_server.py). Override with ?api=URL if needed.
-        const BONE_AGE_API = (new URLSearchParams(location.search).get('api'))
-            || (location.protocol === 'http:' || location.protocol === 'https:'
-                ? `${location.origin}/api/bone-age`
-                : 'http://localhost:8077/api/bone-age');
 
         // Vaman Khadilkar 2015 Indian pediatric reference data (2 to 18 Years)
         const GROWTH_REFERENCE = {
@@ -188,48 +182,91 @@
           }
         };
 
-        // ── Bayley-Pinneau "% of mature (adult) height attained at a given skeletal age" ──
-        // Source: Bayley N & Pinneau SR, J Pediatr 1952; tables as reproduced in
-        // Greulich WW & Pyle SI, Radiographic Atlas of Skeletal Development of the Hand
-        // and Wrist, 2nd ed. (1959), pp. 231–251. Three maturation groups per sex:
-        //   average  → |chronological age − bone age| ≤ 1 yr
-        //   accelerated (advanced) → bone age > chronological age + 1 yr (early maturer)
-        //   retarded (delayed)     → bone age < chronological age − 1 yr (late maturer)
-        // Predicted Adult Height = current height ÷ (% / 100).
-        const BP_PERCENT = {
-          boys: {
-            average: { 7:69.5, 7.5:70.9, 8:72.3, 8.5:73.9, 9:75.2, 9.5:76.9, 10:78.4, 10.5:79.5,
-                       11:80.4, 11.5:81.8, 12:83.4, 12.5:85.3, 13:87.6, 13.5:90.2, 14:92.7, 14.5:94.8,
-                       15:96.8, 15.5:97.6, 16:98.2, 16.5:98.7, 17:99.1, 17.5:99.3, 18:99.6, 18.5:99.8, 19:100.0 },
-            accelerated: { 7:67.0, 8:70.3, 9:73.3, 10:76.7, 11:78.6, 12:81.2, 13:85.8, 14:91.0,
-                           15:95.8, 16:98.0, 17:99.1, 18:99.6 },
-            retarded: { 8:73.2, 9:76.2, 10:79.0, 11:81.6, 12:84.7, 13:88.3, 14:92.9, 15:96.4,
-                        16:98.3, 17:99.3, 18:99.8 }
-          },
-          girls: {
-            average: { 6:72.0, 6.5:73.8, 7:75.7, 7.5:77.2, 8:79.0, 8.5:80.9, 9:82.7, 9.5:84.4,
-                       10:86.2, 10.5:88.4, 11:90.6, 11.5:92.6, 12:94.5, 12.5:95.8, 13:96.8, 13.5:97.6,
-                       14:98.3, 14.5:98.9, 15:99.3, 15.5:99.6, 16:99.8, 16.5:99.9, 17:100.0 },
-            accelerated: { 7:71.2, 8:75.0, 9:79.0, 10:82.8, 11:87.4, 12:92.2, 13:96.3, 14:98.6,
-                           15:99.5, 16:99.9, 17:100.0 },
-            retarded: { 6:73.3, 7:76.9, 8:80.1, 9:84.1, 10:87.4, 11:91.8, 12:94.6, 13:96.7,
-                        14:98.3, 15:99.3, 16:99.8, 17:100.0 }
-          }
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  TW3 (Tanner–Whitehouse Mark 3) skeletal maturity framework
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  Bayley–Pinneau has been REMOVED. Bone age uses the TW3 RUS method only:
+        //  stage each of the 13 RUS bones A→I, look up its point-score, sum to a
+        //  maturity score (0–1000), then convert the score to a bone age.
+        //
+        //  SAFETY / LICENSING: the TW3 per-stage point-scores and the RUS-score→bone-age
+        //  conversion are COPYRIGHTED (Tanner, Healy, Goldstein, Cameron — "Assessment of
+        //  Skeletal Maturity and Prediction of Adult Height (TW3 Method)", 2001). They are
+        //  NOT bundled and are NOT invented here. A clinician licensed for TW3 must enter
+        //  them once into TW3_CONFIG below. Until then the app computes the staging
+        //  framework but reports "calibration required" instead of a fabricated bone age.
+        const RUS_BONES = [
+          { key: 'radius', label: 'Radius' },
+          { key: 'ulna',   label: 'Ulna' },
+          { key: 'mc1',    label: 'Metacarpal I' },
+          { key: 'mc3',    label: 'Metacarpal III' },
+          { key: 'mc5',    label: 'Metacarpal V' },
+          { key: 'pp1',    label: 'Prox. phalanx I' },
+          { key: 'pp3',    label: 'Prox. phalanx III' },
+          { key: 'pp5',    label: 'Prox. phalanx V' },
+          { key: 'mp3',    label: 'Mid. phalanx III' },
+          { key: 'mp5',    label: 'Mid. phalanx V' },
+          { key: 'dp1',    label: 'Dist. phalanx I' },
+          { key: 'dp3',    label: 'Dist. phalanx III' },
+          { key: 'dp5',    label: 'Dist. phalanx V' },
+        ];
+        const RUS_STAGES = ['A','B','C','D','E','F','G','H','I'];
+
+        // ── Clinician-supplied calibration (licensed TW3 values go here) ─────────────
+        // stageScores[sex][boneKey][stage] = RUS points for that bone at that stage.
+        // scoreToAge[sex] = ascending [rusScore, boneAgeYears] anchor points.
+        // pctAdultHeight[sex] = ascending [boneAgeYears, %ofAdultHeightAttained] anchors
+        //                       (the skeletal adult-height prediction reference).
+        // Leaving any of these empty disables ONLY the piece that needs it — nothing is
+        // guessed. See README "Calibration required" for how to populate them.
+        const TW3_CONFIG = {
+          stageScores:   { boys: {}, girls: {} },
+          scoreToAge:    { boys: [], girls: [] },
+          pctAdultHeight:{ boys: [], girls: [] },
         };
 
-        function getBPPercent(boneAge, gender, category) {
-          const table = (BP_PERCENT[gender] && BP_PERCENT[gender][category]) || BP_PERCENT[gender].average;
-          const keys = Object.keys(table).map(Number).sort((a, b) => a - b);
-          if (boneAge <= keys[0]) return table[keys[0]];
-          if (boneAge >= keys[keys.length - 1]) return table[keys[keys.length - 1]];
-          for (let i = 0; i < keys.length - 1; i++) {
-            const k0 = keys[i], k1 = keys[i + 1];
-            if (boneAge >= k0 && boneAge <= k1) {
-              const w = (boneAge - k0) / (k1 - k0);
-              return table[k0] + w * (table[k1] - table[k0]);
+        // Linear interpolation over ascending [x, y] anchor points; null if <2 anchors.
+        function interpAnchors(anchors, x) {
+          if (!anchors || anchors.length < 2) return null;
+          if (x <= anchors[0][0]) return anchors[0][1];
+          if (x >= anchors[anchors.length - 1][0]) return anchors[anchors.length - 1][1];
+          for (let i = 0; i < anchors.length - 1; i++) {
+            const [x0, y0] = anchors[i], [x1, y1] = anchors[i + 1];
+            if (x >= x0 && x <= x1) {
+              const w = (x - x0) / (x1 - x0);
+              return y0 + w * (y1 - y0);
             }
           }
-          return table[keys[keys.length - 1]];
+          return anchors[anchors.length - 1][1];
+        }
+
+        // Sum staged RUS bones → maturity score. Reports whether calibration exists and
+        // whether any staged bone is missing a score.
+        function rusMaturityScore(stages, sex) {
+          const tbl = (TW3_CONFIG.stageScores && TW3_CONFIG.stageScores[sex]) || {};
+          const calibrated = Object.keys(tbl).length > 0;
+          let score = 0, staged = 0, missingScore = false;
+          for (const b of RUS_BONES) {
+            const st = stages[b.key];
+            if (!st) continue;
+            staged++;
+            const pts = tbl[b.key] && tbl[b.key][st];
+            if (typeof pts === 'number') score += pts;
+            else missingScore = true;   // bone staged but no licensed point-score present
+          }
+          return { score, staged, total: RUS_BONES.length, calibrated, missingScore,
+                   complete: staged === RUS_BONES.length };
+        }
+
+        function rusScoreToBoneAge(score, sex) {
+          return interpAnchors(TW3_CONFIG.scoreToAge && TW3_CONFIG.scoreToAge[sex], score);
+        }
+
+        // Skeletal adult-height prediction: % of adult height attained at this bone age →
+        // predicted adult height = current height ÷ (% / 100). Needs the licensed
+        // pctAdultHeight reference; returns null (not a guess) when absent.
+        function pctAdultHeightAt(boneAge, sex) {
+          return interpAnchors(TW3_CONFIG.pctAdultHeight && TW3_CONFIG.pctAdultHeight[sex], boneAge);
         }
 
         function maturationCategory(boneAge, chronoAge) {
@@ -237,6 +274,126 @@
           if (diff > 1.0) return 'accelerated';
           if (diff < -1.0) return 'retarded';
           return 'average';
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  QRISK3-2017 — 10-year cardiovascular risk (Hippisley-Cox et al., BMJ 2017)
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  Coefficients are the ClinRisk open-source release (qrisk.org/src.php),
+        //  published under the GNU LGPL specifically so the algorithm can be
+        //  reimplemented faithfully. Values are transcribed verbatim from that source.
+        //  Ethnicity index: 1 White/not-stated · 2 Indian · 3 Pakistani · 4 Bangladeshi
+        //    · 5 Other Asian · 6 Black Caribbean · 7 Black African · 8 Chinese · 9 Other
+        //  smoke_cat: 0 non · 1 ex · 2 light(<10) · 3 moderate(10–19) · 4 heavy(20+)
+        //  Validated for ages 25–84. Note: derived on a UK cohort; the South-Asian
+        //  ethnicity terms partly (not fully) capture excess Indian risk — interpret
+        //  alongside Indian guidance (Lipid Association of India / ICMR).
+        const QRISK3_FEMALE = {
+          survivor: 0.988876402378082,
+          Iethrisk: [0, 0, 0.2804031433299542, 0.5629899414207540, 0.2959000085111652,
+                     0.0727853798779825, -0.1707213550885732, -0.3937104331487497,
+                     -0.3263249528353027, -0.1712705688324178],
+          Ismoke: [0, 0.1338683378654626, 0.5620085801243854, 0.6674959337750255, 0.8494817764483085],
+          c: { age1: -8.1388109247726188, age2: 0.7973337668969910,
+               bmi1: 0.2923609227546005, bmi2: -4.1513300213837665,
+               rati: 0.1533803582080255, sbp: 0.0131314884071034, sbps5: 0.0078894541014586,
+               town: 0.0772237905885901, AF: 1.5923354969269663, atypicalantipsy: 0.2523764207011556,
+               corticosteroids: 0.5952072530460185, migraine: 0.3012672608703450, ra: 0.2136480343518194,
+               renal: 0.6519456949384583, semi: 0.1255530805882018, sle: 0.7588093865426769,
+               treatedhyp: 0.5093159368342300, type1: 1.7267977510537347, type2: 1.0688773244615468,
+               fh_cvd: 0.4544531902089621 },
+          // age_1 (age1×var) and age_2 (age2×var) interaction terms
+          i1: { s1: -4.7057161785851891, s2: -2.7430383403573337, s3: -0.8660808882939218, s4: 0.9024156236971065,
+                AF: 19.9380348895465610, corticosteroids: -0.9840804523593628, migraine: 1.7634979587872999,
+                renal: -3.5874047731694114, sle: 19.6903037386382920, treatedhyp: 11.8728097339218120,
+                type1: -1.2444332714320747, type2: 6.8652342000009599, bmi1: 23.8026234121417420,
+                bmi2: -71.1849476920870070, fh_cvd: 0.9946780794043513, sbp: 0.0341318423386155, town: -1.0301180802035639 },
+          i2: { s1: -0.0755892446431930, s2: -0.1195119287486707, s3: -0.1036630639757192, s4: -0.1399185359171839,
+                AF: -0.0761826510111625, corticosteroids: -0.1200536494674247, migraine: -0.0655869178986999,
+                renal: -0.2268887308644251, sle: 0.0773479496790163, treatedhyp: 0.0009685782358817,
+                type1: -0.2872406462448895, type2: -0.0971122525906955, bmi1: 0.5236995893366443,
+                bmi2: 0.0457441901223238, fh_cvd: -0.0768850516984230, sbp: -0.0015082501423272, town: -0.0315934146749623 },
+          center: { rati: 3.476326465606690, sbp: 123.130012512207030, sbps5: 9.002537727355957, town: 0.392308831214905 },
+        };
+        const QRISK3_MALE = {
+          survivor: 0.977268040180206,
+          Iethrisk: [0, 0, 0.2771924876030828, 0.4744636071493127, 0.5296172991968937,
+                     0.0351001591862990, -0.3580789966932792, -0.4005648523216514,
+                     -0.4152279288983017, -0.2632134813474997],
+          Ismoke: [0, 0.1912822286338898, 0.5524158819264555, 0.6383505302750607, 0.7898381988185802],
+          c: { age1: -17.8397816660055750, age2: 0.0022964880605765,
+               bmi1: 2.4562776660536358, bmi2: -8.3011122314711354,
+               rati: 0.1734019685632711, sbp: 0.0129101265425533, sbps5: 0.0102519142912905,
+               town: 0.0332682012772873, AF: 0.8820923692805466, atypicalantipsy: 0.1304687985517351,
+               corticosteroids: 0.4548539975044554, impotence2: 0.2225185908670538, migraine: 0.2558417807415991,
+               ra: 0.2097065801395657, renal: 0.7185326128827438, semi: 0.1213303988204716, sle: 0.4401572174457522,
+               treatedhyp: 0.5165987108269547, type1: 1.2343425521675175, type2: 0.8594207143093222,
+               fh_cvd: 0.5405546900939016 },
+          i1: { s1: -0.2101113393351635, s2: 0.7526867644750319, s3: 0.9931588755640579, s4: 2.1331163414389076,
+                AF: 3.4896675530623207, corticosteroids: 1.1708133653489108, impotence2: -1.5064009857454310,
+                migraine: 2.3491159871402441, renal: -0.5065671632722369, treatedhyp: 6.5114581098532671,
+                type1: 5.3379864878006531, type2: 3.6461817406221311, bmi1: 31.0049529560338860,
+                bmi2: -111.2915718439164300, fh_cvd: 2.7808628508531887, sbp: 0.0188585244698659, town: -0.1007554870063731 },
+          i2: { s1: -0.0004985487027533, s2: -0.0007987563331739, s3: -0.0083706184266251, s4: -0.0007840031915564,
+                AF: -0.0003499560834064, corticosteroids: -0.0002496045095297, impotence2: -0.0011058218441227,
+                migraine: 0.0001989644604148, renal: -0.0018325930166499, treatedhyp: 0.0006383805310417,
+                type1: 0.0006409780808753, type2: -0.0024695695588868, bmi1: 0.0050380102356322,
+                bmi2: -0.0130744830025243, fh_cvd: -0.0002479180990740, sbp: -0.0000127187419159, town: -0.0000932996423233 },
+          center: { rati: 4.300998687744141, sbp: 128.571578979492190, sbps5: 8.756621360778809, town: 0.526304900646210 },
+        };
+
+        // p = patient object. Returns 10-year CVD risk % (0–100) or null if age out of 25–84.
+        function qrisk3(p) {
+          const isFemale = p.sex === 'girls';
+          const M = isFemale ? QRISK3_FEMALE : QRISK3_MALE;
+          const age = p.age;
+          if (!(age >= 25 && age <= 84)) return null;
+          const bmiRaw = p.bmi;
+          const bmi = Math.min(Math.max(bmiRaw, 20), 40);   // QRISK3 clamps BMI to [20,40]
+          const dage = age / 10, dbmi = bmi / 10;
+
+          // Fractional-polynomial transforms + centering (sex-specific for age).
+          let age1, age2;
+          if (isFemale) { age1 = Math.pow(dage, -2) - 0.053274843841791; age2 = dage - 4.332503318786621; }
+          else          { age1 = Math.pow(dage, -1) - 0.234766781330109; age2 = Math.pow(dage, 3) - 77.284080505371094; }
+          let bmi1, bmi2;
+          if (isFemale) { bmi1 = Math.pow(dbmi, -2) - 0.154946178197861; bmi2 = Math.pow(dbmi, -2) * Math.log(dbmi) - 0.144462317228317; }
+          else          { bmi1 = Math.pow(dbmi, -2) - 0.149176135659218; bmi2 = Math.pow(dbmi, -2) * Math.log(dbmi) - 0.141913309693336; }
+
+          const rati = (typeof p.rati === 'number' ? p.rati : M.center.rati) - M.center.rati; // blank ⇒ 0 contribution
+          const sbp  = (typeof p.sbp === 'number' ? p.sbp : M.center.sbp) - M.center.sbp;
+          const sbps5 = (typeof p.sbps5 === 'number' ? p.sbps5 : 0) - M.center.sbps5;         // missing SD ⇒ 0 (QRISK convention)
+          const town = (typeof p.town === 'number' ? p.town : 0) - M.center.town;             // UK-only ⇒ 0
+
+          const c = M.c, i1 = M.i1, i2 = M.i2;
+          let a = 0;
+          a += M.Iethrisk[p.ethnicity || 1] || 0;
+          a += M.Ismoke[p.smoke || 0] || 0;
+          // continuous main effects
+          a += age1 * c.age1 + age2 * c.age2 + bmi1 * c.bmi1 + bmi2 * c.bmi2;
+          a += rati * c.rati + sbp * c.sbp + sbps5 * c.sbps5 + town * c.town;
+          // binary main effects
+          const B = {
+            AF: p.af, atypicalantipsy: p.atypicalantipsy, corticosteroids: p.corticosteroids,
+            migraine: p.migraine, ra: p.ra, renal: p.renal, semi: p.semi, sle: p.sle,
+            treatedhyp: p.treatedhyp, type1: p.diabetes === 1, type2: p.diabetes === 2, fh_cvd: p.fh_cvd,
+          };
+          if (!isFemale) B.impotence2 = p.impotence2;
+          for (const k in B) if (B[k] && typeof c[k] === 'number') a += c[k];
+          // smoking × age interactions
+          const sKey = ['', 's1', 's2', 's3', 's4'][p.smoke || 0];
+          if (sKey) { a += age1 * (i1[sKey] || 0) + age2 * (i2[sKey] || 0); }
+          // variable × age interactions (bmi + binary factors)
+          a += age1 * (bmi1 * i1.bmi1 + bmi2 * i1.bmi2) + age2 * (bmi1 * i2.bmi1 + bmi2 * i2.bmi2);
+          a += age1 * (sbp * i1.sbp) + age2 * (sbp * i2.sbp);
+          a += age1 * (town * i1.town) + age2 * (town * i2.town);
+          for (const k in B) {
+            if (!B[k]) continue;
+            if (typeof i1[k] === 'number') a += age1 * i1[k];
+            if (typeof i2[k] === 'number') a += age2 * i2[k];
+          }
+          const risk = 100 * (1 - Math.pow(M.survivor, Math.exp(a)));
+          return risk;
         }
 
         function normalCDF(z) {
@@ -430,14 +587,29 @@
           const [secondaryOsteo, setSecondaryOsteo] = useState("no");
           const [alcohol, setAlcohol] = useState("no");
           const [timeline, setTimeline] = useState([]);
-          const [boneAge, setBoneAge] = useState("");
-          const [boneMethod, setBoneMethod] = useState("GP");
-          const [boneCategory, setBoneCategory] = useState("auto");
+          const [boneAge, setBoneAge] = useState("");        // TW3 bone age (RUS-derived, AI-suggested, or manual)
+          const [boneAgeSource, setBoneAgeSource] = useState("manual"); // manual | rus | ai
+          const [rusStages, setRusStages] = useState({});    // { boneKey: 'A'..'I' }
           const [fatherHeight, setFatherHeight] = useState("");
           const [motherHeight, setMotherHeight] = useState("");
-          const [xrayImage, setXrayImage] = useState(null);
-          const [aiStatus, setAiStatus] = useState("idle"); // idle | analyzing | done | error
-          const [aiResult, setAiResult] = useState(null);
+
+          // ── QRISK3 cardiovascular inputs ──
+          const [ethnicity, setEthnicity] = useState(2);     // default Indian
+          const [smokeCat, setSmokeCat] = useState(0);
+          const [diabetes, setDiabetes] = useState(0);       // 0 none · 1 type1 · 2 type2
+          const [cholRatio, setCholRatio] = useState("");    // total cholesterol / HDL
+          const [sbpSD, setSbpSD] = useState("");            // SBP standard deviation (optional)
+          const [qAF, setQAF] = useState("no");
+          const [qTreatedHtn, setQTreatedHtn] = useState("no");
+          const [qRA, setQRA] = useState("no");
+          const [qCKD, setQCKD] = useState("no");
+          const [qMigraine, setQMigraine] = useState("no");
+          const [qSLE, setQSLE] = useState("no");
+          const [qSMI, setQSMI] = useState("no");
+          const [qAtypAntipsy, setQAtypAntipsy] = useState("no");
+          const [qCortico, setQCortico] = useState("no");
+          const [qED, setQED] = useState("no");
+          const [qFhCvd, setQFhCvd] = useState("no");
 
           const evalAge = useMemo(() => age !== "" ? parseFloat(age) : 9.0, [age]);
           const evalGender = useMemo(() => gender !== "" ? gender : 'girls', [gender]);
@@ -572,35 +744,88 @@
             return { bmi, bmiCat, bmiVariant, map, mapCat, mapVariant };
           }, [evalHeight, evalWeight, evalSystolic, evalDiastolic]);
 
+          // TW3 RUS staging → maturity score → (if calibrated) suggested bone age
+          const rusMetrics = useMemo(() => {
+            const m = rusMaturityScore(rusStages, evalGender);
+            const suggestedAge = (m.calibrated && m.complete && !m.missingScore)
+              ? rusScoreToBoneAge(m.score, evalGender) : null;
+            return { ...m, suggestedAge };
+          }, [rusStages, evalGender]);
+
           const boneMetrics = useMemo(() => {
             const ba = boneAge !== "" ? parseFloat(boneAge) : null;
-            if (ba === null || isNaN(ba) || evalHeight <= 0) return null;
-            const diff = ba - evalAge;
-            const autoCat = maturationCategory(ba, evalAge);
-            const category = boneCategory === 'auto' ? autoCat : boneCategory;
-            const pct = getBPPercent(ba, evalGender, category);
-            const pah = pct ? evalHeight / (pct / 100) : null;          // predicted adult height (cm)
-            const remaining = pah !== null ? pah - evalHeight : null;    // cm left to grow
+            const hasBone = ba !== null && !isNaN(ba) && evalHeight > 0;
 
-            // Contextualize against Khadilkar (WHO–IAP) adult reference @ 18 yrs
+            // Mid-parental (genetic target) height — Tanner. Open, non-proprietary.
+            const fh = fatherHeight !== "" ? parseFloat(fatherHeight) : null;
+            const mh = motherHeight !== "" ? parseFloat(motherHeight) : null;
+            let mph = null, mphLow = null, mphHigh = null;
+            if (fh && mh && fh > 0 && mh > 0) {
+              mph = evalGender === 'boys' ? (fh + mh + 13) / 2 : (fh + mh - 13) / 2;
+              mphLow = mph - 8.5; mphHigh = mph + 8.5;  // ≈ ±2 SD target channel
+            }
+
+            if (!hasBone && mph === null) return null;
+
+            const diff = hasBone ? ba - evalAge : null;
+            const autoCat = hasBone ? maturationCategory(ba, evalAge) : null;
+
+            // Skeletal adult-height prediction — ONLY if the licensed TW3 %-attained
+            // reference is present; otherwise null (never fabricated).
+            const pct = hasBone ? pctAdultHeightAt(ba, evalGender) : null;
+            const skeletalPah = (pct && pct > 0) ? evalHeight / (pct / 100) : null;
+            const skeletalCalibrated = pct !== null;
+
+            // Preferred predicted adult height = mid-parental if available, else skeletal.
+            const pah = mph !== null ? mph : skeletalPah;
+            const pahBasis = mph !== null ? 'mid-parental' : (skeletalPah !== null ? 'skeletal' : null);
+            const remaining = (pah !== null && evalHeight > 0) ? pah - evalHeight : null;
+            const withinTarget = (skeletalPah !== null && mphLow !== null)
+              ? (skeletalPah >= mphLow && skeletalPah <= mphHigh) : null;
+
+            // Contextualise chosen prediction against Khadilkar Indian adult (18-yr) ref.
             const adult = GROWTH_REFERENCE[evalGender][18];
             const pahZ = pah !== null ? (pah - adult[0]) / adult[1] : null;
             const pahPct = pahZ !== null ? normalCDF(pahZ) * 100 : null;
 
-            // Mid-parental (target) height — Tanner
-            const fh = fatherHeight !== "" ? parseFloat(fatherHeight) : null;
-            const mh = motherHeight !== "" ? parseFloat(motherHeight) : null;
-            let mph = null, mphLow = null, mphHigh = null, withinTarget = null;
-            if (fh && mh && fh > 0 && mh > 0) {
-              mph = evalGender === 'boys' ? (fh + mh + 13) / 2 : (fh + mh - 13) / 2;
-              mphLow = mph - 8.5; mphHigh = mph + 8.5;  // ≈ ±2 SD target channel
-              if (pah !== null) withinTarget = pah >= mphLow && pah <= mphHigh;
-            }
+            return { ba, hasBone, diff, autoCat, pct, skeletalPah, skeletalCalibrated,
+                     pah, pahBasis, remaining, pahZ, pahPct,
+                     mph, mphLow, mphHigh, withinTarget, adult };
+          }, [boneAge, evalAge, evalGender, evalHeight, fatherHeight, motherHeight]);
 
-            const outOfRange = ba < (evalGender === 'girls' ? 6 : 7) || ba > (evalGender === 'girls' ? 17 : 19);
-            return { ba, diff, autoCat, category, pct, pah, remaining, pahZ, pahPct,
-                     mph, mphLow, mphHigh, withinTarget, adult, outOfRange };
-          }, [boneAge, boneCategory, evalAge, evalGender, evalHeight, fatherHeight, motherHeight]);
+          const qriskMetrics = useMemo(() => {
+            const bmi = evalHeight > 0 ? evalWeight / Math.pow(evalHeight / 100, 2) : null;
+            const inAgeRange = evalAge >= 25 && evalAge <= 84;
+            const p = {
+              sex: evalGender, age: evalAge, bmi,
+              ethnicity, smoke: smokeCat, diabetes,
+              rati: cholRatio !== "" ? parseFloat(cholRatio) : undefined,
+              sbp: systolic !== "" ? parseFloat(systolic) : undefined,
+              sbps5: sbpSD !== "" ? parseFloat(sbpSD) : undefined,
+              af: qAF === 'yes', treatedhyp: qTreatedHtn === 'yes', ra: qRA === 'yes',
+              renal: qCKD === 'yes', migraine: qMigraine === 'yes', sle: qSLE === 'yes',
+              semi: qSMI === 'yes', atypicalantipsy: qAtypAntipsy === 'yes',
+              corticosteroids: qCortico === 'yes', impotence2: qED === 'yes', fh_cvd: qFhCvd === 'yes',
+            };
+            const risk = (bmi && inAgeRange) ? qrisk3(p) : null;
+            // Healthy reference = same age/sex/ethnicity with OPTIMAL risk factors
+            // (BMI 25, cholesterol ratio 4.0, SBP 125, no smoking/diabetes/conditions).
+            // Matches QRISK3's "score of a healthy person" comparison.
+            const typical = (bmi && inAgeRange) ? qrisk3({
+              sex: evalGender, age: evalAge, bmi: 25, ethnicity, smoke: 0, diabetes: 0,
+              rati: 4.0, sbp: 125, sbps5: 0, town: 0,
+            }) : null;
+            let band = 'low', variant = 'low';
+            if (risk !== null) {
+              if (risk >= 20) { band = 'High (≥ 20%)'; variant = 'high'; }
+              else if (risk >= 10) { band = 'Moderate (10–20%)'; variant = 'mid'; }
+              else { band = 'Low (< 10%)'; variant = 'low'; }
+            }
+            const missingSbp = systolic === "", missingRatio = cholRatio === "";
+            return { risk, typical, band, variant, inAgeRange, bmi, missingSbp, missingRatio };
+          }, [evalGender, evalAge, evalHeight, evalWeight, ethnicity, smokeCat, diabetes,
+              cholRatio, systolic, sbpSD, qAF, qTreatedHtn, qRA, qCKD, qMigraine, qSLE,
+              qSMI, qAtypAntipsy, qCortico, qED, qFhCvd]);
 
           const resetAll = () => {
             setAge(""); setGender(""); setHeight(""); setWeight("");
@@ -609,8 +834,11 @@
             setPrevFracture("no"); setParentHipFracture("no"); setSmoking("no");
             setGlucocorticoids("no"); setRheumatoid("no"); setSecondaryOsteo("no"); setAlcohol("no");
             setTimeline([]); setActiveTab('growth');
-            setBoneAge(""); setBoneMethod("GP"); setBoneCategory("auto");
-            setFatherHeight(""); setMotherHeight(""); setXrayImage(null);
+            setBoneAge(""); setBoneAgeSource("manual"); setRusStages({});
+            setFatherHeight(""); setMotherHeight("");
+            setEthnicity(2); setSmokeCat(0); setDiabetes(0); setCholRatio(""); setSbpSD("");
+            setQAF("no"); setQTreatedHtn("no"); setQRA("no"); setQCKD("no"); setQMigraine("no");
+            setQSLE("no"); setQSMI("no"); setQAtypAntipsy("no"); setQCortico("no"); setQED("no"); setQFhCvd("no");
           };
 
           const logCurrentData = () => {
@@ -625,37 +853,13 @@
             }, ...prev]);
           };
 
-          const analyzeXray = async (fileObj) => {
-            setAiStatus('analyzing'); setAiResult(null);
-            try {
-              const fd = new FormData();
-              fd.append('file', fileObj);
-              fd.append('sex', evalGender);
-              fd.append('chronological_age', age !== "" ? String(age) : "");
-              const res = await fetch(BONE_AGE_API, { method: 'POST', body: fd });
-              const data = await res.json();
-              if (!res.ok) {
-                setAiStatus('error');
-                setAiResult({ message: data.detail || data.error || `Server error ${res.status}` });
-                return;
-              }
-              if (typeof data.bone_age_years === 'number') {
-                setBoneAge(Number(data.bone_age_years.toFixed(1)));
-                setBoneCategory('auto');
-              }
-              setAiStatus('done'); setAiResult(data);
-            } catch (err) {
-              setAiStatus('error');
-              setAiResult({ message: `Could not reach the AI backend at ${BONE_AGE_API}. Start it with: python -m uvicorn backend.server:app --reload --port 8077` });
-            }
-          };
-
           const TABS = [
             { id: 'growth',   label: 'Growth' },
             { id: 'boneage',  label: 'Bone Age' },
             { id: 'renal',    label: 'Renal GFR' },
             { id: 'liver',    label: 'FIB-4 Liver' },
             { id: 'frax',     label: 'FRAX Plus' },
+            { id: 'qrisk',    label: 'QRISK3 CVD' },
             { id: 'timeline', label: 'Ledger' },
           ];
 
@@ -673,7 +877,7 @@
                     </div>
                     <div>
                       <div className="app-title" style={{ fontSize:'15px', fontWeight:'900', color:'#0f172a', lineHeight:1.2 }}>Pediatric Clinical Workspace</div>
-                      <div className="app-subtitle" style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.06em', textTransform:'uppercase' }}>Growth · Bone Age · Cardio-Renal · FRAX · FIB-4</div>
+                      <div className="app-subtitle" style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.06em', textTransform:'uppercase' }}>Growth · TW3 Bone Age · QRISK3 · Renal · FRAX · FIB-4</div>
                     </div>
                   </div>
                   <div style={{ display:'flex', alignItems:'center', gap:'8px', flexShrink:0 }}>
@@ -921,41 +1125,69 @@
                     {activeTab === 'boneage' && (
                       <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
                         <SectionHeader
-                          title="Adult Height Prediction · Bayley-Pinneau"
-                          subtitle="From skeletal (bone) age & current height — contextualized on WHO–IAP Khadilkar reference"
-                          badge={boneMetrics ? `${boneMethod} bone age` : "Enter bone age"}
+                          title="Bone Age & Adult Height · TW3 (RUS)"
+                          subtitle="Tanner–Whitehouse 3 skeletal maturity — Indian (Khadilkar) adult-height context"
+                          badge={boneMetrics && boneMetrics.hasBone ? "TW3 bone age set" : "Stage the film"}
                           badgeVariant="info"
                         />
 
-                        {/* Input row: bone age + method + maturation override */}
-                        <div className="split-grid" style={{ marginTop:'16px' }}>
+                        {/* TW3 RUS staging grid */}
+                        <div style={{ marginTop:'16px', background:'#faf5ff', border:'1px solid #e9d5ff', borderRadius:'12px', padding:'16px' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', flexWrap:'wrap', gap:'8px' }}>
+                            <span style={{ fontSize:'11px', fontWeight:'800', color:'#6b21a8', textTransform:'uppercase', letterSpacing:'0.05em' }}>TW3 RUS staging · left hand–wrist</span>
+                            <button onClick={() => setRusStages({})} style={{ padding:'5px 12px', background:'white', color:'#7c3aed', border:'1.5px solid #ddd6fe', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>Clear stages</button>
+                          </div>
+                          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:'8px' }}>
+                            {RUS_BONES.map(b => (
+                              <div key={b.key}>
+                                <label style={{ fontSize:'10px', fontWeight:'700', color:'#7c3aed', display:'block', marginBottom:'3px' }}>{b.label}</label>
+                                <select
+                                  value={rusStages[b.key] || ''}
+                                  onChange={e => setRusStages(s => { const n = { ...s }; if (e.target.value) n[b.key] = e.target.value; else delete n[b.key]; return n; })}
+                                  className="input-field" style={{ padding:'7px 8px', width:'100%' }}>
+                                  <option value="">— stage —</option>
+                                  {RUS_STAGES.map(st => <option key={st} value={st}>{st}</option>)}
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* score + calibration state */}
+                          <div style={{ marginTop:'14px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px', fontSize:'12px', fontWeight:'700' }}>
+                            <span style={{ color:'#6b21a8' }}>Bones staged: {rusMetrics.staged}/{rusMetrics.total}</span>
+                            {rusMetrics.calibrated
+                              ? <span style={{ color:'#6b21a8' }}>RUS maturity score: {rusMetrics.score}</span>
+                              : <span style={{ color:'#b45309' }}>⚠ TW3 point-scores not calibrated</span>}
+                          </div>
+
+                          {rusMetrics.suggestedAge !== null ? (
+                            <div style={{ marginTop:'10px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'8px', padding:'10px 12px' }}>
+                              <span style={{ fontSize:'12px', fontWeight:'700', color:'#16a34a' }}>Suggested TW3 bone age: {rusMetrics.suggestedAge.toFixed(1)} yr</span>
+                              <button onClick={() => { setBoneAge(Number(rusMetrics.suggestedAge.toFixed(1))); setBoneAgeSource('rus'); }} style={{ padding:'5px 12px', background:'#16a34a', color:'white', border:'none', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>Use this</button>
+                            </div>
+                          ) : (
+                            <div style={{ marginTop:'10px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'10px 12px', fontSize:'11px', color:'#92400e', lineHeight:'1.6' }}>
+                              <strong>Calibration required.</strong> The TW3 per-stage point-scores and the RUS-score→bone-age table are copyrighted (TW3, 2001) and are not bundled. A TW3-licensed clinician must enter them once into <code>TW3_CONFIG</code> (see README). Until then, enter the TW3 bone age manually below or use the local X-ray estimate as a suggestion.
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Bone age used for prediction */}
+                        <div className="split-grid" style={{ marginTop:'12px' }}>
                           <InputWithUnit
-                            label="Skeletal / Bone Age"
+                            label="TW3 Bone Age (used for prediction)"
                             value={boneAge}
-                            onChange={e => setBoneAge(e.target.value === "" ? "" : parseFloat(e.target.value))}
+                            onChange={e => { setBoneAge(e.target.value === "" ? "" : parseFloat(e.target.value)); setBoneAgeSource('manual'); }}
                             placeholder="e.g. 10.5"
                             step="0.1"
                             unit="yrs"
                             accent="#7c3aed"
                           />
                           <div>
-                            <label className="field-label">Reading Method</label>
-                            <div style={{ display:'flex', gap:'8px' }}>
-                              <button className={`gender-btn ${boneMethod === 'GP' ? 'gender-active' : 'gender-inactive'}`} onClick={() => setBoneMethod('GP')}>Greulich-Pyle</button>
-                              <button className={`gender-btn ${boneMethod === 'TW3' ? 'gender-active' : 'gender-inactive'}`} onClick={() => setBoneMethod('TW3')}>TW3</button>
+                            <label className="field-label">Source</label>
+                            <div style={{ padding:'10px 12px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'9px', fontSize:'12px', fontWeight:'700', color:'#475569' }}>
+                              {boneAge === "" ? 'Not set' : boneAgeSource === 'rus' ? 'From RUS staging' : 'Manual entry'}
                             </div>
-                          </div>
-                        </div>
-
-                        {/* Maturation category selector */}
-                        <div style={{ marginTop:'12px' }}>
-                          <label className="field-label">Maturation Table {boneCategory === 'auto' && boneMetrics ? `(auto → ${boneMetrics.autoCat})` : ''}</label>
-                          <div style={{ display:'flex', gap:'6px', flexWrap:'wrap' }}>
-                            {[['auto','Auto'],['average','Average'],['accelerated','Accelerated'],['retarded','Delayed']].map(([v, lbl]) => (
-                              <button key={v} onClick={() => setBoneCategory(v)}
-                                className={`gender-btn ${boneCategory === v ? 'gender-active' : 'gender-inactive'}`}
-                                style={{ flex:'1 1 0', minWidth:'70px' }}>{lbl}</button>
-                            ))}
                           </div>
                         </div>
 
@@ -965,117 +1197,97 @@
                           <InputWithUnit label="Mother's Height" value={motherHeight} onChange={e => setMotherHeight(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="cm (optional)" unit="cm" />
                         </div>
 
-                        {/* X-ray upload */}
-                        <div style={{ marginTop:'12px' }}>
-                          <label className="field-label">Hand–Wrist X-ray (left hand) · optional</label>
-                          <div className="upload-row">
-                            <label style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'6px', padding:'18px', border:'1.5px dashed #c7d2fe', borderRadius:'12px', background:'#f5f3ff', cursor:'pointer', textAlign:'center' }}>
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                              <span style={{ fontSize:'11px', fontWeight:'700', color:'#7c3aed' }}>{xrayImage ? 'Replace image' : 'Upload X-ray to auto-estimate'}</span>
-                              <span style={{ fontSize:'10px', color:'#a78bfa' }}>Runs locally on this computer · research baseline · verify</span>
-                              <input type="file" accept="image/*" style={{ display:'none' }}
-                                onChange={e => {
-                                  const f = e.target.files && e.target.files[0];
-                                  if (!f) return;
-                                  const r = new FileReader();
-                                  r.onload = ev => setXrayImage(ev.target.result);
-                                  r.readAsDataURL(f);
-                                  analyzeXray(f);
-                                }} />
-                            </label>
-                            {xrayImage && (
-                              <div style={{ position:'relative', flexShrink:0 }}>
-                                <img src={xrayImage} alt="bone age x-ray" style={{ width:'120px', height:'120px', objectFit:'cover', borderRadius:'12px', border:'1px solid #e2e8f0', background:'#0f172a' }} />
-                                <button onClick={() => { setXrayImage(null); setAiStatus('idle'); setAiResult(null); }} style={{ position:'absolute', top:'-8px', right:'-8px', width:'22px', height:'22px', borderRadius:'50%', background:'#dc2626', color:'white', border:'2px solid white', fontSize:'12px', fontWeight:'800', cursor:'pointer', lineHeight:1 }}>×</button>
-                              </div>
-                            )}
-                          </div>
+                        {/* Automatic whole-image estimation removed (cleanup §6.1).
+                            The unvalidated image heuristic must not populate a TW3 result.
+                            The structured 13-bone TW3-RUS staging workspace replaces it. */}
+                        <div style={{ marginTop:'12px', background:'#f8fafc', border:'1px dashed #cbd5e1', borderRadius:'10px', padding:'12px 14px', fontSize:'11px', color:'#64748b', lineHeight:'1.6' }}>
+                          Automatic whole-image bone-age estimation has been removed. TW3-RUS bone age is
+                          derived only from the 13 confirmed bone stages above, or entered manually after
+                          clinician review. A structured image-upload and staging workspace is in progress.
                         </div>
-
-                        {/* AI analysis status / result */}
-                        {aiStatus === 'analyzing' && (
-                          <div style={{ marginTop:'12px', display:'flex', alignItems:'center', gap:'10px', background:'#eef2ff', border:'1px solid #c7d2fe', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#4338ca', fontWeight:'600' }}>
-                            <span className="pulse-badge" style={{ width:'10px', height:'10px', borderRadius:'50%', background:'#6366f1', display:'inline-block' }}></span>
-                            Analyzing X-ray locally… checking image quality and estimating bone age.
-                          </div>
-                        )}
-                        {aiStatus === 'done' && aiResult && (
-                          <div style={{ marginTop:'12px', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'10px', padding:'12px 14px' }}>
-                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px' }}>
-                              <span style={{ fontSize:'12px', fontWeight:'800', color:'#16a34a' }}>
-                                Local estimate: bone age {typeof aiResult.bone_age_years === 'number' ? aiResult.bone_age_years.toFixed(1) : '—'} yr
-                              </span>
-                              {aiResult.confidence && <StatusBadge text={`${aiResult.confidence} confidence`} variant={aiResult.confidence === 'high' ? 'low' : aiResult.confidence === 'moderate' ? 'mid' : 'high'} />}
-                            </div>
-                            {aiResult.key_findings && <div style={{ fontSize:'11px', color:'#15803d', marginTop:'6px', lineHeight:'1.5' }}>{aiResult.key_findings}</div>}
-                            {aiResult.image_quality && aiResult.image_quality !== 'adequate' && (
-                              <div style={{ fontSize:'11px', color:'#b45309', marginTop:'4px', fontWeight:'700' }}>⚠ Image quality: {aiResult.image_quality}</div>
-                            )}
-                            <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'6px' }}>
-                              {aiResult.model ? `${aiResult.model} · ` : ''}Auto-filled above — edit after clinician review. {aiResult.disclaimer || 'Local research estimate, verify clinically.'}
-                            </div>
-                          </div>
-                        )}
-                        {aiStatus === 'error' && aiResult && (
-                          <div style={{ marginTop:'12px', background:'#fff1f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'12px 14px', fontSize:'11px', color:'#b91c1c', lineHeight:'1.6' }}>
-                            <strong>Local auto-read unavailable.</strong> {aiResult.message} You can still enter the bone age manually above.
-                          </div>
-                        )}
 
                         {!boneMetrics ? (
                           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', flex:1, gap:'12px', padding:'36px 0', textAlign:'center' }}>
                             <div style={{ width:'52px', height:'52px', borderRadius:'50%', background:'#f5f3ff', display:'flex', alignItems:'center', justifyContent:'center' }}>
                               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round"><path d="M18 8a6 6 0 0 0-9.33-5"/><path d="M6 16a6 6 0 0 0 9.33 5"/><line x1="12" y1="2" x2="12" y2="22"/></svg>
                             </div>
-                            <div style={{ fontSize:'13px', fontWeight:'700', color:'#64748b' }}>Enter a bone age & height to predict adult height</div>
-                            <div style={{ fontSize:'12px', color:'#94a3b8', maxWidth:'320px', lineHeight:'1.6' }}>Read the left hand–wrist film (Greulich-Pyle atlas or TW3 RUS score), then type the skeletal age above. Height is taken from Demographics.</div>
+                            <div style={{ fontSize:'13px', fontWeight:'700', color:'#64748b' }}>Set a TW3 bone age or both parents' heights</div>
+                            <div style={{ fontSize:'12px', color:'#94a3b8', maxWidth:'320px', lineHeight:'1.6' }}>Stage the left hand–wrist film above (TW3 RUS), or enter a TW3 bone age manually. Add parents' heights for the genetic target. Current height is taken from Demographics.</div>
                           </div>
                         ) : (
                           <div>
-                            {boneMetrics.outOfRange && (
-                              <div style={{ marginTop:'14px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#92400e', lineHeight:'1.6' }}>
-                                ⚠ Bone age is outside the Bayley-Pinneau table range — the nearest tabulated value is used (extrapolation).
-                              </div>
-                            )}
-
                             {/* Predicted adult height hero */}
                             <div className="hero-result" style={{ background:'linear-gradient(135deg,#f5f3ff,#eef2ff)', border:'1.5px solid #ddd6fe', borderRadius:'16px', padding:'24px', marginTop:'16px' }}>
                               <div>
                                 <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.08em', color:'#7c3aed', marginBottom:'8px' }}>Predicted Adult Height</div>
-                                <div style={{ display:'flex', alignItems:'baseline', gap:'10px' }}>
-                                  <span className="hero-value" style={{ fontWeight:'900', color:'#5b21b6', lineHeight:1 }}>{boneMetrics.pah.toFixed(1)}</span>
-                                  <span style={{ fontSize:'13px', color:'#7c3aed', fontWeight:'600' }}>cm</span>
-                                </div>
-                                <div style={{ fontSize:'11px', color:'#8b5cf6', marginTop:'4px' }}>
-                                  ≈ {Math.floor(boneMetrics.pah/30.48)}′{Math.round((boneMetrics.pah/2.54)%12)}″ · {boneMetrics.remaining.toFixed(1)} cm left to grow
-                                </div>
+                                {boneMetrics.pah !== null ? (
+                                  <>
+                                    <div style={{ display:'flex', alignItems:'baseline', gap:'10px' }}>
+                                      <span className="hero-value" style={{ fontWeight:'900', color:'#5b21b6', lineHeight:1 }}>{boneMetrics.pah.toFixed(1)}</span>
+                                      <span style={{ fontSize:'13px', color:'#7c3aed', fontWeight:'600' }}>cm</span>
+                                    </div>
+                                    <div style={{ fontSize:'11px', color:'#8b5cf6', marginTop:'4px' }}>
+                                      ≈ {Math.floor(boneMetrics.pah/30.48)}′{Math.round((boneMetrics.pah/2.54)%12)}″
+                                      {boneMetrics.remaining !== null ? ` · ${boneMetrics.remaining.toFixed(1)} cm left to grow` : ''}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div style={{ fontSize:'13px', fontWeight:'700', color:'#7c3aed', maxWidth:'340px', lineHeight:'1.6' }}>
+                                    Add both parents' heights for a genetic-target prediction, or calibrate the TW3 skeletal reference below.
+                                  </div>
+                                )}
                               </div>
                               <div style={{ textAlign:'right' }}>
-                                <StatusBadge text={`${boneMetrics.category} table`} variant="info" />
-                                <div style={{ marginTop:'10px', fontSize:'12px', color:'#7c3aed', fontWeight:'700' }}>{boneMetrics.pct.toFixed(1)}% of adult height reached</div>
-                                <div style={{ fontSize:'11px', color:'#a78bfa', marginTop:'2px' }}>at bone age {boneMetrics.ba.toFixed(1)} yr</div>
+                                {boneMetrics.pahBasis && <StatusBadge text={boneMetrics.pahBasis === 'mid-parental' ? 'Mid-parental (genetic target)' : 'TW3 skeletal'} variant="info" />}
+                                {boneMetrics.pahPct !== null && <div style={{ marginTop:'10px', fontSize:'12px', color:'#7c3aed', fontWeight:'700' }}>{boneMetrics.pahPct.toFixed(1)}th centile (Khadilkar)</div>}
+                                {boneMetrics.hasBone && <div style={{ fontSize:'11px', color:'#a78bfa', marginTop:'2px' }}>bone age {boneMetrics.ba.toFixed(1)} yr</div>}
                               </div>
                             </div>
 
                             {/* Khadilkar context strip */}
                             <div className="secondary-grid" style={{ marginTop:'16px' }}>
                               <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e8ecf0' }}>
-                                <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Adult Height on Khadilkar</div>
-                                <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
-                                  <span style={{ fontSize:'26px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{boneMetrics.pahZ >= 0 ? '+' : ''}{boneMetrics.pahZ.toFixed(2)}</span>
-                                  <span style={{ fontSize:'12px', color:'#94a3b8' }}>SDS</span>
-                                </div>
-                                <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{boneMetrics.pahPct.toFixed(1)}th percentile · vs {evalGender === 'boys' ? 'male' : 'female'} adult ({boneMetrics.adult[0]} cm)</div>
+                                <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Prediction on Khadilkar</div>
+                                {boneMetrics.pahZ !== null ? (
+                                  <>
+                                    <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
+                                      <span style={{ fontSize:'26px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{boneMetrics.pahZ >= 0 ? '+' : ''}{boneMetrics.pahZ.toFixed(2)}</span>
+                                      <span style={{ fontSize:'12px', color:'#94a3b8' }}>SDS</span>
+                                    </div>
+                                    <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{boneMetrics.pahPct.toFixed(1)}th percentile · vs {evalGender === 'boys' ? 'male' : 'female'} adult ({boneMetrics.adult[0]} cm)</div>
+                                  </>
+                                ) : <div style={{ fontSize:'12px', color:'#94a3b8' }}>Prediction unavailable</div>}
                               </div>
                               <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e8ecf0' }}>
                                 <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Bone Age vs Chronological</div>
-                                <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
-                                  <span style={{ fontSize:'26px', fontWeight:'900', color: Math.abs(boneMetrics.diff) > 2 ? '#d97706' : '#1e293b', lineHeight:1 }}>{boneMetrics.diff >= 0 ? '+' : ''}{boneMetrics.diff.toFixed(1)}</span>
-                                  <span style={{ fontSize:'12px', color:'#94a3b8' }}>yr</span>
-                                </div>
-                                <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{boneMetrics.diff > 1 ? 'Advanced maturation' : boneMetrics.diff < -1 ? 'Delayed maturation' : 'Concordant with age'}</div>
+                                {boneMetrics.hasBone ? (
+                                  <>
+                                    <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
+                                      <span style={{ fontSize:'26px', fontWeight:'900', color: Math.abs(boneMetrics.diff) > 2 ? '#d97706' : '#1e293b', lineHeight:1 }}>{boneMetrics.diff >= 0 ? '+' : ''}{boneMetrics.diff.toFixed(1)}</span>
+                                      <span style={{ fontSize:'12px', color:'#94a3b8' }}>yr</span>
+                                    </div>
+                                    <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{boneMetrics.diff > 1 ? 'Advanced maturation' : boneMetrics.diff < -1 ? 'Delayed maturation' : 'Concordant with age'}</div>
+                                  </>
+                                ) : <div style={{ fontSize:'12px', color:'#94a3b8' }}>No bone age set</div>}
                               </div>
                             </div>
+
+                            {/* TW3 skeletal adult-height prediction (calibration-gated) */}
+                            {boneMetrics.hasBone && (
+                              boneMetrics.skeletalCalibrated ? (
+                                <div style={{ marginTop:'16px', background:'#f8fafc', borderRadius:'12px', padding:'16px', border:'1px solid #e2e8f0' }}>
+                                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
+                                    <span style={{ fontSize:'11px', fontWeight:'700', letterSpacing:'0.05em', textTransform:'uppercase', color:'#64748b' }}>TW3 Skeletal Prediction</span>
+                                    <div><span style={{ fontSize:'24px', fontWeight:'900', color:'#1e293b' }}>{boneMetrics.skeletalPah.toFixed(1)}</span><span style={{ fontSize:'11px', color:'#94a3b8', marginLeft:'5px' }}>cm</span></div>
+                                  </div>
+                                  <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{boneMetrics.pct.toFixed(1)}% of adult height attained at bone age {boneMetrics.ba.toFixed(1)} yr{boneMetrics.withinTarget !== null ? ` · ${boneMetrics.withinTarget ? 'within' : 'outside'} mid-parental channel` : ''}</div>
+                                </div>
+                              ) : (
+                                <div style={{ marginTop:'16px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'12px', padding:'14px 16px', fontSize:'11px', color:'#92400e', lineHeight:'1.7' }}>
+                                  <strong>TW3 skeletal adult-height prediction: calibration required.</strong> Supply the licensed TW3 “% of adult height attained by bone age” reference in <code>TW3_CONFIG.pctAdultHeight</code> to enable it. No approximate value is shown, by design. The prediction above uses the mid-parental (genetic target) method, which is open and non-proprietary.
+                                </div>
+                              )
+                            )}
 
                             {/* Mid-parental target */}
                             {boneMetrics.mph !== null ? (
@@ -1087,11 +1299,12 @@
                                     <span style={{ fontSize:'11px', color:'#94a3b8', marginLeft:'5px' }}>cm</span>
                                   </div>
                                 </div>
-                                {/* target channel bar */}
+                                {/* target channel bar — marker at skeletal prediction if available */}
                                 {(() => {
                                   const lo = boneMetrics.mphLow, hi = boneMetrics.mphHigh;
                                   const span = hi - lo;
-                                  const pos = Math.min(Math.max(((boneMetrics.pah - lo) / span) * 100, -8), 108);
+                                  const marker = boneMetrics.skeletalPah !== null ? boneMetrics.skeletalPah : boneMetrics.mph;
+                                  const pos = Math.min(Math.max(((marker - lo) / span) * 100, -8), 108);
                                   return (
                                     <div>
                                       <div style={{ position:'relative', height:'10px', borderRadius:'99px', background:'#e9d5ff' }}>
@@ -1099,7 +1312,7 @@
                                       </div>
                                       <div style={{ display:'flex', justifyContent:'space-between', marginTop:'8px', fontSize:'10px', fontWeight:'700', color:'#94a3b8' }}>
                                         <span>{lo.toFixed(0)} cm</span>
-                                        <span style={{ color: boneMetrics.withinTarget ? '#16a34a' : '#d97706' }}>{boneMetrics.withinTarget ? 'Prediction within target range ✓' : 'Prediction outside target range'}</span>
+                                        <span style={{ color:'#7c3aed' }}>target channel ±2 SD</span>
                                         <span>{hi.toFixed(0)} cm</span>
                                       </div>
                                     </div>
@@ -1108,23 +1321,22 @@
                               </div>
                             ) : (
                               <div style={{ marginTop:'16px', background:'#f8fafc', borderRadius:'10px', padding:'12px 14px', fontSize:'11px', color:'#94a3b8', lineHeight:'1.6', border:'1px solid #e2e8f0' }}>
-                                Add both parents' heights to compare the prediction with the mid-parental target channel.
+                                Add both parents' heights for the mid-parental (genetic target) prediction and channel.
                               </div>
                             )}
 
                             {/* Detail rows */}
                             <MetricRow label="Current Height" value={evalHeight.toFixed(1)} unit="cm" sub={`Chronological age ${evalAge.toFixed(1)} yr`} />
-                            <MetricRow label="% Adult Height Attained" value={boneMetrics.pct.toFixed(1)} unit="%" sub={`Bayley-Pinneau · ${boneMetrics.category} maturer`} />
                           </div>
                         )}
 
                         {/* Method note */}
                         <div style={{ marginTop:'16px', background:'#eef2ff', border:'1px solid #c7d2fe', borderRadius:'10px', padding:'12px 14px', fontSize:'11px', color:'#4338ca', lineHeight:'1.7' }}>
-                          <strong>How to read the film accurately:</strong> Use a <strong>left</strong> hand–wrist PA radiograph. GP = overall atlas match; TW3 = score the 13 RUS bones (radius, ulna, metacarpals 1·3·5, proximal/middle/distal phalanges 1·3·5) A→I, sum to SMS, convert to bone age. Two independent reads ±0.5 yr is acceptable. The Bayley-Pinneau % tables are GP-based — if you read TW3, the prediction is approximate.
+                          <strong>TW3 workflow:</strong> use a <strong>left</strong> hand–wrist PA radiograph. Stage the 13 RUS bones (radius, ulna, metacarpals 1·3·5, proximal/middle/distal phalanges 1·3·5) A→I, sum to the RUS maturity score, convert to bone age. Two independent reads within ±0.5 yr is acceptable. Bayley–Pinneau and Greulich–Pyle are <strong>not</strong> used.
                         </div>
 
                         <div style={{ marginTop:'auto', paddingTop:'18px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
-                          Bayley &amp; Pinneau (J Pediatr 1952) tables per Greulich-Pyle Atlas 2nd ed. · Prediction SD ≈ ±4–6 cm (best at bone age 10–14 yr). Adult-height SDS/percentile uses Khadilkar (WHO–IAP) 18-yr reference. Decision support only.
+                          TW3: Tanner, Healy, Goldstein &amp; Cameron (2001) — licensed reference values required for scoring &amp; skeletal height prediction. Mid-parental target: Tanner (open). Adult-height SDS/centile vs Khadilkar (WHO–IAP) 18-yr reference. Clinician must verify — not a diagnostic device.
                         </div>
                       </div>
                     )}
@@ -1307,6 +1519,108 @@
                       </div>
                     )}
 
+                    {/* ══ QRISK3 CVD TAB ══ */}
+                    {activeTab === 'qrisk' && (
+                      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
+                        <SectionHeader
+                          title="QRISK3 · 10-Year Cardiovascular Risk"
+                          subtitle="Hippisley-Cox 2017 (ClinRisk open source) · South-Asian ethnicity aware"
+                          badge={qriskMetrics.risk !== null ? qriskMetrics.band : "Age 25–84"}
+                          badgeVariant={qriskMetrics.risk !== null ? qriskMetrics.variant : 'neutral'}
+                        />
+
+                        {!qriskMetrics.inAgeRange && (
+                          <div style={{ marginTop:'12px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#92400e', lineHeight:'1.6' }}>
+                            ⚠ QRISK3 is validated for ages 25–84. Set the patient's age in that range (Demographics) to compute risk.
+                          </div>
+                        )}
+
+                        {/* Cardio inputs */}
+                        <div style={{ marginTop:'16px', display:'flex', flexDirection:'column', gap:'12px' }}>
+                          <div>
+                            <label className="field-label">Ethnicity</label>
+                            <select value={ethnicity} onChange={e => setEthnicity(parseInt(e.target.value))} className="input-field" style={{ width:'100%' }}>
+                              <option value={1}>White / not stated</option>
+                              <option value={2}>Indian</option>
+                              <option value={3}>Pakistani</option>
+                              <option value={4}>Bangladeshi</option>
+                              <option value={5}>Other Asian</option>
+                              <option value={6}>Black Caribbean</option>
+                              <option value={7}>Black African</option>
+                              <option value={8}>Chinese</option>
+                              <option value={9}>Other</option>
+                            </select>
+                          </div>
+                          <div className="split-grid">
+                            <div>
+                              <label className="field-label">Smoking</label>
+                              <select value={smokeCat} onChange={e => setSmokeCat(parseInt(e.target.value))} className="input-field" style={{ width:'100%' }}>
+                                <option value={0}>Non-smoker</option>
+                                <option value={1}>Ex-smoker</option>
+                                <option value={2}>Light (&lt; 10/day)</option>
+                                <option value={3}>Moderate (10–19/day)</option>
+                                <option value={4}>Heavy (20+/day)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="field-label">Diabetes</label>
+                              <select value={diabetes} onChange={e => setDiabetes(parseInt(e.target.value))} className="input-field" style={{ width:'100%' }}>
+                                <option value={0}>None</option>
+                                <option value={1}>Type 1</option>
+                                <option value={2}>Type 2</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div className="split-grid">
+                            <InputWithUnit label="Total : HDL Cholesterol ratio" value={cholRatio} onChange={e => setCholRatio(e.target.value)} placeholder="e.g. 4.0" step="0.1" unit="ratio" />
+                            <InputWithUnit label="SBP variability (SD, optional)" value={sbpSD} onChange={e => setSbpSD(e.target.value)} placeholder="mmHg SD" step="0.1" unit="SD" />
+                          </div>
+                          <div style={{ fontSize:'10px', color:'#94a3b8', lineHeight:'1.5' }}>
+                            Uses BMI (from height/weight) and systolic BP from the left panel. Blank cholesterol ratio / SBP-SD contribute neutrally (QRISK3 convention). Townsend deprivation is set to 0 (UK-only index).
+                          </div>
+                          <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'10px', padding:'6px 14px' }}>
+                            <FraxToggleRow label="Atrial fibrillation" value={qAF} setter={setQAF} />
+                            <FraxToggleRow label="On BP treatment" value={qTreatedHtn} setter={setQTreatedHtn} />
+                            <FraxToggleRow label="CKD stage 3–5" value={qCKD} setter={setQCKD} />
+                            <FraxToggleRow label="Rheumatoid arthritis" value={qRA} setter={setQRA} />
+                            <FraxToggleRow label="Migraine" value={qMigraine} setter={setQMigraine} />
+                            <FraxToggleRow label="SLE (lupus)" value={qSLE} setter={setQSLE} />
+                            <FraxToggleRow label="Severe mental illness" value={qSMI} setter={setQSMI} />
+                            <FraxToggleRow label="Atypical antipsychotics" value={qAtypAntipsy} setter={setQAtypAntipsy} />
+                            <FraxToggleRow label="Regular corticosteroids" value={qCortico} setter={setQCortico} />
+                            {evalGender === 'boys' && <FraxToggleRow label="Erectile dysfunction" value={qED} setter={setQED} />}
+                            <FraxToggleRow label="Family history of CVD" value={qFhCvd} setter={setQFhCvd} />
+                          </div>
+                        </div>
+
+                        {/* Risk hero */}
+                        {qriskMetrics.risk !== null && (
+                          <div style={{ background:'#f8fafc', border:'1.5px solid #e2e8f0', borderRadius:'16px', padding:'22px', marginTop:'16px' }}>
+                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'16px', flexWrap:'wrap', gap:'8px' }}>
+                              <div>
+                                <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'6px' }}>10-Year CVD Risk</div>
+                                <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
+                                  <span className="hero-value" style={{ fontSize:'44px', fontWeight:'900', color: qriskMetrics.variant === 'high' ? '#dc2626' : qriskMetrics.variant === 'mid' ? '#d97706' : '#16a34a', lineHeight:1 }}>{qriskMetrics.risk.toFixed(1)}</span>
+                                  <span style={{ fontSize:'18px', fontWeight:'700', color:'#64748b' }}>%</span>
+                                </div>
+                                {qriskMetrics.typical !== null && <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'3px' }}>Healthy baseline (same age/sex/ethnicity): {qriskMetrics.typical.toFixed(1)}%</div>}
+                              </div>
+                              <StatusBadge text={qriskMetrics.band} variant={qriskMetrics.variant} />
+                            </div>
+                            <ProbBar prob={qriskMetrics.risk} maxProb={40} threshold={10} />
+                          </div>
+                        )}
+
+                        <div style={{ marginTop:'16px', background:'#eef2ff', border:'1px solid #c7d2fe', borderRadius:'10px', padding:'12px 14px', fontSize:'11px', color:'#4338ca', lineHeight:'1.7' }}>
+                          <strong>India note:</strong> QRISK3 is derived on a UK cohort. Its Indian/South-Asian ethnicity term raises risk relative to White, but studies suggest it may still under-estimate true risk in Indians. Treat ≥ 10% as the usual statin-consideration threshold, and interpret alongside the <strong>Lipid Association of India</strong> risk stratification and ICMR guidance. QRISK3 does not apply to established CVD, familial hypercholesterolaemia, or type-appropriate secondary prevention.
+                        </div>
+
+                        <div style={{ marginTop:'auto', paddingTop:'18px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
+                          QRISK3-2017 · Hippisley-Cox J et al., BMJ 2017;357:j2099 · ClinRisk open-source coefficients (GNU LGPL). Clinician must verify — decision support only, not a diagnostic device.
+                        </div>
+                      </div>
+                    )}
+
                     {/* ══ TIMELINE TAB ══ */}
                     {activeTab === 'timeline' && (
                       <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'16px' }}>
@@ -1446,7 +1760,7 @@
 
               {/* ── FOOTER ── */}
               <footer className="clinical-footer">
-                Reference: Khadilkar V et al. (2015) Indian Pediatrics · Bayley-Pinneau (1952) / Greulich-Pyle · CKD-EPI 2021 · Modified Bedside Schwartz (2009) · FRAX India Asian · FIB-4 (Sterling et al.) · For clinical decision support only.
+                Reference: Khadilkar V et al. (2015) Indian Pediatrics · TW3 (Tanner-Whitehouse 3, 2001) · QRISK3-2017 (Hippisley-Cox, BMJ 2017; ClinRisk LGPL) · CKD-EPI 2021 · Modified Bedside Schwartz (2009) · FRAX India Asian · FIB-4 (Sterling et al.) · For clinical decision support only.
               </footer>
 
             </div>

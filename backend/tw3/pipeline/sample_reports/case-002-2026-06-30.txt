@@ -1,0 +1,39 @@
+De-identified reference report (synthetic ID)
+Patient : CASE-002    Age: 10.4 Y / F
+Date : 30 June, 2026
+Tanner Whitehouse method II and III Bone age
+
+Radius - H
+Ulna - G
+First metacarpal - G
+Third metacarpal - G
+Fifth metacarpal - G
+Proximal Phalanx Thumb - G
+Proximal Phalanx III - G
+Proximal Phalanx V - G
+Middle Phalanx III - H
+Middle Phalanx V - G
+Distal Phalanx Thumb - H
+Distal Phalanx III - H
+Distal Phalanx V - H
+Capitate - H
+Hamate - I
+Triquetral - G
+Lunate - G
+Scaphoid - H
+Trapezium - I
+Trapezoid - H
+
+Raw scores
+RUS Grade Score : 713
+TWII'20 bone grade score : 932
+Carpals grade score : 962
+
+Bone ages
+TWII 'RUS' bone age : 13.4 yrs
+TWIII 'RUS' bone age : 12.4 yrs
+TWII '20' bone age : 12.5 yrs
+
+Carpals only
+TWII bone age: 11.2 yrs
+TWIII bone age: 11.2 yrs

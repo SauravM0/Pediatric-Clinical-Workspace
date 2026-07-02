@@ -1,0 +1,9 @@
+# Extras for the imaging + training stages (NOT installed in the base app env).
+# The data/label pipeline (report parsing, validation, coverage) needs none of these.
+numpy
+pillow
+pydicom            # DICOM reading
+# --- model training (run on a GPU machine / Google Colab) ---
+# torch
+# torchvision
+# scikit-learn      # already in base env

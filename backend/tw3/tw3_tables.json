@@ -1,0 +1,20 @@
+{
+  "_about": "TW3-RUS conversion tables. Deterministic back-end for the automatic bone-age pipeline (the 'S / scoring' module of the PEARLS design).",
+  "_license": "The stage->score point tables are copyrighted (Tanner, Healy, Goldstein & Cameron 2001, TW3). They are NOT bundled. Your centre is licensed for TW3 — paste the values your radiologist uses. Nothing here is invented.",
+  "method": "TWIII-RUS",
+  "sexes": ["boys", "girls"],
+  "rus_bones": ["radius","ulna","mc1","mc3","mc5","pp1","pp3","pp5","mp3","mp5","dp1","dp3","dp5"],
+  "stages": ["A","B","C","D","E","F","G","H","I"],
+
+  "stage_to_score": {
+    "_fill": "stage_to_score[sex][boneKey][stage] = RUS points. Leave a bone empty until you enter its licensed row.",
+    "boys":  {},
+    "girls": {}
+  },
+
+  "score_to_age": {
+    "_fill": "Ascending [rusScore, boneAgeYears] anchor points for the TWIII-RUS curve. The two 'girls' anchors below are derived from Dr. Rathod's own reports (your data, not the copyrighted table) — extend/replace with the full licensed curve for accuracy.",
+    "boys":  [],
+    "girls": [[681, 12.1], [713, 12.4]]
+  }
+}

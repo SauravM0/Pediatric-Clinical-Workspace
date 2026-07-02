@@ -8,3 +8,15 @@ venv/
 .ruff_cache/
 logs/
 synthetic_hand_test.png
+
+# Large local data assets (kept on disk, not committed).
+# Validation set is Greulich-Pyle months only — not TW3-stage usable.
+/Bone Age Validation Set/
+# TW3 research PDFs (reference source for the scoring tables; large binaries).
+/TW3 research/
+# Local patient database and stored radiographs (never commit PHI).
+*.db
+*.sqlite
+*.sqlite3
+/data/
+/backend/data/

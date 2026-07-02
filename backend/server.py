@@ -1,7 +1,14 @@
 """FastAPI backend for the Pediatric Clinical Workspace.
 
-The service exposes a local bone-age API and serves the static frontend from
-``frontend/index.html`` so the project can be run with one command.
+The service serves the static frontend from ``frontend/index.html`` so the
+project can be run with one local command. It binds to ``127.0.0.1`` only and
+performs no external network calls: no API keys, no cloud inference, nothing
+leaves this computer.
+
+The previous unvalidated whole-image bone-age heuristic has been removed from
+the clinical path (cleanup §6.1). TW3-RUS bone age is produced only by the
+deterministic scoring engine in ``backend/tw3/scoring.py`` from doctor-confirmed
+bone stages. The structured assessment/upload API is being built in ``backend``.
 """
 
 from __future__ import annotations
@@ -10,16 +17,10 @@ import os
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-
-from backend.local_bone_age import (
-    make_synthetic_hand_xray,
-    model_status,
-    predict_bone_age,
-)
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 FRONTEND_DIR = APP_ROOT / "frontend"
@@ -46,7 +47,7 @@ def _load_env_file(path: Path) -> None:
 
 _load_env_file(ENV_FILE)
 
-app = FastAPI(title="Pediatric Clinical Workspace", version="1.1.0")
+app = FastAPI(title="Pediatric Clinical Workspace", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -66,58 +67,21 @@ app.add_middleware(
 
 if FRONTEND_DIR.exists():
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+    vendor_dir = FRONTEND_DIR / "vendor"
+    if vendor_dir.exists():
+        # Locally vendored JS (React, Babel, Tailwind) referenced as ``vendor/*``
+        # from index.html — served here so the app is fully offline.
+        app.mount("/vendor", StaticFiles(directory=vendor_dir), name="vendor")
 
 
 @app.get("/api/health")
 def health() -> dict[str, Any]:
-    status = model_status()
     return {
         "status": "ok",
-        "inference": status,
-        "model": status["kind"],
-        "model_configured": status["configured"],
         "frontend_available": INDEX_HTML.exists(),
+        "external_calls": False,
         "clinical_use": False,
     }
-
-
-@app.post("/api/bone-age")
-async def bone_age(
-    file: UploadFile = File(...),
-    sex: str = Form("unspecified"),
-    chronological_age: str = Form(""),
-) -> Any:
-    try:
-        raw = await file.read()
-        if not raw:
-            return JSONResponse(status_code=400, content={"error": "empty_file"})
-        return predict_bone_age(raw, sex, chronological_age)
-    except Exception as exc:
-        return JSONResponse(
-            status_code=500,
-            content={"error": "inference_failed", "detail": str(exc)},
-        )
-
-
-@app.get("/api/self-test")
-def self_test() -> Any:
-    try:
-        raw = make_synthetic_hand_xray()
-        result = predict_bone_age(raw, sex="boys", chronological_age="10.0")
-        return {
-            "status": "pass",
-            "message": "Local upload and prediction path is working.",
-            "result": result,
-        }
-    except Exception as exc:
-        return JSONResponse(
-            status_code=500,
-            content={
-                "status": "fail",
-                "error": "self_test_failed",
-                "detail": str(exc),
-            },
-        )
 
 
 @app.get("/")

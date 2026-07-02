@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "clinical-workspace",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-l", "3131", "."],
-      "port": 3131
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "uvicorn", "backend.server:app", "--host", "127.0.0.1", "--port", "8077"],
+      "port": 8077
     }
   ]
 }

@@ -1,0 +1,44 @@
+[
+  {
+    "case_id": "case-001-2026-04-07",
+    "source": "Internal reference centre (de-identified)",
+    "view": "WRIST AP (left)",
+    "image_ref": "add DICOM/PNG filename here once exported from PACS",
+    "sex": "girls",
+    "chronological_age_years": 10.4,
+    "rus_stages": {
+      "radius": "H", "ulna": "G", "mc1": "G", "mc3": "G", "mc5": "F",
+      "pp1": "G", "pp3": "G", "pp5": "G", "mp3": "G", "mp5": "G",
+      "dp1": "G", "dp3": "G", "dp5": "G"
+    },
+    "reported": {
+      "rus_grade_score": 681,
+      "twiii_rus_bone_age_years": 12.1,
+      "twii_rus_bone_age_years": 13.1,
+      "twii20_bone_age_years": 12.0,
+      "carpal_grade_score": 946,
+      "carpal_twiii_bone_age_years": 10.9
+    }
+  },
+  {
+    "case_id": "case-002-2026-06-30",
+    "source": "Internal reference centre (de-identified)",
+    "view": "HAND AP (left)",
+    "image_ref": "add DICOM/PNG filename here once exported from PACS",
+    "sex": "girls",
+    "chronological_age_years": 10.4,
+    "rus_stages": {
+      "radius": "H", "ulna": "G", "mc1": "G", "mc3": "G", "mc5": "G",
+      "pp1": "G", "pp3": "G", "pp5": "G", "mp3": "H", "mp5": "G",
+      "dp1": "H", "dp3": "H", "dp5": "H"
+    },
+    "reported": {
+      "rus_grade_score": 713,
+      "twiii_rus_bone_age_years": 12.4,
+      "twii_rus_bone_age_years": 13.4,
+      "twii20_bone_age_years": 12.5,
+      "carpal_grade_score": 962,
+      "carpal_twiii_bone_age_years": 11.2
+    }
+  }
+]
