@@ -57,8 +57,8 @@ def test_checksum_mismatch_fails(tmp_path) -> None:
 
 def test_checksum_roundtrip(tmp_path) -> None:
     content = {
-        "method": "TW3-RUS", "version": "1",
-        "stage_to_score": {"girls": {"radius": {"G": 10}}},
+        "method": "TW3-C-RUS", "version": "1",
+        "stage_to_score": {"girls": {"radius": {"7": 10}}},
         "score_to_age": {"girls": [[10, 5.0], [20, 6.0]]},
     }
     content["checksum"] = compute_checksum(content)

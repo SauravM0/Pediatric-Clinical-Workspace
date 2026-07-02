@@ -37,10 +37,12 @@ BONE_LABELS: Final[dict[str, str]] = {
     "dp5": "Distal phalanx (5th digit)",
 }
 
-# Original Tanner-Whitehouse 3 uses letter stages. The authoritative allowed
-# stages per bone come from the data file (tables.py); this is only the full
-# vocabulary used for validation and UI ordering.
-STAGES: Final[tuple[str, ...]] = ("A", "B", "C", "D", "E", "F", "G", "H", "I")
+# Stage vocabulary. The active method is TW3-C RUS, which grades each bone on a
+# numeric 1–8 scale (ulna has no grade 8). The authoritative allowed stages per
+# bone come from the data file (tables.py); this is the full ordered vocabulary
+# used for validation and UI ordering. (Original TW3 used A–I letters; TW3-C
+# replaces them with grades 1–8 — see tw3_tables.json 'notes'.)
+STAGES: Final[tuple[str, ...]] = ("1", "2", "3", "4", "5", "6", "7", "8")
 
 # Sex at birth as used by the sex-specific TW3 tables.
 SEXES: Final[tuple[str, ...]] = ("boys", "girls")
