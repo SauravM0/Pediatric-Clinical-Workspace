@@ -59,7 +59,8 @@ empty cells fill; pair each report `.txt` with its DICOM/PNG via `image_ref`.
 - `pipeline/report_parser.py` — free-text report → structured stages/scores/ages.
 - `pipeline/dataset.py` — validation + coverage analysis.
 - `pipeline/build_dataset.py` — CLI readiness report.
-- `pipeline/image_prep.py` — DICOM/PNG → normalized array (needs `requirements-ml.txt`).
+
+(Runtime DICOM/PNG loading lives in `backend/imaging.py`.)
 
 ## Status
 
