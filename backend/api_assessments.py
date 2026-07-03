@@ -10,12 +10,15 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from backend import assessment_service as svc
+from backend import radiograph_service as rgsvc
 from backend.db import get_db
+from backend.imaging import ImagingError
 
 router = APIRouter(prefix="/api/bone-age", tags=["assessments"])
 
@@ -138,3 +141,27 @@ def revise(assessment_id: int, req: ReasonReq, db: Session = Depends(get_db)) ->
         return svc.assessment_to_dict(db, a)
     except svc.AssessmentError as exc:
         raise _handle(exc) from exc
+
+
+@router.post("/assessments/{assessment_id}/image", status_code=201)
+async def upload_image(assessment_id: int, file: UploadFile = File(...),
+                       db: Session = Depends(get_db)) -> dict:
+    raw = await file.read()
+    try:
+        return rgsvc.attach_image(db, assessment_id, raw, file.filename or "")
+    except ImagingError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except svc.AssessmentError as exc:
+        raise _handle(exc) from exc
+
+
+@router.get("/radiographs/{radiograph_id}/{kind}")
+def get_radiograph_image(radiograph_id: int, kind: str,
+                         db: Session = Depends(get_db)) -> FileResponse:
+    if kind not in ("thumbnail", "analysis"):
+        raise HTTPException(status_code=404, detail="unknown image kind")
+    try:
+        path = rgsvc.radiograph_file(db, radiograph_id, kind)
+    except svc.AssessmentError as exc:
+        raise _handle(exc) from exc
+    return FileResponse(path, media_type="image/png")

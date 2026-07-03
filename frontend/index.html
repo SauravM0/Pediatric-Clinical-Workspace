@@ -550,6 +550,7 @@
           const [lcMsg, setLcMsg] = useState(null);           // {type:'ok'|'err', text}
           const [lcBusy, setLcBusy] = useState(false);
           const [showAudit, setShowAudit] = useState(false);
+          const [radiograph, setRadiograph] = useState(null); // attached film metadata
           const [fatherHeight, setFatherHeight] = useState("");
           const [motherHeight, setMotherHeight] = useState("");
 
@@ -862,6 +863,23 @@
             }
           };
 
+          const attachImage = async (fileObj) => {
+            if (!assessment) { setLcMsg({ type:'err', text:'Save the draft first, then attach a film.' }); return; }
+            if (lcLocked) { setLcMsg({ type:'err', text:'Assessment is locked; open a revision to change the image.' }); return; }
+            setLcBusy(true); setLcMsg(null);
+            try {
+              const fd = new FormData(); fd.append('file', fileObj);
+              const res = await fetch(`${LC_API}/${assessment.id}/image`, { method:'POST', body: fd });
+              const d = await res.json();
+              if (!res.ok) { setLcMsg({ type:'err', text: d.detail || 'upload failed' }); }
+              else {
+                setRadiograph(d);
+                setLcMsg({ type:'ok', text:`Film attached · ${d.source_format} · ${d.quality_status.replace(/_/g, ' ')}` });
+              }
+            } catch (e) { setLcMsg({ type:'err', text: String(e.message || e) }); }
+            finally { setLcBusy(false); }
+          };
+
           const lcBtn = (bg, disabled) => ({ padding:'7px 12px', background: disabled ? '#cbd5e1' : bg,
             color:'white', border:'none', borderRadius:'8px', fontSize:'11px', fontWeight:'700',
             cursor: disabled ? 'not-allowed' : 'pointer' });
@@ -908,7 +926,7 @@
             setGlucocorticoids("no"); setRheumatoid("no"); setSecondaryOsteo("no"); setAlcohol("no");
             setTimeline([]); setActiveTab('growth');
             setBoneAge(""); setBoneAgeSource("manual"); setRusStages({});
-            setPatientCode(""); setApproverName(""); setAssessment(null); setLcMsg(null); setShowAudit(false);
+            setPatientCode(""); setApproverName(""); setAssessment(null); setLcMsg(null); setShowAudit(false); setRadiograph(null);
             setFatherHeight(""); setMotherHeight("");
             setEthnicity(2); setSmokeCat(0); setDiabetes(0); setCholRatio(""); setSbpSD("");
             setQAF("no"); setQTreatedHtn("no"); setQRA("no"); setQCKD("no"); setQMigraine("no");
@@ -1267,6 +1285,22 @@
                               <input value={approverName} onChange={e => setApproverName(e.target.value)} placeholder="Dr ..." className="input-field" />
                             </div>
                           </div>
+                          <div style={{ marginTop:'10px', display:'flex', gap:'10px', alignItems:'center', flexWrap:'wrap' }}>
+                            <label style={{ display:'inline-flex', alignItems:'center', gap:'6px', padding:'8px 12px', border:'1.5px dashed #c7d2fe', borderRadius:'10px', background:'#f5f3ff', cursor: (assessment && !lcLocked) ? 'pointer' : 'not-allowed', fontSize:'11px', fontWeight:'700', color:'#7c3aed' }}>
+                              {radiograph ? 'Replace film' : 'Attach X-ray (DICOM / PNG / JPEG)'}
+                              <input type="file" accept=".dcm,image/*" style={{ display:'none' }} disabled={!assessment || lcLocked}
+                                onChange={e => { const f = e.target.files && e.target.files[0]; if (f) attachImage(f); e.target.value = ''; }} />
+                            </label>
+                            {radiograph && (
+                              <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                                <img src={`${radiograph.thumbnail_url}?t=${radiograph.radiograph_id}`} alt="radiograph" style={{ width:'56px', height:'56px', objectFit:'cover', borderRadius:'8px', border:'1px solid #e2e8f0', background:'#0f172a' }} />
+                                <StatusBadge text={radiograph.quality_status.replace(/_/g, ' ')} variant={radiograph.quality_status === 'accepted' ? 'low' : radiograph.quality_status === 'accepted_with_warning' ? 'mid' : 'high'} />
+                              </div>
+                            )}
+                          </div>
+                          {radiograph && radiograph.quality_flags && radiograph.quality_flags.length > 0 && (
+                            <div style={{ marginTop:'6px', fontSize:'10px', color:'#b45309', lineHeight:'1.5' }}>⚠ {radiograph.quality_flags.join(', ').replace(/_/g, ' ')}{radiograph.duplicate_of ? ` · duplicate of radiograph #${radiograph.duplicate_of}` : ''}</div>
+                          )}
                           <div style={{ display:'flex', gap:'8px', flexWrap:'wrap', marginTop:'10px' }}>
                             <button onClick={saveDraft} disabled={lcBusy || lcLocked} style={lcBtn('#7c3aed', lcBusy || lcLocked)}>Save draft</button>
                             <button onClick={calculateAssessment} disabled={lcBusy || !assessment || rusMetrics.staged < rusMetrics.total || lcLocked} style={lcBtn('#16a34a', lcBusy || !assessment || rusMetrics.staged < rusMetrics.total || lcLocked)}>Calculate &amp; lock-in</button>
