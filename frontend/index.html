@@ -199,6 +199,18 @@
           pctAdultHeight:{ boys: [], girls: [] },
         };
 
+        // Report layout (Tanner–Whitehouse body). Labels match the clinical report;
+        // the 7 carpals + TWII/TWIII/TWII'20 scoring are wired in with the original-TW3
+        // engine switch. RUS codes map to the backend bone codes.
+        const REPORT_RUS = [
+          ['radius','Radius'], ['ulna','Ulna'], ['mc1','First metacarpal'],
+          ['mc3','Third metacarpal'], ['mc5','Fifth metacarpal'],
+          ['pp1','Proximal Phalanx Thumb'], ['pp3','Proximal Phalanx III'], ['pp5','Proximal Phalanx V'],
+          ['mp3','Middle Phalanx III'], ['mp5','Middle Phalanx V'],
+          ['dp1','Distal Phalanx Thumb'], ['dp3','Distal Phalanx III'], ['dp5','Distal Phalanx V'],
+        ];
+        const REPORT_CARPALS = ['Capitate','Hamate','Triquetral','Lunate','Scaphoid','Trapezium','Trapezoid'];
+
         // Linear interpolation over ascending [x, y] anchor points; null if <2 anchors.
         function interpAnchors(anchors, x) {
           if (!anchors || anchors.length < 2) return null;
@@ -1269,6 +1281,40 @@
                           <div style={{ marginTop:'8px', fontSize:'10px', color:'#7c3aed', lineHeight:'1.5' }}>Screening suggestion only — a whole-image estimate the clinician verifies. The 13-bone TW3-C grading below is the rigorous, auditable result.</div>
                         </div>
 
+                        {/* 2 · Bone Age Report (Tanner–Whitehouse body) */}
+                        <div style={{ marginTop:'16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'18px' }}>
+                          <div style={{ fontSize:'11px', fontWeight:'800', color:'#334155', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:'10px' }}>2 · Bone Age Report</div>
+                          {aiEstimate && aiEstimate.bone_age_years != null && (
+                            <div style={{ fontSize:'13px', fontWeight:'800', color:'#5b21b6', marginBottom:'10px' }}>AI screening bone age: {aiEstimate.bone_age_years} yr <span style={{ fontSize:'10px', fontWeight:'600', color:'#7c3aed' }}>(whole-image, verify)</span></div>
+                          )}
+                          <div style={{ fontFamily:'ui-monospace, Menlo, Consolas, monospace', fontSize:'12.5px', color:'#1e293b', lineHeight:'1.85' }}>
+                            <div style={{ fontWeight:'700', textDecoration:'underline', marginBottom:'6px' }}>Tanner Whitehouse method II and III Bone age</div>
+                            {REPORT_RUS.map(([code, label]) => (
+                              <div key={code}>{label} - {rusStages[code] || '—'}</div>
+                            ))}
+                            {REPORT_CARPALS.map(name => (<div key={name}>{name} - —</div>))}
+                            <div style={{ height:'8px' }} />
+                            <div style={{ fontWeight:'700' }}>Raw scores</div>
+                            <div>RUS Grade Score : {rusResult && rusResult.complete ? rusResult.total_rus_score : '—'}</div>
+                            <div>TWII'20 bone grade score : —</div>
+                            <div>Carpals grade score : —</div>
+                            <div style={{ height:'8px' }} />
+                            <div style={{ fontWeight:'700' }}>Bone ages</div>
+                            <div>TWII 'RUS' bone age : —</div>
+                            <div>TWIII 'RUS' bone age : {rusResult && rusResult.bone_age_years != null ? rusResult.bone_age_years + ' yrs' : '—'}</div>
+                            <div>TWII '20' bone age : —</div>
+                            <div style={{ height:'8px' }} />
+                            <div style={{ fontWeight:'700' }}>Carpals only</div>
+                            <div>TWII bone age : —</div>
+                            <div>TWIII bone age : —</div>
+                          </div>
+                          <div style={{ marginTop:'10px', fontSize:'10px', color:'#94a3b8', lineHeight:'1.5' }}>Grades, carpals and the TWII / TWII'20 scores populate once the bones are graded (Advanced). Original-TW3 letter scoring + carpals are being wired in next.</div>
+                        </div>
+
+                        {/* Everything below moved into Advanced (collapsed by default) */}
+                        <details style={{ marginTop:'16px' }}>
+                          <summary style={{ cursor:'pointer', fontWeight:'800', fontSize:'12px', color:'#7c3aed', padding:'8px 0', listStyle:'none' }}>⚙ Advanced · manual grading, save &amp; approve, adult-height</summary>
+
                         {/* TW3-C RUS grading grid (bones + allowed grades from the backend) */}
                         <div style={{ marginTop:'16px', background:'#faf5ff', border:'1px solid #e9d5ff', borderRadius:'12px', padding:'16px' }}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', flexWrap:'wrap', gap:'8px' }}>
@@ -1544,6 +1590,7 @@
                         <div style={{ marginTop:'auto', paddingTop:'18px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
                           TW3: Tanner, Healy, Goldstein &amp; Cameron (2001) — licensed reference values required for scoring &amp; skeletal height prediction. Mid-parental target: Tanner (open). Adult-height SDS/centile vs Khadilkar (WHO–IAP) 18-yr reference. Clinician must verify — not a diagnostic device.
                         </div>
+                        </details>
                       </div>
                     )}
 
