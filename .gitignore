@@ -20,3 +20,6 @@ synthetic_hand_test.png
 *.sqlite3
 /data/
 /backend/data/
+
+# Trained model artifacts + feature cache (generated locally from the RSNA set).
+/backend/ai/models/

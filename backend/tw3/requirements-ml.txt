@@ -1,9 +1,11 @@
-# Extras for the imaging + training stages (NOT installed in the base app env).
-# The data/label pipeline (report parsing, validation, coverage) needs none of these.
+# Extras for TRAINING the local bone-age screening model (backend/ai/train_boneage.py).
+# The running app does NOT need these — it only needs onnxruntime (in requirements.txt).
+# Install torch/torchvision from the CPU index:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+#   pip install onnx
+torch
+torchvision
+onnx               # ONNX export from the legacy torch exporter
 numpy
 pillow
 pydicom            # DICOM reading
-# --- model training (run on a GPU machine / Google Colab) ---
-# torch
-# torchvision
-# scikit-learn      # already in base env

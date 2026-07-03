@@ -15,9 +15,12 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from PIL import Image
 from pydantic import BaseModel, Field
 
+from backend.ai import boneage
+from backend.imaging import ImagingError, load_bytes
 from backend.tw3 import (
     BONE_LABELS,
     RUS_BONES,
@@ -62,11 +65,37 @@ def config() -> dict:
         "max_age_years": t.max_age_years,
         "provisional_curve": _provisional_curve(t),
         "calibrated": {sex: t.is_calibrated(sex) for sex in SEXES},
+        "ai_estimate_available": boneage.model_available(),
+        "ai_model": boneage.model_metadata(),
         "bones": [
             {"code": code, "label": BONE_LABELS[code], "stages": list(t.stages_for(code))}
             for code in RUS_BONES
         ],
     }
+
+
+@router.post("/estimate")
+async def estimate(file: UploadFile = File(...), sex: str = Form(...)) -> dict:
+    """Stateless AI screening estimate for the top-of-page upload flow.
+
+    Whole-image Greulich-Pyle style, NOT TW3 — a suggestion the doctor verifies.
+    Works before any assessment exists; nothing is persisted here.
+    """
+    if sex not in SEXES:
+        raise HTTPException(status_code=422, detail=f"unsupported sex: {sex!r}")
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=422, detail="empty upload")
+    if not boneage.model_available():
+        return {"available": False,
+                "message": "No screening model installed. Train it locally with: "
+                           "python -m backend.ai.train_boneage"}
+    try:
+        loaded = load_bytes(raw, file.filename or "")
+    except ImagingError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    result = boneage.predict_months(Image.fromarray(loaded.analysis), is_male=(sex == "boys"))
+    return {"available": True, "source_format": loaded.source_format, **(result or {})}
 
 
 @router.post("/score")
