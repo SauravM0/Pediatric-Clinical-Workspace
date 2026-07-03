@@ -210,6 +210,7 @@
           ['dp1','Distal Phalanx Thumb'], ['dp3','Distal Phalanx III'], ['dp5','Distal Phalanx V'],
         ];
         const REPORT_CARPALS = ['Capitate','Hamate','Triquetral','Lunate','Scaphoid','Trapezium','Trapezoid'];
+        const LETTER_STAGES = ['A','B','C','D','E','F','G','H','I'];
 
         // Linear interpolation over ascending [x, y] anchor points; null if <2 anchors.
         function interpAnchors(anchors, x) {
@@ -553,7 +554,8 @@
           const [timeline, setTimeline] = useState([]);
           const [boneAge, setBoneAge] = useState("");        // TW3 bone age (RUS-derived or manual)
           const [boneAgeSource, setBoneAgeSource] = useState("manual"); // manual | rus
-          const [rusStages, setRusStages] = useState({});    // { boneCode: '1'..'8' }
+          const [rusStages, setRusStages] = useState({});    // { boneCode: 'A'..'I' }
+          const [carpalStages, setCarpalStages] = useState({}); // { carpalName: 'A'..'I' }
           const [tw3Config, setTw3Config] = useState(null);  // /api/bone-age/config
           const [rusResult, setRusResult] = useState(null);  // /api/bone-age/score
           const [patientCode, setPatientCode] = useState(""); // assessment lifecycle
@@ -725,22 +727,9 @@
             fetch('/api/bone-age/config').then(r => r.json()).then(setTw3Config).catch(() => {});
           }, []);
 
-          // Re-score whenever the confirmed grades or sex change.
-          useEffect(() => {
-            if ((evalGender !== 'boys' && evalGender !== 'girls') ||
-                Object.keys(rusStages).length === 0) {
-              setRusResult(null);
-              return;
-            }
-            const ctrl = new AbortController();
-            fetch('/api/bone-age/score', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ sex: evalGender, stages: rusStages }),
-              signal: ctrl.signal,
-            }).then(r => r.json()).then(setRusResult).catch(() => {});
-            return () => ctrl.abort();
-          }, [rusStages, evalGender]);
+          // Manual grading now uses original TW3 letters A–I (RUS + carpals). The
+          // scores/ages stay blank until the clinic's licensed TW3 tables are wired
+          // in, so no /score call is made here (no guessed numbers).
 
           // Normalised view of the backend result for the UI.
           const rusMetrics = useMemo(() => ({
@@ -953,7 +942,7 @@
             setPrevFracture("no"); setParentHipFracture("no"); setSmoking("no");
             setGlucocorticoids("no"); setRheumatoid("no"); setSecondaryOsteo("no"); setAlcohol("no");
             setTimeline([]); setActiveTab('growth');
-            setBoneAge(""); setBoneAgeSource("manual"); setRusStages({});
+            setBoneAge(""); setBoneAgeSource("manual"); setRusStages({}); setCarpalStages({});
             setPatientCode(""); setApproverName(""); setAssessment(null); setLcMsg(null); setShowAudit(false); setRadiograph(null); setAiEstimate(null);
             setFatherHeight(""); setMotherHeight("");
             setEthnicity(2); setSmokeCat(0); setDiabetes(0); setCholRatio(""); setSbpSD("");
@@ -1292,7 +1281,7 @@
                             {REPORT_RUS.map(([code, label]) => (
                               <div key={code}>{label} - {rusStages[code] || '—'}</div>
                             ))}
-                            {REPORT_CARPALS.map(name => (<div key={name}>{name} - —</div>))}
+                            {REPORT_CARPALS.map(name => (<div key={name}>{name} - {carpalStages[name] || '—'}</div>))}
                             <div style={{ height:'8px' }} />
                             <div style={{ fontWeight:'700' }}>Raw scores</div>
                             <div>RUS Grade Score : {rusResult && rusResult.complete ? rusResult.total_rus_score : '—'}</div>
@@ -1315,113 +1304,37 @@
                         <details style={{ marginTop:'16px' }}>
                           <summary style={{ cursor:'pointer', fontWeight:'800', fontSize:'12px', color:'#7c3aed', padding:'8px 0', listStyle:'none' }}>⚙ Advanced · manual grading, save &amp; approve, adult-height</summary>
 
-                        {/* TW3-C RUS grading grid (bones + allowed grades from the backend) */}
+                        {/* Manual grading: original TW3 letters A–I (RUS + carpals) */}
                         <div style={{ marginTop:'16px', background:'#faf5ff', border:'1px solid #e9d5ff', borderRadius:'12px', padding:'16px' }}>
                           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'12px', flexWrap:'wrap', gap:'8px' }}>
-                            <span style={{ fontSize:'11px', fontWeight:'800', color:'#6b21a8', textTransform:'uppercase', letterSpacing:'0.05em' }}>TW3-C RUS grading · left hand–wrist · grades 1–8</span>
-                            <button onClick={() => setRusStages({})} style={{ padding:'5px 12px', background:'white', color:'#7c3aed', border:'1.5px solid #ddd6fe', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>Clear grades</button>
+                            <span style={{ fontSize:'11px', fontWeight:'800', color:'#6b21a8', textTransform:'uppercase', letterSpacing:'0.05em' }}>Manual TW3 grading · left hand–wrist · stages A–I</span>
+                            <button onClick={() => { setRusStages({}); setCarpalStages({}); }} style={{ padding:'5px 12px', background:'white', color:'#7c3aed', border:'1.5px solid #ddd6fe', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>Clear grades</button>
                           </div>
-                          {!tw3Config ? (
-                            <div style={{ fontSize:'12px', color:'#7c3aed' }}>Loading TW3-C bone list from the local engine…</div>
-                          ) : (
-                          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:'8px' }}>
-                            {tw3Config.bones.map(b => (
-                              <div key={b.code}>
-                                <label style={{ fontSize:'10px', fontWeight:'700', color:'#7c3aed', display:'block', marginBottom:'3px' }}>{b.label}</label>
-                                <select
-                                  value={rusStages[b.code] || ''}
-                                  onChange={e => setRusStages(s => { const n = { ...s }; if (e.target.value) n[b.code] = e.target.value; else delete n[b.code]; return n; })}
-                                  className="input-field" style={{ padding:'7px 8px', width:'100%' }}>
-                                  <option value="">— grade —</option>
-                                  {b.stages.map(st => <option key={st} value={st}>{st}</option>)}
+                          <div style={{ fontSize:'10px', fontWeight:'800', color:'#7c3aed', marginBottom:'6px', textTransform:'uppercase', letterSpacing:'.04em' }}>RUS bones (13)</div>
+                          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(150px, 1fr))', gap:'8px' }}>
+                            {REPORT_RUS.map(([code, label]) => (
+                              <div key={code}>
+                                <label style={{ fontSize:'10px', fontWeight:'700', color:'#7c3aed', display:'block', marginBottom:'3px' }}>{label}</label>
+                                <select value={rusStages[code] || ''} onChange={e => setRusStages(s => { const n = { ...s }; if (e.target.value) n[code] = e.target.value; else delete n[code]; return n; })} className="input-field" style={{ padding:'7px 8px', width:'100%' }}>
+                                  <option value="">— stage —</option>
+                                  {LETTER_STAGES.map(st => <option key={st} value={st}>{st}</option>)}
                                 </select>
                               </div>
                             ))}
                           </div>
-                          )}
-
-                          {/* score state (scoring performed by the backend engine) */}
-                          <div style={{ marginTop:'14px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px', fontSize:'12px', fontWeight:'700' }}>
-                            <span style={{ color:'#6b21a8' }}>Bones graded: {rusMetrics.staged}/{rusMetrics.total}</span>
-                            <span style={{ color:'#6b21a8' }}>RUS maturity score: {rusMetrics.score}</span>
-                          </div>
-
-                          {rusMetrics.suggestedAge !== null ? (
-                            <div style={{ marginTop:'10px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'8px', padding:'10px 12px', flexWrap:'wrap', gap:'8px' }}>
-                              <span style={{ fontSize:'12px', fontWeight:'700', color:'#16a34a' }}>
-                                TW3-C bone age: {rusMetrics.suggestedAge.toFixed(1)} yr
-                                {rusMetrics.provisional && <span style={{ fontSize:'10px', fontWeight:'700', color:'#b45309' }}> · provisional curve (±~0.5 yr)</span>}
-                              </span>
-                              <button onClick={() => { setBoneAge(Number(rusMetrics.suggestedAge.toFixed(1))); setBoneAgeSource('rus'); }} style={{ padding:'5px 12px', background:'#16a34a', color:'white', border:'none', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>Use this</button>
-                            </div>
-                          ) : (
-                            <div style={{ marginTop:'10px', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'8px', padding:'10px 12px', fontSize:'11px', color:'#1e40af', lineHeight:'1.6' }}>
-                              Grade all {rusMetrics.total} bones to compute the TW3-C bone age.{rusMetrics.status && rusMetrics.staged > 0 ? ` (${rusMetrics.status})` : ''} You can also enter a bone age manually below.
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Assessment record: save → calculate → approve (persisted + audited) */}
-                        <div style={{ marginTop:'12px', background:'#ffffff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'14px' }}>
-                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px', flexWrap:'wrap', gap:'8px' }}>
-                            <span style={{ fontSize:'11px', fontWeight:'800', color:'#334155', textTransform:'uppercase', letterSpacing:'0.05em' }}>Assessment record</span>
-                            {assessment && <StatusBadge text={`${assessment.assessment_status} · rev ${assessment.revision} · #${assessment.id}`} variant={assessment.assessment_status === 'approved' ? 'low' : assessment.assessment_status === 'ready_for_review' ? 'mid' : 'info'} />}
-                          </div>
-                          <div className="split-grid">
-                            <div>
-                              <label className="field-label">Patient code</label>
-                              <input value={patientCode} onChange={e => setPatientCode(e.target.value)} placeholder="e.g. CASE-001" className="input-field" disabled={lcLocked} />
-                            </div>
-                            <div>
-                              <label className="field-label">Approving doctor</label>
-                              <input value={approverName} onChange={e => setApproverName(e.target.value)} placeholder="Dr ..." className="input-field" />
-                            </div>
-                          </div>
-                          <div style={{ marginTop:'10px', display:'flex', gap:'10px', alignItems:'center', flexWrap:'wrap' }}>
-                            <label style={{ display:'inline-flex', alignItems:'center', gap:'6px', padding:'8px 12px', border:'1.5px dashed #c7d2fe', borderRadius:'10px', background:'#f5f3ff', cursor: (assessment && !lcLocked) ? 'pointer' : 'not-allowed', fontSize:'11px', fontWeight:'700', color:'#7c3aed' }}>
-                              {radiograph ? 'Replace film' : 'Attach X-ray (DICOM / PNG / JPEG)'}
-                              <input type="file" accept=".dcm,image/*" style={{ display:'none' }} disabled={!assessment || lcLocked}
-                                onChange={e => { const f = e.target.files && e.target.files[0]; if (f) attachImage(f); e.target.value = ''; }} />
-                            </label>
-                            {radiograph && (
-                              <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                                <img src={`${radiograph.thumbnail_url}?t=${radiograph.radiograph_id}`} alt="radiograph" style={{ width:'56px', height:'56px', objectFit:'cover', borderRadius:'8px', border:'1px solid #e2e8f0', background:'#0f172a' }} />
-                                <StatusBadge text={radiograph.quality_status.replace(/_/g, ' ')} variant={radiograph.quality_status === 'accepted' ? 'low' : radiograph.quality_status === 'accepted_with_warning' ? 'mid' : 'high'} />
+                          <div style={{ fontSize:'10px', fontWeight:'800', color:'#7c3aed', margin:'14px 0 6px', textTransform:'uppercase', letterSpacing:'.04em' }}>Carpal bones (7)</div>
+                          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(150px, 1fr))', gap:'8px' }}>
+                            {REPORT_CARPALS.map(name => (
+                              <div key={name}>
+                                <label style={{ fontSize:'10px', fontWeight:'700', color:'#7c3aed', display:'block', marginBottom:'3px' }}>{name}</label>
+                                <select value={carpalStages[name] || ''} onChange={e => setCarpalStages(s => { const n = { ...s }; if (e.target.value) n[name] = e.target.value; else delete n[name]; return n; })} className="input-field" style={{ padding:'7px 8px', width:'100%' }}>
+                                  <option value="">— stage —</option>
+                                  {LETTER_STAGES.map(st => <option key={st} value={st}>{st}</option>)}
+                                </select>
                               </div>
-                            )}
+                            ))}
                           </div>
-                          {radiograph && radiograph.quality_flags && radiograph.quality_flags.length > 0 && (
-                            <div style={{ marginTop:'6px', fontSize:'10px', color:'#b45309', lineHeight:'1.5' }}>⚠ {radiograph.quality_flags.join(', ').replace(/_/g, ' ')}{radiograph.duplicate_of ? ` · duplicate of radiograph #${radiograph.duplicate_of}` : ''}</div>
-                          )}
-                          <div style={{ display:'flex', gap:'8px', flexWrap:'wrap', marginTop:'10px' }}>
-                            <button onClick={saveDraft} disabled={lcBusy || lcLocked} style={lcBtn('#7c3aed', lcBusy || lcLocked)}>Save draft</button>
-                            <button onClick={calculateAssessment} disabled={lcBusy || !assessment || rusMetrics.staged < rusMetrics.total || lcLocked} style={lcBtn('#16a34a', lcBusy || !assessment || rusMetrics.staged < rusMetrics.total || lcLocked)}>Calculate &amp; lock-in</button>
-                            <button onClick={approveAssessment} disabled={lcBusy || !assessment || assessment.assessment_status !== 'ready_for_review'} style={lcBtn('#2563eb', lcBusy || !assessment || assessment.assessment_status !== 'ready_for_review')}>Approve</button>
-                            {assessment && assessment.bone_age_years != null && (
-                              <button onClick={() => window.open(`${LC_API}/${assessment.id}/report`, '_blank')} style={lcBtn('#0891b2', false)}>View report</button>
-                            )}
-                            {assessment && assessment.assessment_status === 'approved' && (
-                              <button onClick={reviseAssessment} disabled={lcBusy} style={lcBtn('#d97706', lcBusy)}>Open revision</button>
-                            )}
-                            {assessment && (
-                              <button onClick={toggleAudit} style={{ padding:'7px 12px', background:'white', color:'#475569', border:'1.5px solid #e2e8f0', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>{showAudit ? 'Hide audit' : 'Audit'}</button>
-                            )}
-                          </div>
-                          {lcMsg && <div style={{ marginTop:'8px', fontSize:'11px', fontWeight:'700', color: lcMsg.type === 'ok' ? '#16a34a' : '#dc2626' }}>{lcMsg.text}</div>}
-                          {assessment && assessment.bone_age_years != null && (
-                            <div style={{ marginTop:'8px', fontSize:'12px', color:'#334155' }}>
-                              Saved bone age: <strong>{assessment.bone_age_years} yr</strong> · RUS {assessment.total_rus_score}
-                              {assessment.bone_age_difference_months != null && <span> · {assessment.bone_age_difference_months >= 0 ? '+' : ''}{assessment.bone_age_difference_months} mo vs chronological</span>}
-                              {assessment.approved_by && <span> · approved by {assessment.approved_by}</span>}
-                            </div>
-                          )}
-                          {showAudit && assessment && assessment.audit && (
-                            <div style={{ marginTop:'8px', maxHeight:'150px', overflowY:'auto', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'8px', fontSize:'10px', color:'#475569', fontFamily:'monospace', lineHeight:'1.6' }}>
-                              {assessment.audit.map((e, i) => (
-                                <div key={i}>{(e.timestamp || '').replace('T', ' ').slice(0, 19)} · {e.event_type} · {e.actor}{e.reason ? ` · ${e.reason}` : ''}</div>
-                              ))}
-                            </div>
-                          )}
+                          <div style={{ marginTop:'12px', fontSize:'10px', color:'#94a3b8', lineHeight:'1.5' }}>These letter grades appear in the report above. The RUS/carpal scores and the TWII / TWIII / TWII'20 bone ages compute once the clinic's licensed TW3 tables are supplied — no values are guessed.</div>
                         </div>
 
                         {/* Bone age used for prediction */}
