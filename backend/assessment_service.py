@@ -21,7 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.config import APP_VERSION
-from backend.models import AuditEvent, BoneAssessment, Patient, TW3Assessment
+from backend.models import AuditEvent, BoneAssessment, Patient, Radiograph, TW3Assessment
 from backend.tw3 import (
     AssessmentStatus,
     RUS_BONES,
@@ -233,6 +233,22 @@ def revise(db: Session, assessment_id: int, *, actor: str,
     return new
 
 
+def report_html(db: Session, assessment_id: int, *, actor: str = "local-user") -> str:
+    """Render the English TW3-C report; requires a calculated assessment (§20)."""
+    a = get_assessment(db, assessment_id)
+    if a.bone_age_months is None:
+        raise AssessmentError("cannot generate report: assessment is not calculated")
+    from backend.reports import render_report_html
+    data = assessment_to_dict(db, a)
+    rg = db.get(Radiograph, a.radiograph_id) if a.radiograph_id else None
+    html = render_report_html(a, data, rg)
+    _audit(db, assessment_id=a.id, patient_id=a.patient_id,
+           event_type="report_generation", actor=actor,
+           new={"status": a.assessment_status})
+    db.flush()
+    return html
+
+
 # ── Serialization ─────────────────────────────────────────────────────────────
 
 def assessment_to_dict(db: Session, a: TW3Assessment, *, include_audit: bool = False) -> dict:
@@ -253,6 +269,8 @@ def assessment_to_dict(db: Session, a: TW3Assessment, *, include_audit: bool = F
         "bone_age_months": a.bone_age_months,
         "bone_age_difference_months": a.bone_age_difference_months,
         "scoring_table_version": a.scoring_table_version,
+        "quality_status": a.quality_status,
+        "radiograph_id": a.radiograph_id,
         "doctor_approved": a.doctor_approved,
         "approved_by": a.approved_by,
         "approved_at": a.approved_at.isoformat() if a.approved_at else None,

@@ -1305,6 +1305,9 @@
                             <button onClick={saveDraft} disabled={lcBusy || lcLocked} style={lcBtn('#7c3aed', lcBusy || lcLocked)}>Save draft</button>
                             <button onClick={calculateAssessment} disabled={lcBusy || !assessment || rusMetrics.staged < rusMetrics.total || lcLocked} style={lcBtn('#16a34a', lcBusy || !assessment || rusMetrics.staged < rusMetrics.total || lcLocked)}>Calculate &amp; lock-in</button>
                             <button onClick={approveAssessment} disabled={lcBusy || !assessment || assessment.assessment_status !== 'ready_for_review'} style={lcBtn('#2563eb', lcBusy || !assessment || assessment.assessment_status !== 'ready_for_review')}>Approve</button>
+                            {assessment && assessment.bone_age_years != null && (
+                              <button onClick={() => window.open(`${LC_API}/${assessment.id}/report`, '_blank')} style={lcBtn('#0891b2', false)}>View report</button>
+                            )}
                             {assessment && assessment.assessment_status === 'approved' && (
                               <button onClick={reviseAssessment} disabled={lcBusy} style={lcBtn('#d97706', lcBusy)}>Open revision</button>
                             )}

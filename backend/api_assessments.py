@@ -11,7 +11,7 @@ from datetime import date, datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -151,6 +151,14 @@ async def upload_image(assessment_id: int, file: UploadFile = File(...),
         return rgsvc.attach_image(db, assessment_id, raw, file.filename or "")
     except ImagingError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except svc.AssessmentError as exc:
+        raise _handle(exc) from exc
+
+
+@router.get("/assessments/{assessment_id}/report", response_class=HTMLResponse)
+def report(assessment_id: int, db: Session = Depends(get_db)) -> HTMLResponse:
+    try:
+        return HTMLResponse(content=svc.report_html(db, assessment_id))
     except svc.AssessmentError as exc:
         raise _handle(exc) from exc
 
