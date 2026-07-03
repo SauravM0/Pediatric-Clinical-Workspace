@@ -544,6 +544,12 @@
           const [rusStages, setRusStages] = useState({});    // { boneCode: '1'..'8' }
           const [tw3Config, setTw3Config] = useState(null);  // /api/bone-age/config
           const [rusResult, setRusResult] = useState(null);  // /api/bone-age/score
+          const [patientCode, setPatientCode] = useState(""); // assessment lifecycle
+          const [approverName, setApproverName] = useState("");
+          const [assessment, setAssessment] = useState(null); // saved lifecycle record
+          const [lcMsg, setLcMsg] = useState(null);           // {type:'ok'|'err', text}
+          const [lcBusy, setLcBusy] = useState(false);
+          const [showAudit, setShowAudit] = useState(false);
           const [fatherHeight, setFatherHeight] = useState("");
           const [motherHeight, setMotherHeight] = useState("");
 
@@ -774,6 +780,92 @@
                      mph, mphLow, mphHigh, withinTarget, adult };
           }, [boneAge, evalAge, evalGender, evalHeight, fatherHeight, motherHeight]);
 
+          // ── Assessment lifecycle (persisted via /api/bone-age/assessments) ──────────
+          const LC_API = '/api/bone-age/assessments';
+          const lcLocked = assessment && (assessment.assessment_status === 'approved' || assessment.assessment_status === 'superseded');
+
+          const saveDraft = async () => {
+            if (!patientCode.trim()) { setLcMsg({ type:'err', text:'Enter a patient code to save.' }); return; }
+            if (evalGender !== 'boys' && evalGender !== 'girls') { setLcMsg({ type:'err', text:'Set biological sex first.' }); return; }
+            if (Object.keys(rusStages).length === 0) { setLcMsg({ type:'err', text:'Grade at least one bone.' }); return; }
+            setLcBusy(true); setLcMsg(null);
+            try {
+              let a = assessment;
+              if (!a || a.assessment_status === 'approved' || a.assessment_status === 'superseded') {
+                const res = await fetch(LC_API, { method:'POST', headers:{ 'Content-Type':'application/json' },
+                  body: JSON.stringify({ patient_code: patientCode.trim(), sex: evalGender,
+                    chronological_age_years: age !== "" ? Number(age) : null }) });
+                if (!res.ok) throw new Error((await res.json()).detail || 'create failed');
+                a = await res.json();
+              }
+              for (const [bone, grade] of Object.entries(rusStages)) {
+                const r = await fetch(`${LC_API}/${a.id}/bones/${bone}`, { method:'PUT',
+                  headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ stage: grade }) });
+                if (r.ok) a = await r.json();
+              }
+              setAssessment(a);
+              setLcMsg({ type:'ok', text:`Saved draft · assessment #${a.id} (rev ${a.revision})` });
+            } catch (e) { setLcMsg({ type:'err', text: String(e.message || e) }); }
+            finally { setLcBusy(false); }
+          };
+
+          const calculateAssessment = async () => {
+            if (!assessment) return; setLcBusy(true); setLcMsg(null);
+            try {
+              const res = await fetch(`${LC_API}/${assessment.id}/calculate`, { method:'POST' });
+              const d = await res.json();
+              if (!res.ok) { setLcMsg({ type:'err', text: d.detail || 'calculate failed' }); }
+              else {
+                setAssessment(d);
+                if (d.bone_age_years != null) { setBoneAge(Number(d.bone_age_years.toFixed(1))); setBoneAgeSource('rus'); }
+                setLcMsg({ type:'ok', text:`Calculated · RUS ${d.total_rus_score} → ${d.bone_age_years} yr` });
+              }
+            } catch (e) { setLcMsg({ type:'err', text: String(e.message || e) }); }
+            finally { setLcBusy(false); }
+          };
+
+          const approveAssessment = async () => {
+            if (!assessment) return;
+            if (!approverName.trim()) { setLcMsg({ type:'err', text:'Enter the approving doctor name.' }); return; }
+            setLcBusy(true); setLcMsg(null);
+            try {
+              const res = await fetch(`${LC_API}/${assessment.id}/approve`, { method:'POST',
+                headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ approved_by: approverName.trim() }) });
+              const d = await res.json();
+              if (!res.ok) setLcMsg({ type:'err', text: d.detail || 'approve failed' });
+              else { setAssessment(d); setLcMsg({ type:'ok', text:`Approved by ${d.approved_by}` }); }
+            } catch (e) { setLcMsg({ type:'err', text: String(e.message || e) }); }
+            finally { setLcBusy(false); }
+          };
+
+          const reviseAssessment = async () => {
+            if (!assessment) return; setLcBusy(true); setLcMsg(null);
+            try {
+              const res = await fetch(`${LC_API}/${assessment.id}/revise`, { method:'POST',
+                headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ reason:'re-read' }) });
+              const d = await res.json();
+              if (!res.ok) setLcMsg({ type:'err', text: d.detail || 'revise failed' });
+              else {
+                const ns = {}; (d.bones || []).forEach(b => { if (b.confirmed_stage) ns[b.bone_code] = b.confirmed_stage; });
+                setRusStages(ns); setAssessment(d); setShowAudit(false);
+                setLcMsg({ type:'ok', text:`Opened revision ${d.revision} (draft)` });
+              }
+            } catch (e) { setLcMsg({ type:'err', text: String(e.message || e) }); }
+            finally { setLcBusy(false); }
+          };
+
+          const toggleAudit = async () => {
+            if (!assessment) return;
+            const next = !showAudit; setShowAudit(next);
+            if (next) {
+              try { const r = await fetch(`${LC_API}/${assessment.id}?include_audit=true`); if (r.ok) setAssessment(await r.json()); } catch {}
+            }
+          };
+
+          const lcBtn = (bg, disabled) => ({ padding:'7px 12px', background: disabled ? '#cbd5e1' : bg,
+            color:'white', border:'none', borderRadius:'8px', fontSize:'11px', fontWeight:'700',
+            cursor: disabled ? 'not-allowed' : 'pointer' });
+
           const qriskMetrics = useMemo(() => {
             const bmi = evalHeight > 0 ? evalWeight / Math.pow(evalHeight / 100, 2) : null;
             const inAgeRange = evalAge >= 25 && evalAge <= 84;
@@ -816,6 +908,7 @@
             setGlucocorticoids("no"); setRheumatoid("no"); setSecondaryOsteo("no"); setAlcohol("no");
             setTimeline([]); setActiveTab('growth');
             setBoneAge(""); setBoneAgeSource("manual"); setRusStages({});
+            setPatientCode(""); setApproverName(""); setAssessment(null); setLcMsg(null); setShowAudit(false);
             setFatherHeight(""); setMotherHeight("");
             setEthnicity(2); setSmokeCat(0); setDiabetes(0); setCholRatio(""); setSbpSD("");
             setQAF("no"); setQTreatedHtn("no"); setQRA("no"); setQCKD("no"); setQMigraine("no");
@@ -1154,6 +1247,50 @@
                           ) : (
                             <div style={{ marginTop:'10px', background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:'8px', padding:'10px 12px', fontSize:'11px', color:'#1e40af', lineHeight:'1.6' }}>
                               Grade all {rusMetrics.total} bones to compute the TW3-C bone age.{rusMetrics.status && rusMetrics.staged > 0 ? ` (${rusMetrics.status})` : ''} You can also enter a bone age manually below.
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Assessment record: save → calculate → approve (persisted + audited) */}
+                        <div style={{ marginTop:'12px', background:'#ffffff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'14px' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'10px', flexWrap:'wrap', gap:'8px' }}>
+                            <span style={{ fontSize:'11px', fontWeight:'800', color:'#334155', textTransform:'uppercase', letterSpacing:'0.05em' }}>Assessment record</span>
+                            {assessment && <StatusBadge text={`${assessment.assessment_status} · rev ${assessment.revision} · #${assessment.id}`} variant={assessment.assessment_status === 'approved' ? 'low' : assessment.assessment_status === 'ready_for_review' ? 'mid' : 'info'} />}
+                          </div>
+                          <div className="split-grid">
+                            <div>
+                              <label className="field-label">Patient code</label>
+                              <input value={patientCode} onChange={e => setPatientCode(e.target.value)} placeholder="e.g. CASE-001" className="input-field" disabled={lcLocked} />
+                            </div>
+                            <div>
+                              <label className="field-label">Approving doctor</label>
+                              <input value={approverName} onChange={e => setApproverName(e.target.value)} placeholder="Dr ..." className="input-field" />
+                            </div>
+                          </div>
+                          <div style={{ display:'flex', gap:'8px', flexWrap:'wrap', marginTop:'10px' }}>
+                            <button onClick={saveDraft} disabled={lcBusy || lcLocked} style={lcBtn('#7c3aed', lcBusy || lcLocked)}>Save draft</button>
+                            <button onClick={calculateAssessment} disabled={lcBusy || !assessment || rusMetrics.staged < rusMetrics.total || lcLocked} style={lcBtn('#16a34a', lcBusy || !assessment || rusMetrics.staged < rusMetrics.total || lcLocked)}>Calculate &amp; lock-in</button>
+                            <button onClick={approveAssessment} disabled={lcBusy || !assessment || assessment.assessment_status !== 'ready_for_review'} style={lcBtn('#2563eb', lcBusy || !assessment || assessment.assessment_status !== 'ready_for_review')}>Approve</button>
+                            {assessment && assessment.assessment_status === 'approved' && (
+                              <button onClick={reviseAssessment} disabled={lcBusy} style={lcBtn('#d97706', lcBusy)}>Open revision</button>
+                            )}
+                            {assessment && (
+                              <button onClick={toggleAudit} style={{ padding:'7px 12px', background:'white', color:'#475569', border:'1.5px solid #e2e8f0', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer' }}>{showAudit ? 'Hide audit' : 'Audit'}</button>
+                            )}
+                          </div>
+                          {lcMsg && <div style={{ marginTop:'8px', fontSize:'11px', fontWeight:'700', color: lcMsg.type === 'ok' ? '#16a34a' : '#dc2626' }}>{lcMsg.text}</div>}
+                          {assessment && assessment.bone_age_years != null && (
+                            <div style={{ marginTop:'8px', fontSize:'12px', color:'#334155' }}>
+                              Saved bone age: <strong>{assessment.bone_age_years} yr</strong> · RUS {assessment.total_rus_score}
+                              {assessment.bone_age_difference_months != null && <span> · {assessment.bone_age_difference_months >= 0 ? '+' : ''}{assessment.bone_age_difference_months} mo vs chronological</span>}
+                              {assessment.approved_by && <span> · approved by {assessment.approved_by}</span>}
+                            </div>
+                          )}
+                          {showAudit && assessment && assessment.audit && (
+                            <div style={{ marginTop:'8px', maxHeight:'150px', overflowY:'auto', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'8px', fontSize:'10px', color:'#475569', fontFamily:'monospace', lineHeight:'1.6' }}>
+                              {assessment.audit.map((e, i) => (
+                                <div key={i}>{(e.timestamp || '').replace('T', ' ').slice(0, 19)} · {e.event_type} · {e.actor}{e.reason ? ` · ${e.reason}` : ''}</div>
+                              ))}
                             </div>
                           )}
                         </div>
