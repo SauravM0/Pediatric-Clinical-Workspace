@@ -51,7 +51,7 @@ from scipy.optimize import curve_fit
 
 from .lms_core import lms_value_at_z, lms_z_score
 
-_DATA_DIR = Path(__file__).resolve().parents[2] / "actual LMS macro"
+_DATA_DIR = Path(__file__).resolve().parent / "data"
 
 # 3/10/25/50/75/90/97 standard centiles -> z; BMI's published table only has
 # the lower half (3/5/10/25/50) plus two IOTF adult-equivalent cutoff curves
