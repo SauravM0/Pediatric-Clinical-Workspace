@@ -4,7 +4,34 @@
   "version": "tw3c-1.0",
   "source_reference": "stage_to_score: Jing Gu, Yongming Meng, Haoxin Meng, 'Deep Learning Approach for Bone Age Assessment Based on Improved TW3 Scoring Method', AIPR 2023, Table 1 (Bone Development Grade Scale), grades 1-8. Transcription verified: both sexes' maximum-grade totals sum to exactly 1000 (TW3-RUS design invariant). score_to_age: digitized from the same paper's Figure 8 'Standard' bone-maturity curve (PROVISIONAL, approximate +/- ~0.5y; refine with a precise CHN/TW3-C curve).",
   "notes": "TW3-C (Chinese) RUS. Uses 8 numeric grades, NOT the A-I letters of the original TW3. Bone ages diverge from this centre's historical original-TWIII reports: e.g. the case-001 films score 880 here vs the reported original-TW3 RUS 681. Doctor-supervised: every result is reviewed and approved.",
-  "checksum": "3c002f98546d3c49a9c6a498aef7cfb8db199e7828b12151b5960d7682f81db1",
+  "population_fit": {
+    "_about": "Evidence justifying TW3 as the method for Indian children, plus the known Indian-vs-Western bias. Sourced from research brief task T1 (2026-07-06). These references justify the METHOD CHOICE only; they do NOT alter any stage_to_score or score_to_age value here, and no numeric correction is applied.",
+    "recommended_method_for_indian_children": "TW3-RUS",
+    "no_correction_applied": true,
+    "known_bias": {
+      "boys": "~6 months delayed vs Western standards across ages; least precise in pubertal boys.",
+      "girls": "delayed pre-puberty (~2-6 mo, ages 2-12); may be advanced (~0-6 mo) ages 12-15."
+    },
+    "caveats": "No India-specific TW3 stage->score or score->age table exists in the free literature. These TW3-C (Chinese) tables are the closest freely-available reference; the score_to_age curve remains provisional (see source_reference).",
+    "references": [
+      {
+        "cite": "Shah et al. 2021, Indian J Endocrinol Metab",
+        "finding": "TW3 most accurate of GP/GR/TW3 in 851 healthy Indian children (lowest RMS error); best for girls and prepubertal boys.",
+        "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8547392/"
+      },
+      {
+        "cite": "Patel et al. 2012, Forensic Sci Int",
+        "finding": "GP skeletal-age delay of ~0.7 yr in Indian boys and ~0.33 yr in girls (1-19 yr).",
+        "url": "https://www.sciencedirect.com/science/article/abs/pii/S0379073811004695"
+      },
+      {
+        "cite": "Khadilkar et al. 2022, J Pediatr Endocrinol Metab",
+        "finding": "Automated BoneXpert (GP/TW) validated in 920 Asian-Indian children; carpal bone age retarded, more so in boys.",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/36123410/"
+      }
+    ]
+  },
+  "checksum": "71bd6167ab0dd05ebadafcf381bb463bf16ca66654864066a7b3522378923056",
   "sexes": [
     "boys",
     "girls"

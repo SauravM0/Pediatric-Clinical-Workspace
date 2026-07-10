@@ -18,10 +18,16 @@ from sqlalchemy.orm import Session
 from backend.config import RADIOGRAPH_DIR
 from backend.imaging import image_hash, load_bytes, quality_precheck, store_radiograph
 from backend.models import Radiograph, TW3Assessment
-from backend.tw3 import AssessmentStatus
+from backend.tw3 import IMAGE_DOMAINS, AssessmentStatus
 from backend.assessment_service import AssessmentError, _audit, get_assessment
 
 _EXT_BY_FORMAT = {"DICOM": "dcm", "PNG": "png", "JPEG": "jpg", "BMP": "bmp"}
+
+
+def _infer_domain(source_format: str | None) -> str:
+    """Best-effort initial domain from the decoded format (doctor can correct).
+    DICOM is unambiguously digital; a raster file could be anything, so 'unknown'."""
+    return "digital_diagnostic" if (source_format or "").upper() == "DICOM" else "unknown"
 
 
 def attach_image(db: Session, assessment_id: int, raw: bytes, filename: str,
@@ -48,6 +54,7 @@ def attach_image(db: Session, assessment_id: int, raw: bytes, filename: str,
         width=loaded.width, height=loaded.height, bit_depth=loaded.bit_depth,
         laterality=loaded.laterality, modality=loaded.modality,
         quality_status=status, quality_flags=json.dumps(flags),
+        source_domain=_infer_domain(loaded.source_format),
         anonymisation_status="working_copy_deidentified",
         study_date=None,
     )
@@ -74,11 +81,33 @@ def attach_image(db: Session, assessment_id: int, raw: bytes, filename: str,
         "width": rg.width, "height": rg.height, "bit_depth": rg.bit_depth,
         "laterality": rg.laterality, "modality": rg.modality,
         "quality_status": status, "quality_flags": flags,
+        "source_domain": rg.source_domain,
         "duplicate_of": duplicate.id if duplicate else None,
         "warnings": loaded.warnings,
         "thumbnail_url": f"/api/bone-age/radiographs/{rg.id}/thumbnail",
         "analysis_url": f"/api/bone-age/radiographs/{rg.id}/analysis",
     }
+
+
+def set_source_domain(db: Session, assessment_id: int, domain: str,
+                      *, actor: str = "local-user") -> dict:
+    """Doctor-confirm the acquisition domain of the assessment's attached film."""
+    if domain not in IMAGE_DOMAINS:
+        raise AssessmentError(f"unknown image domain: {domain!r}")
+    a = get_assessment(db, assessment_id)
+    if a.assessment_status in (AssessmentStatus.APPROVED.value,
+                               AssessmentStatus.SUPERSEDED.value):
+        raise AssessmentError("assessment is locked; open a revision to change the film")
+    if not a.radiograph_id:
+        raise AssessmentError("no film attached to this assessment")
+    rg = db.get(Radiograph, a.radiograph_id)
+    previous = rg.source_domain
+    rg.source_domain = domain
+    _audit(db, assessment_id=a.id, patient_id=a.patient_id, event_type="image_domain",
+           actor=actor, previous={"source_domain": previous}, new={"source_domain": domain})
+    db.flush()
+    return {"radiograph_id": rg.id, "source_domain": rg.source_domain,
+            "quality_status": rg.quality_status}
 
 
 def radiograph_file(db: Session, radiograph_id: int, kind: str) -> str:

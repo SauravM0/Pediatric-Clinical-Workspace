@@ -1,0 +1,56 @@
+{
+  "_about": "Original-TW3 (letters A-I) 20-bone scoring tables. These values are NOT distributed with this software because the original TW3 point tables (Tanner, Healy, Goldstein & Cameron 2001) are copyrighted. They must be entered by the clinic from its OWN licensed TW3 reference. Until they are entered every value stays empty and scoring stays DISABLED (directive Gate 1, §39) — nothing here is ever guessed.",
+  "method": "TW3-letters",
+  "version": "letters-0-uncalibrated",
+  "source_reference": "TO BE FILLED by the clinic from its licensed TW3 book. Record the exact title, edition and year here once entered.",
+  "instructions": "For each bone, enter the point value of every valid maturity letter (A-I) for boys and girls. Not every bone uses every letter — leave letters the source does not define OUT (do not put 0). Then enter the score-to-age anchor points for each curve as ascending [score, ageYears] pairs. Finally fill reference_cases with 1-2 of the clinic's own historically-reported films so the software can PROVE the transcription is correct before enabling scoring.",
+  "sexes": ["boys", "girls"],
+  "stages": ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
+  "rus_bones": ["radius", "ulna", "mc1", "mc3", "mc5", "pp1", "pp3", "pp5", "mp3", "mp5", "dp1", "dp3", "dp5"],
+  "carpal_bones": ["capitate", "hamate", "triquetral", "lunate", "scaphoid", "trapezium", "trapezoid"],
+
+  "rus_stage_to_score": {
+    "_fill": "rus_stage_to_score[sex][boneCode][letter] = RUS points. Example: rus_stage_to_score.boys.radius.H = 82",
+    "boys": {},
+    "girls": {}
+  },
+  "carpal_stage_to_score": {
+    "_fill": "carpal_stage_to_score[sex][carpalCode][letter] = carpal points.",
+    "boys": {},
+    "girls": {}
+  },
+
+  "rus_score_to_age": {
+    "_fill": "Ascending [rusScore, boneAgeYears] anchors per curve. TWII and TWIII are separate curves.",
+    "twii": {"boys": [], "girls": []},
+    "twiii": {"boys": [], "girls": []}
+  },
+  "carpal_score_to_age": {
+    "_fill": "Ascending [carpalScore, boneAgeYears] anchors. Carpal bone age is SEPARATE from RUS (never averaged).",
+    "twii": {"boys": [], "girls": []},
+    "twiii": {"boys": [], "girls": []}
+  },
+
+  "tw20_stage_to_score": {
+    "_fill": "TWII'20 (TW2 20-bone method) has its OWN point values, DIFFERENT from the RUS/carpal tables (all 20 bones sum toward one 1000-max score). tw20_stage_to_score[sex][boneCode][letter] = points, for all 20 bone codes (RUS + carpal).",
+    "boys": {},
+    "girls": {}
+  },
+  "tw20_score_to_age": {
+    "_fill": "Ascending [tw20Score, boneAgeYears] anchors — one TWII'20 curve per sex.",
+    "boys": [],
+    "girls": []
+  },
+
+  "reference_cases": [
+    {
+      "_fill": "Fill from the clinic's own historically-reported films. Scoring will NOT enable until the entered tables reproduce every reference case within tolerance_years. Example structure below (values are placeholders, NOT real).",
+      "id": "example-remove-me",
+      "sex": "girls",
+      "rus_stages": {"radius": "H", "ulna": "G", "mc1": "H", "mc3": "H", "mc5": "G", "pp1": "H", "pp3": "H", "pp5": "H", "mp3": "H", "mp5": "H", "dp1": "H", "dp3": "H", "dp5": "H"},
+      "carpal_stages": {},
+      "expected": {"rus_score": null, "twiii_rus_age_years": null, "twii_rus_age_years": null, "carpal_score": null, "twiii_carpal_age_years": null},
+      "tolerance_years": 0.3
+    }
+  ]
+}

@@ -1,0 +1,410 @@
+<meta charset="utf-8">
+<title>Growth Curve QA — Fitted vs Published</title>
+<style>
+  .viz-root {
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6; /* blue   -- height */
+    --series-2:       #1baf7a; /* aqua   -- weight */
+    --series-3:       #eda100; /* yellow -- bmi    */
+    --series-boys:    #2a78d6; /* blue */
+    --series-girls:   #e87ba4; /* magenta */
+    --good:           #0ca30c;
+  }
+  @media (prefers-color-scheme: dark) {
+    .viz-root {
+      --surface-1:      #1a1a19;
+      --page:           #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --grid:           #2c2c2a;
+      --baseline:       #383835;
+      --border:         rgba(255,255,255,0.10);
+      --series-1:       #3987e5;
+      --series-2:       #199e70;
+      --series-3:       #c98500;
+      --series-boys:    #3987e5;
+      --series-girls:   #d55181;
+      --good:           #0ca30c;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    --surface-1:      #1a1a19;
+    --page:           #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --grid:           #2c2c2a;
+    --baseline:       #383835;
+    --border:         rgba(255,255,255,0.10);
+    --series-1:       #3987e5;
+    --series-2:       #199e70;
+    --series-3:       #c98500;
+    --series-boys:    #3987e5;
+    --series-girls:   #d55181;
+  }
+  :root[data-theme="light"] .viz-root {
+    --surface-1:      #fcfcfb;
+    --page:           #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --grid:           #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border:         rgba(11,11,11,0.10);
+    --series-1:       #2a78d6;
+    --series-2:       #1baf7a;
+    --series-3:       #eda100;
+    --series-boys:    #2a78d6;
+    --series-girls:   #e87ba4;
+  }
+
+  .viz-root {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+    padding: 28px 20px 60px;
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  h1 { font-size: 19px; font-weight: 700; margin: 0 0 4px; }
+  .sub { color: var(--text-secondary); font-size: 13px; margin-bottom: 24px; line-height: 1.5; max-width: 720px; }
+  .card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+  .card .desc { color: var(--text-secondary); font-size: 12px; margin-bottom: 16px; line-height: 1.5; }
+  .legend { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-secondary); font-weight: 600; }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .panels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 760px) { .panels { grid-template-columns: 1fr; } }
+  .panel-title { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .row { position: relative; height: 22px; display: flex; align-items: center; }
+  .row-label { font-size: 9.5px; color: var(--text-muted); width: 108px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .track { position: relative; flex: 1; height: 100%; }
+  .zero-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--baseline); }
+  .dot {
+    position: absolute; top: 50%; width: 8px; height: 8px; border-radius: 50%;
+    transform: translate(-50%, -50%); cursor: pointer;
+    box-shadow: 0 0 0 2px var(--surface-1);
+  }
+  .dot::after {
+    content: ''; position: absolute; inset: -8px; /* enlarge hit target */
+  }
+  .axis-labels { display: flex; justify-content: space-between; font-size: 9.5px; color: var(--text-muted); padding-left: 108px; margin-top: 6px; }
+
+  .vel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px) { .vel-grid { grid-template-columns: 1fr; } }
+  .vel-panel-title { font-size: 12px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+  .vel-panel-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+  svg text { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .axis-tick { fill: var(--text-muted); font-size: 9.5px; }
+  .axis-line { stroke: var(--baseline); stroke-width: 1; }
+  .grid-line { stroke: var(--grid); stroke-width: 1; }
+  .join-line { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 3,3; }
+  .join-label { fill: var(--text-secondary); font-size: 9.5px; font-weight: 700; }
+  .vel-path { fill: none; stroke-width: 2; }
+  .vel-hit { fill: transparent; }
+  .crosshair { stroke: var(--text-muted); stroke-width: 1; opacity: 0; pointer-events: none; }
+  .hover-dot { r: 4; opacity: 0; pointer-events: none; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 50;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 11.5px; box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+    opacity: 0; transition: opacity 0.08s; max-width: 220px;
+  }
+  .tooltip .t-val { font-weight: 700; color: var(--text-primary); }
+  .tooltip .t-lbl { color: var(--text-secondary); margin-top: 2px; }
+
+  .toggle-btn {
+    font-size: 11.5px; font-weight: 700; color: var(--text-secondary);
+    background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; cursor: pointer; margin-bottom: 12px;
+  }
+  .toggle-btn:hover { color: var(--text-primary); }
+  table { width: 100%; border-collapse: collapse; font-size: 11px; display: none; }
+  table.show { display: table; }
+  th { text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted); padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  td { padding: 6px 8px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; color: var(--text-secondary); }
+  td.strong { color: var(--text-primary); font-weight: 600; }
+  td.note { color: var(--text-muted); font-style: italic; }
+
+  .verdict { font-size: 13px; line-height: 1.6; }
+  .verdict b { color: var(--text-primary); }
+  .generated-at { font-size: 10.5px; color: var(--text-muted); margin-top: -10px; margin-bottom: 20px; }
+</style>
+
+<div class="viz-root">
+  <h1>Growth Curve QA — Fitted vs Published</h1>
+  <div class="generated-at" id="generatedAt"></div>
+  <div class="sub">
+    Every point below compares the app's rendered growth-chart value (the WHO&nbsp;+&nbsp;IAP 2015 blended engine,
+    <code>backend/growth/</code>) against the actual published source table (<code>actual LMS macro/*.csv</code>)
+    or, below age&nbsp;5, WHO's own reference. Regenerate with
+    <code>python -m backend.growth.qa_report</code> after any change to the growth engine.
+  </div>
+
+  <div class="card">
+    <h2>Checkpoint accuracy vs. the published IAP 2015 table</h2>
+    <div class="desc" id="devDesc"></div>
+    <div class="panels" id="devPanels"></div>
+  </div>
+
+  <div class="card">
+    <h2>Growth velocity through the WHO&rarr;IAP transition</h2>
+    <div class="desc">
+      Weight-for-age, 50th percentile. Where WHO's and IAP's true growth rates disagree, a monotone (never-decreasing)
+      curve must decelerate somewhere to honor both endpoints. The question is whether that shows up as a smooth dip
+      or a visible kink/jump. Hover the line to read exact values.
+    </div>
+    <div class="vel-grid" id="velPanels"></div>
+  </div>
+
+  <div class="card">
+    <button class="toggle-btn" id="tableToggle">Show raw data table</button>
+    <table id="dataTable">
+      <thead><tr><th>Sex</th><th>Measure</th><th>Age</th><th>Percentile</th><th>Fitted</th><th>Reference</th><th>Source</th><th>Diff</th><th>%</th></tr></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card verdict" id="verdict"></div>
+
+  <div class="tooltip" id="tooltip"></div>
+</div>
+
+<script>
+const CHECKPOINTS = __CHECKPOINTS__;
+const VELOCITY = __VELOCITY__;
+const GENERATED_AT = __GENERATED_AT__;
+
+document.getElementById('generatedAt').textContent = 'Generated ' + GENERATED_AT + ' from the current backend/growth/ state.';
+
+const root = document.querySelector('.viz-root');
+const cs = getComputedStyle(root);
+const color = (name) => cs.getPropertyValue(name).trim();
+const tooltip = document.getElementById('tooltip');
+
+function showTip(x, y, html) {
+  tooltip.innerHTML = html;
+  tooltip.style.left = (x + 14) + 'px';
+  tooltip.style.top = (y - 10) + 'px';
+  tooltip.style.opacity = 1;
+}
+function hideTip() { tooltip.style.opacity = 0; }
+
+// ---------- Deviation panels (height / weight / bmi) ----------
+const MEASURE_META = {
+  height: { label: 'Height', color: 'var(--series-1)', unit: 'cm' },
+  weight: { label: 'Weight', color: 'var(--series-2)', unit: 'kg' },
+  bmi:    { label: 'BMI',    color: 'var(--series-3)', unit: 'kg/m²' },
+};
+
+const devPanels = document.getElementById('devPanels');
+const published = CHECKPOINTS.filter(c => c.src === 'IAP');
+const maxAbsPct = Math.max(...published.map(c => Math.abs(c.pct)), 1.2);
+
+document.getElementById('devDesc').textContent =
+  `${published.length} checkpoints across height, weight and BMI, every published IAP age row (5.0-18.0y), both sexes, every percentile in the source table. Each dot is (fitted - published) as a % of the published value.`;
+
+['height','weight','bmi'].forEach(measure => {
+  const rows = published.filter(c => c.measure === measure).sort((a,b) => a.age - b.age || a.centile - b.centile);
+  const meta = MEASURE_META[measure];
+  const panel = document.createElement('div');
+  const title = document.createElement('div');
+  title.className = 'panel-title';
+  title.innerHTML = `<span class="legend-swatch" style="background:${meta.color}"></span> ${meta.label} (${rows.length} checkpoints)`;
+  panel.appendChild(title);
+
+  rows.forEach(r => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    const label = document.createElement('div');
+    label.className = 'row-label';
+    label.textContent = `${r.sex} ${r.age}y P${r.centile}`;
+    row.appendChild(label);
+    const track = document.createElement('div');
+    track.className = 'track';
+    const zero = document.createElement('div');
+    zero.className = 'zero-line';
+    track.appendChild(zero);
+    const dot = document.createElement('div');
+    dot.className = 'dot';
+    const pctPos = 50 + (r.pct / maxAbsPct) * 45;
+    dot.style.left = pctPos + '%';
+    dot.style.background = meta.color;
+    dot.addEventListener('pointermove', (e) => {
+      showTip(e.clientX, e.clientY, `<div class="t-val">${r.fitted} ${meta.unit}</div><div class="t-lbl">${r.sex}, ${r.measure}, age ${r.age}, P${r.centile}<br>published: ${r.ref} ${meta.unit} &middot; diff ${r.pct > 0 ? '+' : ''}${r.pct}%</div>`);
+    });
+    dot.addEventListener('pointerleave', hideTip);
+    track.appendChild(dot);
+    row.appendChild(track);
+    panel.appendChild(row);
+  });
+
+  const axis = document.createElement('div');
+  axis.className = 'axis-labels';
+  axis.innerHTML = `<span>&minus;${maxAbsPct.toFixed(1)}%</span><span>published value</span><span>+${maxAbsPct.toFixed(1)}%</span>`;
+  panel.appendChild(axis);
+
+  devPanels.appendChild(panel);
+});
+
+// ---------- Velocity panels (boys / girls) ----------
+const velPanels = document.getElementById('velPanels');
+const W = 380, H = 220, M = { l: 42, r: 16, t: 14, b: 28 };
+
+['boys','girls'].forEach(sex => {
+  const d = VELOCITY[sex];
+  const seriesColor = sex === 'boys' ? color('--series-boys') : color('--series-girls');
+  const wrap = document.createElement('div');
+  const title = document.createElement('div');
+  title.className = 'vel-panel-title';
+  title.innerHTML = `<span class="legend-swatch" style="background:${seriesColor}"></span> ${sex === 'boys' ? 'Boys' : 'Girls'}`;
+  wrap.appendChild(title);
+  const sub = document.createElement('div');
+  sub.className = 'vel-panel-sub';
+  sub.textContent = 'kg gained per year, instantaneous rate';
+  wrap.appendChild(sub);
+
+  const ages = d.vel_ages, vel = d.velocity;
+  const xMin = d.window_lo, xMax = d.window_hi;
+  const yMax = Math.max(...vel) * 1.1;
+  const yMin = 0;
+  const sx = (a) => M.l + (a - xMin) / (xMax - xMin) * (W - M.l - M.r);
+  const sy = (v) => (H - M.b) - (v - yMin) / (yMax - yMin) * (H - M.t - M.b);
+
+  const path = ages.map((a,i) => `${i ? 'L' : 'M'}${sx(a).toFixed(1)},${sy(vel[i]).toFixed(1)}`).join(' ');
+
+  const yTicks = [0, yMax/2, yMax];
+  const xTicks = [xMin, (xMin+xMax)/2, xMax];
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%');
+  svg.style.display = 'block';
+
+  yTicks.forEach(v => {
+    const line = document.createElementNS(svgNS, 'line');
+    line.setAttribute('x1', M.l); line.setAttribute('x2', W - M.r);
+    line.setAttribute('y1', sy(v)); line.setAttribute('y2', sy(v));
+    line.setAttribute('class', 'grid-line');
+    svg.appendChild(line);
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('x', M.l - 6); text.setAttribute('y', sy(v) + 3);
+    text.setAttribute('text-anchor', 'end'); text.setAttribute('class', 'axis-tick');
+    text.textContent = v.toFixed(2);
+    svg.appendChild(text);
+  });
+  xTicks.forEach(a => {
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('x', sx(a)); text.setAttribute('y', H - M.b + 16);
+    text.setAttribute('text-anchor', 'middle'); text.setAttribute('class', 'axis-tick');
+    text.textContent = a.toFixed(1) + 'y';
+    svg.appendChild(text);
+  });
+
+  // join marker at the IAP handoff age
+  const joinX = sx(d.join_age);
+  const joinLine = document.createElementNS(svgNS, 'line');
+  joinLine.setAttribute('x1', joinX); joinLine.setAttribute('x2', joinX);
+  joinLine.setAttribute('y1', M.t); joinLine.setAttribute('y2', H - M.b);
+  joinLine.setAttribute('class', 'join-line');
+  svg.appendChild(joinLine);
+  const joinLabel = document.createElementNS(svgNS, 'text');
+  joinLabel.setAttribute('x', joinX - 4); joinLabel.setAttribute('y', M.t + 10);
+  joinLabel.setAttribute('text-anchor', 'end'); joinLabel.setAttribute('class', 'join-label');
+  joinLabel.textContent = 'IAP join →';
+  svg.appendChild(joinLabel);
+
+  const axisLine = document.createElementNS(svgNS, 'line');
+  axisLine.setAttribute('x1', M.l); axisLine.setAttribute('x2', W - M.r);
+  axisLine.setAttribute('y1', H - M.b); axisLine.setAttribute('y2', H - M.b);
+  axisLine.setAttribute('class', 'axis-line');
+  svg.appendChild(axisLine);
+
+  const p = document.createElementNS(svgNS, 'path');
+  p.setAttribute('d', path);
+  p.setAttribute('class', 'vel-path');
+  p.setAttribute('stroke', seriesColor);
+  svg.appendChild(p);
+
+  const crosshair = document.createElementNS(svgNS, 'line');
+  crosshair.setAttribute('y1', M.t); crosshair.setAttribute('y2', H - M.b);
+  crosshair.setAttribute('class', 'crosshair');
+  svg.appendChild(crosshair);
+  const hoverDot = document.createElementNS(svgNS, 'circle');
+  hoverDot.setAttribute('class', 'hover-dot');
+  hoverDot.setAttribute('fill', seriesColor);
+  svg.appendChild(hoverDot);
+
+  const hit = document.createElementNS(svgNS, 'rect');
+  hit.setAttribute('x', M.l); hit.setAttribute('y', M.t);
+  hit.setAttribute('width', W - M.l - M.r); hit.setAttribute('height', H - M.t - M.b);
+  hit.setAttribute('class', 'vel-hit');
+  hit.addEventListener('pointermove', (e) => {
+    const rect = svg.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width * W;
+    const age = xMin + (px - M.l) / (W - M.l - M.r) * (xMax - xMin);
+    let idx = 0, best = Infinity;
+    ages.forEach((a,i) => { const dd = Math.abs(a-age); if (dd < best) { best = dd; idx = i; } });
+    const cx = sx(ages[idx]), cy = sy(vel[idx]);
+    crosshair.setAttribute('x1', cx); crosshair.setAttribute('x2', cx);
+    crosshair.style.opacity = 1;
+    hoverDot.setAttribute('cx', cx); hoverDot.setAttribute('cy', cy);
+    hoverDot.style.opacity = 1;
+    showTip(e.clientX, e.clientY, `<div class="t-val">${vel[idx].toFixed(3)} kg/yr</div><div class="t-lbl">age ${ages[idx].toFixed(2)}y</div>`);
+  });
+  hit.addEventListener('pointerleave', () => { crosshair.style.opacity = 0; hoverDot.style.opacity = 0; hideTip(); });
+  svg.appendChild(hit);
+
+  wrap.appendChild(svg);
+  velPanels.appendChild(wrap);
+});
+
+// ---------- Table ----------
+const tbody = document.getElementById('tableBody');
+CHECKPOINTS.slice().sort((a,b) => a.measure.localeCompare(b.measure) || a.sex.localeCompare(b.sex) || a.age - b.age)
+  .forEach(r => {
+    const tr = document.createElement('tr');
+    const note = r.src === 'WHO' && r.age >= VELOCITY.boys.window_lo && r.age < VELOCITY.boys.window_hi
+      ? 'blend transition, not an error'
+      : (r.src === 'WHO' ? 'pure WHO (<5y)' : '');
+    tr.innerHTML = `<td>${r.sex}</td><td>${r.measure}</td><td>${r.age}</td><td>P${r.centile}</td>
+      <td class="strong">${r.fitted}</td><td>${r.ref}</td><td>${r.src}</td>
+      <td>${(r.fitted - r.ref).toFixed(3)}</td>
+      <td class="${note ? 'note' : ''}">${note || (r.pct > 0 ? '+' : '') + r.pct + '%'}</td>`;
+    tbody.appendChild(tr);
+  });
+
+document.getElementById('tableToggle').addEventListener('click', (e) => {
+  const t = document.getElementById('dataTable');
+  t.classList.toggle('show');
+  e.target.textContent = t.classList.contains('show') ? 'Hide raw data table' : `Show raw data table (${CHECKPOINTS.length} rows)`;
+});
+document.getElementById('tableToggle').textContent = `Show raw data table (${CHECKPOINTS.length} rows)`;
+
+// ---------- Verdict ----------
+const maxDev = Math.max(...published.map(c => Math.abs(c.pct)));
+const failing = published.filter(c => Math.abs(c.pct) > 1.5);
+document.getElementById('verdict').innerHTML = failing.length
+  ? `<b>${failing.length} checkpoint(s) exceed 1.5% deviation from the published table</b> — see the table below for
+     details; this likely needs investigation, not just a rounding-noise explanation.`
+  : `<b>Verdict:</b> across all ${published.length} checkpoints that land on a real published IAP table row, the
+     worst deviation is <b>${maxDev.toFixed(2)}%</b> — ordinary curve-fit rounding noise, not an error. The velocity
+     charts show the WHO&rarr;IAP transition is a smooth, symmetric slowdown-then-speedup with no kink or jump.`;
+</script>

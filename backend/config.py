@@ -10,8 +10,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-APP_VERSION = "1.3.0"
-DB_SCHEMA_VERSION = "1"
+APP_VERSION = "1.4.0"
+DB_SCHEMA_VERSION = "2"
 REPORT_TEMPLATE_VERSION = "1.0"
 
 APP_ROOT = Path(__file__).resolve().parents[1]
