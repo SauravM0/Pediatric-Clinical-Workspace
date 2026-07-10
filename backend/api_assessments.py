@@ -42,15 +42,30 @@ class CreateAssessmentReq(BaseModel):
     name: Optional[str] = None
     date_of_birth: Optional[date] = None
     chronological_age_years: Optional[float] = Field(None, ge=0, le=30)
+    stage_system: str = Field(
+        "tw3c-rus",
+        description="'tw3c-rus' (grades 1-8, 13 RUS, scored) or "
+                    "'tw3-letters' (A-I, 13 RUS + 7 carpals, annotation only)",
+    )
 
 
 class SetGradeReq(BaseModel):
-    stage: Optional[str] = Field(None, description="grade 1-8, or null to clear")
+    stage: Optional[str] = Field(
+        None, description="stage in the assessment's system (grade 1-8 or letter A-I), or null to clear")
     reason: Optional[str] = None
 
 
 class ApproveReq(BaseModel):
     approved_by: str = Field(..., min_length=1, max_length=120)
+
+
+class DomainReq(BaseModel):
+    domain: str = Field(..., description="digital_diagnostic | compressed | film_photo | unknown")
+
+
+class BoxReq(BaseModel):
+    box: Optional[list[float]] = Field(None, description="[x0,y0,x1,y1] in image pixels, or null to clear")
+    confidence: Optional[float] = None
 
 
 class ReasonReq(BaseModel):
@@ -67,6 +82,7 @@ def create_assessment(req: CreateAssessmentReq, db: Session = Depends(get_db)) -
             db, patient_code=req.patient_code, sex=req.sex, name=req.name,
             date_of_birth=dob,
             chronological_age_months=_years_to_months(req.chronological_age_years),
+            stage_system=req.stage_system,
         )
         return svc.assessment_to_dict(db, a)
     except svc.AssessmentError as exc:
@@ -151,6 +167,76 @@ async def upload_image(assessment_id: int, file: UploadFile = File(...),
         return rgsvc.attach_image(db, assessment_id, raw, file.filename or "")
     except ImagingError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except svc.AssessmentError as exc:
+        raise _handle(exc) from exc
+
+
+@router.get("/coverage")
+def dataset_coverage(db: Session = Depends(get_db)) -> dict:
+    """Live stage-coverage matrix for the doctor-confirmed annotations (directive §13)."""
+    from backend.tw3.pipeline.export_dataset import coverage_report
+    return coverage_report(db)
+
+
+@router.get("/letters-config")
+def letters_config() -> dict:
+    """Calibration status of the clinic's original-TW3 letter tables: what is
+    entered, what is missing, and whether the reference-case accuracy gate passes."""
+    from backend.tw3.letters_scoring import LetterTablesError, letters_status
+    try:
+        return letters_status()
+    except LetterTablesError as exc:
+        raise HTTPException(status_code=500, detail=f"letters_tables_invalid: {exc}") from exc
+
+
+class LettersTablesReq(BaseModel):
+    tables: dict = Field(..., description="Full original-TW3 letter tables JSON to validate and save")
+
+
+@router.get("/letters-tables")
+def get_letters_tables() -> dict:
+    """Raw licensed-table JSON for the in-app editor, plus current calibration status."""
+    from backend.tw3.letters_scoring import load_raw_tables, letters_status
+    return {"tables": load_raw_tables(), "status": letters_status()}
+
+
+@router.put("/letters-tables")
+def put_letters_tables(req: LettersTablesReq) -> dict:
+    """Validate and save the clinic's licensed TW3 tables. Rejects a malformed table
+    (never writes an invalid file); returns the new status incl the accuracy gate."""
+    from backend.tw3.letters_scoring import LetterTablesError, letters_status, save_letter_tables
+    try:
+        save_letter_tables(req.tables)
+    except LetterTablesError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"saved": True, "status": letters_status()}
+
+
+@router.put("/assessments/{assessment_id}/image-domain")
+def set_image_domain(assessment_id: int, req: DomainReq,
+                     db: Session = Depends(get_db)) -> dict:
+    try:
+        return rgsvc.set_source_domain(db, assessment_id, req.domain)
+    except svc.AssessmentError as exc:
+        raise _handle(exc) from exc
+
+
+@router.post("/assessments/{assessment_id}/localize")
+def localize_bones(assessment_id: int, db: Session = Depends(get_db)) -> dict:
+    """Auto-locate the bones on the attached film (PEA). Suggestions only — the
+    doctor confirms/edits, then saves each box."""
+    try:
+        return svc.localize_assessment(db, assessment_id)
+    except svc.AssessmentError as exc:
+        raise _handle(exc) from exc
+
+
+@router.put("/assessments/{assessment_id}/bones/{bone_code}/box")
+def set_bone_box(assessment_id: int, bone_code: str, req: BoxReq,
+                 db: Session = Depends(get_db)) -> dict:
+    try:
+        a = svc.set_bone_box(db, assessment_id, bone_code, req.box, confidence=req.confidence)
+        return svc.assessment_to_dict(db, a)
     except svc.AssessmentError as exc:
         raise _handle(exc) from exc
 

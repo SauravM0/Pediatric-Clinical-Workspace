@@ -69,6 +69,10 @@ class Radiograph(Base):
     modality: Mapped[str | None] = mapped_column(String(16), nullable=True)
     quality_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
     quality_flags: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Doctor-confirmable acquisition domain (directive §16): digital_diagnostic |
+    # compressed | film_photo | unknown. Defaults to an inferred value on upload;
+    # the doctor can correct it. Drives per-domain evaluation and warnings.
+    source_domain: Mapped[str | None] = mapped_column(String(24), nullable=True)
     anonymisation_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
@@ -80,9 +84,16 @@ class TW3Assessment(Base):
     radiograph_id: Mapped[int | None] = mapped_column(ForeignKey("radiograph.id"), nullable=True)
     sex_at_birth: Mapped[str] = mapped_column(String(8), nullable=False)
     chronological_age_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Which maturity vocabulary this assessment is staged in (see StageSystem).
+    # 'tw3c-rus' (grades 1-8, 13 RUS, scoring on) or 'tw3-letters' (A-I, 20 bones,
+    # scoring off until licensed tables exist).
+    stage_system: Mapped[str] = mapped_column(String(24), default="tw3c-rus", nullable=False)
     assessment_method: Mapped[str] = mapped_column(String(32), default="TW3-C-RUS")
     assessment_status: Mapped[str] = mapped_column(String(24), default="draft", nullable=False)
     total_rus_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # Carpal is scored and aged SEPARATELY from RUS (never averaged; directive §15/§18).
+    total_carpal_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    carpal_bone_age_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
     bone_age_years: Mapped[float | None] = mapped_column(Float, nullable=True)
     bone_age_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
     bone_age_difference_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
@@ -110,7 +121,8 @@ class BoneAssessment(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     assessment_id: Mapped[int] = mapped_column(ForeignKey("tw3_assessment.id"), nullable=False)
-    bone_code: Mapped[str] = mapped_column(String(8), nullable=False)
+    bone_code: Mapped[str] = mapped_column(String(16), nullable=False)
+    bone_group: Mapped[str] = mapped_column(String(8), default="rus", nullable=False)  # rus | carpal
     doctor_stage: Mapped[str | None] = mapped_column(String(4), nullable=True)
     ai_suggested_stage: Mapped[str | None] = mapped_column(String(4), nullable=True)
     ai_stage_probabilities: Mapped[str | None] = mapped_column(Text, nullable=True)

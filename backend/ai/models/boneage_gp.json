@@ -1,11 +1,11 @@
 {
-  "model_version": "boneage-gp-mnv3s-ft-2026-07-03",
-  "val_mae_months": 14.1,
-  "val_mae_years": 1.18,
-  "n_images": 1425,
-  "n_val": 213,
-  "input_size": 160,
+  "model_version": "boneage-gp-mnv3s-ft-colab-2026-07-05",
+  "val_mae_months": 8.6,
+  "val_mae_years": 0.72,
+  "n_images": 12611,
+  "n_val": 1891,
+  "input_size": 224,
   "mode": "ft",
   "method": "Greulich-Pyle whole-image (screening)",
-  "trained_on": "RSNA bone-age validation set (local)"
+  "trained_on": "RSNA full (Colab 224px)"
 }

@@ -27,11 +27,12 @@ _MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 _STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
 
-def preprocess(image: Image.Image | bytes) -> np.ndarray:
-    """Grayscale hand image → normalised 1x3x160x160 float32 tensor."""
+def preprocess(image: Image.Image | bytes, size: int | None = None) -> np.ndarray:
+    """Grayscale hand image → normalised 1x3xNxN float32 tensor (N = model input)."""
     if isinstance(image, (bytes, bytearray)):
         image = Image.open(io.BytesIO(image))
-    img = ImageOps.exif_transpose(image).convert("L").resize((IMG_SIZE, IMG_SIZE))
+    n = size or IMG_SIZE
+    img = ImageOps.exif_transpose(image).convert("L").resize((n, n))
     arr = np.asarray(img, dtype=np.float32) / 255.0
     arr = np.stack([arr, arr, arr], axis=-1)  # 3 channels
     arr = (arr - _MEAN) / _STD
@@ -64,16 +65,35 @@ def predict_months(image: Image.Image | bytes, is_male: bool) -> Optional[dict]:
     if not model_available():
         return None
     sess = _session()
-    x = preprocess(image)
+    meta = model_metadata() or {}
+    x = preprocess(image, int(meta.get("input_size", IMG_SIZE)))
     sex = np.array([[1.0 if is_male else 0.0]], dtype=np.float32)
     inputs = {i.name: v for i, v in zip(sess.get_inputs(), (x, sex))}
     months = float(sess.run(None, inputs)[0].reshape(-1)[0])
     months = max(0.0, min(months, 240.0))
-    meta = model_metadata() or {}
+
+    # Uncertainty band. The model reports a validation mean-absolute-error; we surface
+    # a ±1 MAE band around the point estimate so the clinician can see the expected
+    # spread rather than a single deceptively-precise number. Honest, not a guess.
+    mae = meta.get("val_mae_months")
+    ci_low_months = ci_high_months = None
+    if isinstance(mae, (int, float)):
+        ci_low_months = max(0.0, months - mae)
+        ci_high_months = min(240.0, months + mae)
+
     return {
         "bone_age_months": round(months),
         "bone_age_years": round(months / 12, 1),
         "model_version": meta.get("model_version", "boneage-gp-unknown"),
         "method": "Greulich-Pyle whole-image estimate (screening, not TW3)",
-        "val_mae_months": meta.get("val_mae_months"),
+        "val_mae_months": mae,
+        "uncertainty_months": mae,
+        "ci_low_years": None if ci_low_months is None else round(ci_low_months / 12, 1),
+        "ci_high_years": None if ci_high_months is None else round(ci_high_months / 12, 1),
+        "population_note": (
+            "Model trained on the RSNA (US) dataset, not India-calibrated. Published "
+            "data show Greulich-Pyle skeletal age runs ~0.5-0.7 yr delayed in Indian "
+            "children (more in boys). Treat as a screening suggestion; confirm with TW3."
+        ),
+        "trained_on": meta.get("trained_on"),
     }

@@ -4,8 +4,15 @@
     {
       "name": "clinical-workspace",
       "runtimeExecutable": ".venv/Scripts/python.exe",
-      "runtimeArgs": ["-m", "uvicorn", "backend.server:app", "--host", "127.0.0.1", "--port", "8077"],
-      "port": 8077
+      "runtimeArgs": ["-m", "backend.server"],
+      "port": 8077,
+      "autoPort": true
+    },
+    {
+      "name": "growth-qa-static",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-m", "http.server", "8078"],
+      "port": 8078
     }
   ]
 }

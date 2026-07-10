@@ -37,6 +37,26 @@ BONE_LABELS: Final[dict[str, str]] = {
     "dp5": "Distal phalanx (5th digit)",
 }
 
+# The 7 carpal bones, in canonical order (matches the report layout). Carpals are
+# staged for annotation only: the project has NO licensed carpal scoring tables,
+# so carpal scores/ages stay disabled until the doctor supplies them (directive
+# §6 Gate 1, §15 — carpals are never treated as ordinary phalanges).
+CARPAL_BONES: Final[tuple[str, ...]] = (
+    "capitate", "hamate", "triquetral", "lunate", "scaphoid", "trapezium", "trapezoid",
+)
+
+CARPAL_LABELS: Final[dict[str, str]] = {
+    "capitate": "Capitate",
+    "hamate": "Hamate",
+    "triquetral": "Triquetral",
+    "lunate": "Lunate",
+    "scaphoid": "Scaphoid",
+    "trapezium": "Trapezium",
+    "trapezoid": "Trapezoid",
+}
+
+ALL_BONE_LABELS: Final[dict[str, str]] = {**BONE_LABELS, **CARPAL_LABELS}
+
 # Stage vocabulary. The active method is TW3-C RUS, which grades each bone on a
 # numeric 1–8 scale (ulna has no grade 8). The authoritative allowed stages per
 # bone come from the data file (tables.py); this is the full ordered vocabulary
@@ -44,10 +64,80 @@ BONE_LABELS: Final[dict[str, str]] = {
 # replaces them with grades 1–8 — see tw3_tables.json 'notes'.)
 STAGES: Final[tuple[str, ...]] = ("1", "2", "3", "4", "5", "6", "7", "8")
 
+# Original-TW3 maturity letters. Used for the doctor's letter-based 20-bone
+# annotation stream (13 RUS + 7 carpals). NB: the licensed original-TW3 source
+# defines which letters are valid for each individual bone; the project does not
+# have that source, so — for now — every bone offers A–I and this is flagged as
+# unverified in the API. It is annotation only: no scoring is derived from it.
+LETTER_STAGES: Final[tuple[str, ...]] = ("A", "B", "C", "D", "E", "F", "G", "H", "I")
+
+# Acquisition domains (directive §16). The doctor may want AI suggestions even for
+# a phone photo of a film, but the three domains must be tracked and evaluated
+# separately — a model validated on DICOM cannot claim the same confidence on a
+# glare-y photograph. 'unknown' is the honest default until the doctor confirms.
+IMAGE_DOMAINS: Final[tuple[str, ...]] = (
+    "digital_diagnostic",  # DICOM / PACS PNG / direct digital
+    "compressed",          # WhatsApp / screenshot / compressed export
+    "film_photo",          # mobile photograph of a film (glare, border, perspective)
+    "unknown",
+)
+
+# Domains that must carry a prominent low-quality warning (§16).
+LOW_TRUST_DOMAINS: Final[frozenset[str]] = frozenset({"compressed", "film_photo"})
+
 # Sex at birth as used by the sex-specific TW3 tables.
 SEXES: Final[tuple[str, ...]] = ("boys", "girls")
 
 RUS_BONE_COUNT: Final[int] = len(RUS_BONES)
+CARPAL_BONE_COUNT: Final[int] = len(CARPAL_BONES)
+
+
+class StageSystem(str, Enum):
+    """Which maturity vocabulary an assessment is staged in (directive §6, §18).
+
+    The two streams are deliberately separate and never mixed:
+
+    * ``TW3C_RUS`` — TW3-C (Chinese) RUS, numeric grades 1–8, 13 RUS bones. This
+      is the only stream with verified point tables, so deterministic scoring
+      (stage → score → bone age) is ENABLED here.
+    * ``TW3_LETTERS`` — original-TW3 letters A–I, 13 RUS + 7 carpals (20 bones).
+      Used to capture the doctor's staging in her familiar vocabulary. The
+      licensed original-TW3 point/age tables are not available, so scoring is
+      DISABLED: staging is persisted as annotation and every score/age shows '—'
+      until the tables are supplied (directive §39, Gate 1).
+    """
+
+    TW3C_RUS = "tw3c-rus"
+    TW3_LETTERS = "tw3-letters"
+
+
+DEFAULT_STAGE_SYSTEM: Final[str] = StageSystem.TW3C_RUS.value
+
+# Scoring is only ever derived from a stage system that has verified tables.
+SCORING_ENABLED_SYSTEMS: Final[frozenset[str]] = frozenset({StageSystem.TW3C_RUS.value})
+
+
+def bones_for_system(system: str) -> tuple[str, ...]:
+    """Canonical, ordered bone list for a stage system.
+
+    Letters cover all 20 bones (RUS + carpals); TW3-C covers the 13 RUS bones.
+    """
+    if system == StageSystem.TW3_LETTERS.value:
+        return RUS_BONES + CARPAL_BONES
+    return RUS_BONES
+
+
+def bone_group(code: str) -> str:
+    """'carpal' for the 7 carpals, else 'rus'."""
+    return "carpal" if code in CARPAL_BONES else "rus"
+
+
+def label_for(code: str) -> str:
+    return ALL_BONE_LABELS.get(code, code)
+
+
+def scoring_enabled(system: str) -> bool:
+    return system in SCORING_ENABLED_SYSTEMS
 
 
 class AssessmentStatus(str, Enum):

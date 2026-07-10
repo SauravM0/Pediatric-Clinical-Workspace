@@ -1,22 +1,50 @@
 __pycache__/
 *.py[cod]
+
+# Environment and local Python tooling.
 .env
+.env.*
+!.env.example
 .venv/
 venv/
+.tox/
+.nox/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-logs/
-synthetic_hand_test.png
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 
-# Personal/local Claude Code settings (may contain machine-specific paths).
-.claude/settings.local.json
+# Logs, build outputs, dependency folders, and OS clutter.
+logs/
+*.log
+dist/
+build/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Personal/local assistant and IDE settings.
+/.agents/
+/.claude/
 
 # Large local data assets (kept on disk, not committed).
-# Validation set is Greulich-Pyle months only — not TW3-stage usable.
+# Validation set is Greulich-Pyle months only - not TW3-stage usable.
 /Bone Age Validation Set/
+/Bone+Age+Training+Set/
+/archive/
+/actual LMS macro/
+
 # TW3 research PDFs (reference source for the scoring tables; large binaries).
 /TW3 research/
+
 # Local patient database and stored radiographs (never commit PHI).
 *.db
 *.sqlite
@@ -27,3 +55,15 @@ synthetic_hand_test.png
 # Regenerable training caches only (large .npz). The trained ONNX model and its
 # metadata ARE committed so the hosted/cloned app's AI screening estimate works.
 /backend/ai/models/*.npz
+/backend/ai/models/* ([0-9]).onnx
+/backend/ai/models/* ([0-9]).json
+
+# Generated diagnostics and preview artifacts.
+synthetic_hand_test.png
+/growth_curve_qa.html
+/growth-chart-*-report.md
+/UIUX-critique-report.md
+/_chart_preview_*.png
+/_iap_preview.png
+/boys_who_iap.png
+/girls_who_iap.jpg
