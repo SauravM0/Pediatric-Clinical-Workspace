@@ -41,16 +41,52 @@ from backend.tw3 import (
     bone_group,
     compute,
     load_tables,
+    validate_curve,
 )
 from backend.tw3.tables import TablesError
 
 router = APIRouter(prefix="/api/bone-age", tags=["bone-age"])
 
 
-def _provisional_curve(tables) -> bool:
-    """The score→age curve is provisional if the version/source says so."""
+def _curve_declared_provisional(tables) -> bool:
+    """The author's self-declaration that the curve is not yet trustworthy."""
     text = f"{tables.version} {tables.source_reference}".lower()
     return "provisional" in text or "digitized" in text
+
+
+def _provisional_curve(tables) -> bool:
+    """The score→age curve is provisional UNTIL it is validated on real evidence.
+
+    A digitized/self-declared-provisional curve (directive S-BA-2) clears the flag
+    only once it reproduces the clinic's own reference films within tolerance
+    (``validate_curve``). A curve the author never declared provisional is not
+    treated as provisional. So: provisional = declared AND not yet validated.
+    """
+    if not _curve_declared_provisional(tables):
+        return False
+    return not validate_curve(tables).validated
+
+
+def _curve_validation_summary(tables) -> dict:
+    """Read-out of the score→age curve gate (directive S-BA-2): how many of the
+    clinic's reference films the digitized curve reproduces, and what is still
+    needed to clear the provisional flag. Never exposes patient data — only case
+    ids, expected/computed ages, and errors."""
+    cv = validate_curve(tables)
+    return {
+        "declared_provisional": _curve_declared_provisional(tables),
+        "validated": cv.validated,
+        "n_cases": cv.n_cases,
+        "n_passing": cv.n_passing,
+        "min_cases": cv.min_cases,
+        "tolerance_years": cv.tolerance_years,
+        "cases": [
+            {"id": c.id, "sex": c.sex, "expected_years": c.expected_years,
+             "computed_years": c.computed_years, "error_years": c.error_years,
+             "within_tolerance": c.within_tolerance, "status": c.status}
+            for c in cv.cases
+        ],
+    }
 
 
 class ScoreRequest(BaseModel):
@@ -77,6 +113,7 @@ def config() -> dict:
         "min_age_years": t.min_age_years,
         "max_age_years": t.max_age_years,
         "provisional_curve": _provisional_curve(t),
+        "curve_validation": _curve_validation_summary(t),
         "calibrated": {sex: t.is_calibrated(sex) for sex in SEXES},
         "ai_estimate_available": boneage.model_available(),
         "ai_model": boneage.model_metadata(),

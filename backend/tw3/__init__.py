@@ -14,6 +14,9 @@ from .scoring import (
     score_to_age_months,
     compute,
     calculate_strict,
+    validate_curve,
+    CurveValidation,
+    CurveCaseResult,
     ScoreResult,
     BoneScore,
     ScoringError,
@@ -28,6 +31,7 @@ __all__ = [
     "bones_for_system", "bone_group", "label_for", "scoring_enabled",
     "ScoringTables", "load_tables", "compute_checksum", "TablesError",
     "bone_age_from_stages", "rus_score", "score_to_age", "score_to_age_months",
-    "compute", "calculate_strict", "ScoreResult", "BoneScore", "ScoringError",
+    "compute", "calculate_strict", "validate_curve", "CurveValidation",
+    "CurveCaseResult", "ScoreResult", "BoneScore", "ScoringError",
     "CALCULATION_VERSION",
 ]

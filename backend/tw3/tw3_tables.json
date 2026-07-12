@@ -31,7 +31,13 @@
       }
     ]
   },
-  "checksum": "71bd6167ab0dd05ebadafcf381bb463bf16ca66654864066a7b3522378923056",
+  "curve_validation": {
+    "_about": "The score_to_age curve is DIGITIZED (provisional, +/- ~0.5y). To clear the 'provisional' flag on real evidence, enter this clinic's own historically-reported TW3-C films: each case = the confirmed 13 RUS grades (bone code -> grade '1'..'8') and the known/approved bone age in years. The curve is treated as locally validated only when at least min_cases cases reproduce within tolerance_years (scoring.validate_curve). Until then every bone age stays labelled provisional. Nothing here changes any stage_to_score or score_to_age value; it only measures how well the shipped curve fits local cases. Example case (remove, do not ship real patient data here): {\"id\": \"case-001\", \"sex\": \"girls\", \"stages\": {\"radius\": \"8\", \"ulna\": \"7\", \"mc1\": \"8\", \"mc3\": \"7\", \"mc5\": \"7\", \"pp1\": \"8\", \"pp3\": \"7\", \"pp5\": \"7\", \"mp3\": \"7\", \"mp5\": \"7\", \"dp1\": \"8\", \"dp3\": \"7\", \"dp5\": \"7\"}, \"expected_bone_age_years\": 13.0}",
+    "tolerance_years": 0.5,
+    "min_cases": 3,
+    "reference_cases": []
+  },
+  "checksum": "a3e79912df730a9f825d63bd96c5d588cd319efa72aee326ad2eaf8efd7b79b0",
   "sexes": [
     "boys",
     "girls"

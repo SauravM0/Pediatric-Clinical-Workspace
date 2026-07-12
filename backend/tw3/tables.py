@@ -56,6 +56,13 @@ class ScoringTables:
     max_age_years: float
     checksum_verified: bool
     raw: dict[str, Any] = field(repr=False, default_factory=dict)
+    # Curve-validation gate (directive S-BA-2): the score->age curve is DIGITIZED
+    # (provisional) until it reproduces this clinic's own historically-reported
+    # films within tolerance. These hold the entered reference cases + thresholds;
+    # scoring.validate_curve() runs them. Empty by default -> curve stays provisional.
+    reference_cases: tuple[dict[str, Any], ...] = ()
+    curve_tolerance_years: float = 0.5
+    curve_min_cases: int = 3
 
     def is_calibrated(self, sex: str) -> bool:
         """True only if every RUS bone has a score row and the age curve exists."""
@@ -117,6 +124,32 @@ def _validate_structure(data: dict[str, Any]) -> None:
                 raise TablesError(f"score_to_age['{sex}'] has a malformed anchor: {pair!r}")
 
 
+def _validate_curve_validation(data: dict[str, Any]) -> None:
+    """The optional 'curve_validation' block: thresholds + reference cases used to
+    clear the provisional flag. Malformed entries fail-fast (like the tables)."""
+    cv = data.get("curve_validation")
+    if cv is None:
+        return
+    if not isinstance(cv, dict):
+        raise TablesError("'curve_validation' must be an object")
+    if "tolerance_years" in cv and not isinstance(cv["tolerance_years"], (int, float)):
+        raise TablesError("curve_validation.tolerance_years must be numeric")
+    if "min_cases" in cv and not isinstance(cv["min_cases"], int):
+        raise TablesError("curve_validation.min_cases must be an integer")
+    cases = cv.get("reference_cases", [])
+    if not isinstance(cases, list):
+        raise TablesError("curve_validation.reference_cases must be a list")
+    for i, case in enumerate(cases):
+        if not isinstance(case, dict):
+            raise TablesError(f"reference_cases[{i}] must be an object")
+        if case.get("sex") not in SEXES:
+            raise TablesError(f"reference_cases[{i}] has invalid/missing sex")
+        if not isinstance(case.get("stages"), dict):
+            raise TablesError(f"reference_cases[{i}] missing 'stages' object")
+        if not isinstance(case.get("expected_bone_age_years"), (int, float)):
+            raise TablesError(f"reference_cases[{i}] missing numeric expected_bone_age_years")
+
+
 def _derive_allowed_stages(sts: dict[str, dict[str, dict[str, float]]]) -> dict[str, tuple[str, ...]]:
     """Allowed stages per bone = union of stages present across both sexes,
     ordered by the canonical stage vocabulary. Falls back to the full A–I set
@@ -140,6 +173,7 @@ def load_tables(path: Path = _TABLES_PATH) -> ScoringTables:
         raise TablesError(f"TW3 tables file is not valid JSON: {exc}") from exc
 
     _validate_structure(data)
+    _validate_curve_validation(data)
 
     checksum_verified = False
     stored = data.get("checksum")
@@ -156,6 +190,9 @@ def load_tables(path: Path = _TABLES_PATH) -> ScoringTables:
     sts = {s: b for s, b in data.get("stage_to_score", {}).items() if not s.startswith("_")}
     s2a = {s: a for s, a in data.get("score_to_age", {}).items() if not s.startswith("_")}
 
+    cv = data.get("curve_validation", {}) or {}
+    ref_cases = tuple(c for c in cv.get("reference_cases", []) if isinstance(c, dict))
+
     return ScoringTables(
         method=data["method"],
         version=data["version"],
@@ -167,4 +204,7 @@ def load_tables(path: Path = _TABLES_PATH) -> ScoringTables:
         max_age_years=float(data.get("max_age_years", 19.0)),
         checksum_verified=checksum_verified,
         raw=data,
+        reference_cases=ref_cases,
+        curve_tolerance_years=float(cv.get("tolerance_years", 0.5)),
+        curve_min_cases=int(cv.get("min_cases", 3)),
     )

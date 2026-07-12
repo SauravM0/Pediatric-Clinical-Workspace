@@ -162,6 +162,82 @@ def compute(stages: Mapping[str, str], sex: str,
     )
 
 
+@dataclass(frozen=True)
+class CurveCaseResult:
+    id: str
+    sex: str
+    expected_years: Optional[float]
+    computed_years: Optional[float]
+    error_years: Optional[float]
+    within_tolerance: bool
+    status: str
+
+
+@dataclass(frozen=True)
+class CurveValidation:
+    """Result of checking the (digitized/provisional) score->age curve against a
+    clinic's own historically-reported reference films (directive S-BA-2)."""
+    validated: bool
+    n_cases: int
+    n_passing: int
+    min_cases: int
+    tolerance_years: float
+    cases: tuple[CurveCaseResult, ...]
+
+
+def validate_curve(tables: Optional[ScoringTables] = None) -> CurveValidation:
+    """Score every entered reference case on the current tables and report whether
+    the curve reproduces them within tolerance. The curve counts as *validated*
+    only when at least ``min_cases`` cases are entered and ALL reproduce within
+    ``tolerance_years`` -- this is what lets a digitized curve clear its
+    'provisional' flag, on real local evidence rather than a self-declaration.
+    Nothing here mutates the tables; it is pure verification."""
+    tables = tables or load_tables()
+    results: list[CurveCaseResult] = []
+    passing = 0
+    for i, case in enumerate(tables.reference_cases):
+        cid = str(case.get("id") or f"case-{i + 1}")
+        sex = case.get("sex")
+        stages = case.get("stages") or {}
+        expected = case.get("expected_bone_age_years")
+        expected_f = float(expected) if isinstance(expected, (int, float)) else None
+        computed_years: Optional[float] = None
+        err: Optional[float] = None
+        within = False
+
+        if sex not in SEXES:
+            status = f"invalid sex {sex!r}"
+        elif expected_f is None:
+            status = "missing expected_bone_age_years"
+        else:
+            try:
+                r = compute(stages, sex, tables)
+                if r.bone_age_years is None:
+                    status = f"not scorable ({r.status})"
+                else:
+                    computed_years = r.bone_age_years
+                    err = round(computed_years - expected_f, 3)
+                    within = abs(err) <= tables.curve_tolerance_years
+                    status = "pass" if within else "outside_tolerance"
+            except ScoringError as exc:
+                status = f"scoring_error: {exc}"
+
+        if within:
+            passing += 1
+        results.append(CurveCaseResult(cid, str(sex), expected_f, computed_years, err, within, status))
+
+    n = len(results)
+    validated = n > 0 and n >= tables.curve_min_cases and passing == n
+    return CurveValidation(
+        validated=validated,
+        n_cases=n,
+        n_passing=passing,
+        min_cases=tables.curve_min_cases,
+        tolerance_years=tables.curve_tolerance_years,
+        cases=tuple(results),
+    )
+
+
 def calculate_strict(stages: Mapping[str, str], sex: str,
                      tables: Optional[ScoringTables] = None) -> ScoreResult:
     """Final calculation for approval. Raises ScoringError unless all 13 bones
