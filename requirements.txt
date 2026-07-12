@@ -5,7 +5,12 @@ pillow>=10.4.0
 playwright>=1.40
 pydicom>=3.0
 python-multipart>=0.0.9
-rcpchgrowth>=4.5.0
+# Pinned exactly: rcpchgrowth supplies the WHO reference LMS values that the
+# growth charts render and score against. An upgrade can silently change chart
+# output, so it is version-locked for reproducibility; bumping it requires
+# re-running the growth validation suite and re-verifying against official WHO
+# tables (see FINAL-clinical-accuracy-audit-and-solutions.md, GC-7).
+rcpchgrowth==4.5.0
 scipy>=1.13
 sqlalchemy>=2.0
 uvicorn[standard]>=0.30.0
