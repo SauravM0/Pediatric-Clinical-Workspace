@@ -7,5 +7,17 @@
   "input_size": 224,
   "mode": "ft",
   "method": "Greulich-Pyle whole-image (screening)",
-  "trained_on": "RSNA full (Colab 224px)"
+  "trained_on": "RSNA full (Colab 224px)",
+  "conformal": {
+    "method": "split-conformal (absolute residual)",
+    "dataset": "RSNA val split (seed 42, first 15%)",
+    "recomputed_val_mae_months": 8.6,
+    "n_calib": 1891,
+    "quantiles_months": {
+      "0.80": 13.89,
+      "0.90": 18.58,
+      "0.95": 22.07
+    },
+    "default_coverage": "0.90"
+  }
 }

@@ -72,14 +72,25 @@ def predict_months(image: Image.Image | bytes, is_male: bool) -> Optional[dict]:
     months = float(sess.run(None, inputs)[0].reshape(-1)[0])
     months = max(0.0, min(months, 240.0))
 
-    # Uncertainty band. The model reports a validation mean-absolute-error; we surface
-    # a ±1 MAE band around the point estimate so the clinician can see the expected
-    # spread rather than a single deceptively-precise number. Honest, not a guess.
+    # Patient-level uncertainty (directive S-BA-5). Prefer a split-CONFORMAL
+    # interval calibrated on the held-out val set (guaranteed >= coverage), which
+    # boneage.calibrate_conformal writes into the metadata. Fall back to a plain
+    # +/-MAE band ONLY when no conformal calibration is present -- and label it as
+    # an approximation, never a calibrated interval.
+    from . import conformal as _conformal
+
     mae = meta.get("val_mae_months")
-    ci_low_months = ci_high_months = None
-    if isinstance(mae, (int, float)):
-        ci_low_months = max(0.0, months - mae)
-        ci_high_months = min(240.0, months + mae)
+    conf = meta.get("conformal") or {}
+    quants = conf.get("quantiles_months") or {}
+    coverage = conf.get("default_coverage", "0.90")
+    q = quants.get(coverage)
+    if isinstance(q, (int, float)):
+        interval_kind, half = "conformal", float(q)
+    elif isinstance(mae, (int, float)):
+        interval_kind, half, coverage = "mae_approx", float(mae), None
+    else:
+        interval_kind, half, coverage = "none", None, None
+    ci_low_months, ci_high_months = _conformal.interval(months, half)
 
     return {
         "bone_age_months": round(months),
@@ -87,7 +98,9 @@ def predict_months(image: Image.Image | bytes, is_male: bool) -> Optional[dict]:
         "model_version": meta.get("model_version", "boneage-gp-unknown"),
         "method": "Greulich-Pyle whole-image estimate (screening, not TW3)",
         "val_mae_months": mae,
-        "uncertainty_months": mae,
+        "uncertainty_months": None if half is None else round(half, 1),
+        "interval_kind": interval_kind,   # "conformal" | "mae_approx" | "none"
+        "interval_coverage": coverage,    # e.g. "0.90" for a conformal interval
         "ci_low_years": None if ci_low_months is None else round(ci_low_months / 12, 1),
         "ci_high_years": None if ci_high_months is None else round(ci_high_months / 12, 1),
         "population_note": (

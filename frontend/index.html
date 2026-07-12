@@ -2691,7 +2691,10 @@
                                   <div style={{ fontSize:'11px', color:'#6b21a8', fontWeight:'700' }}>Bone age from this X‑ray</div>
                                   <div style={{ fontWeight:'900', color:'#5b21b6', lineHeight:1 }}><span style={{ fontSize:'34px' }}>{aiEstimate.bone_age_years}</span> <span style={{ fontSize:'14px' }}>yr</span></div>
                                   {aiEstimate.ci_low_years != null && aiEstimate.ci_high_years != null && (
-                                    <div style={{ fontSize:'11px', color:'#7c3aed', fontWeight:'700', marginTop:'3px' }}>Likely range {aiEstimate.ci_low_years}–{aiEstimate.ci_high_years} yr <span style={{ fontWeight:'500', color:'#a78bfa' }}>(±{aiEstimate.uncertainty_months} mo, held-out)</span></div>
+                                    <div style={{ fontSize:'11px', color:'#7c3aed', fontWeight:'700', marginTop:'3px' }}>
+                                      {aiEstimate.interval_kind === 'conformal' ? `${Math.round(parseFloat(aiEstimate.interval_coverage)*100)}% interval` : 'Likely range'} {aiEstimate.ci_low_years}–{aiEstimate.ci_high_years} yr
+                                      <span style={{ fontWeight:'500', color:'#a78bfa' }}> {aiEstimate.interval_kind === 'conformal' ? `(conformal · ±${aiEstimate.uncertainty_months} mo, held-out RSNA)` : `(±${aiEstimate.uncertainty_months} mo MAE — approx, not calibrated)`}</span>
+                                    </div>
                                   )}
                                   <div style={{ fontSize:'10px', color:'#7c3aed', marginTop:'2px' }}>Greulich–Pyle whole-image · NOT TW3{aiEstimate.model_version ? ` · ${aiEstimate.model_version}` : ''}</div>
                                   {aiEstimate.quality_warning && (
@@ -2777,7 +2780,7 @@
                                 <div style={{ fontWeight:'900', color:'#6b21a8', lineHeight:1.1, marginTop:'4px' }}>
                                   <span style={{ fontSize:'26px' }}>{aiYears}</span> <span style={{ fontSize:'13px' }}>yr</span>
                                 </div>
-                                <div style={{ fontSize:'10px', color:'#7c3aed', marginTop:'2px' }}>Whole-image estimate{aiEstimate.val_mae_months ? ` · ±~${Math.round(aiEstimate.val_mae_months)} mo` : ''} — not TW3; the clinician verifies. Grade the bones for the authoritative age.</div>
+                                <div style={{ fontSize:'10px', color:'#7c3aed', marginTop:'2px' }}>Whole-image estimate{aiEstimate.ci_low_years != null ? ` · ${aiEstimate.interval_kind === 'conformal' ? Math.round(parseFloat(aiEstimate.interval_coverage)*100) + '% ' : ''}${aiEstimate.ci_low_years}–${aiEstimate.ci_high_years} yr` : ''} — not TW3; the clinician verifies. Grade the bones for the authoritative age.</div>
                               </div>
                             );
                             return (
