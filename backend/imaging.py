@@ -17,7 +17,7 @@ import hashlib
 import io
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Final, Optional
 
 import numpy as np
 from PIL import Image, ImageOps
@@ -197,6 +197,78 @@ def quality_precheck(img: LoadedImage) -> tuple[str, list[str]]:
     if flags:
         return "accepted_with_warning", flags
     return "accepted", flags
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Image acceptability gate for the AI screening estimate (directive S-BA-6).
+#
+# Canonical quality-flag vocabulary, kept in sync with the product contract at
+# bone_age_product_starter_pack/case_input_schema.json (a drift test asserts the
+# two match). validation_protocol.md §4: "Do not silently generate a normal
+# report after a quality failure" -- so a HARD flag makes the whole-hand AI
+# estimate abstain and route to manual assessment, never emit a silent age.
+# ─────────────────────────────────────────────────────────────────────────────
+CANONICAL_QUALITY_FLAGS: Final[frozenset[str]] = frozenset({
+    "WRONG_LATERALITY", "NON_PA_POSITION", "ROTATION", "MOTION_BLUR",
+    "UNDEREXPOSED", "OVEREXPOSED", "CLIPPED_DISTAL_RADIUS_ULNA", "CLIPPED_DIGITS",
+    "FOREIGN_OBJECT", "CAST_OR_HARDWARE", "FRACTURE", "SEVERE_DEFORMITY",
+    "BONE_DYSPLASIA_SUSPECTED", "IMAGE_TOO_SMALL", "DUPLICATE", "OTHER",
+})
+
+# Flags that invalidate a whole-hand AI bone-age estimate (missing/altered
+# anatomy, wrong body part, or an unanalysable image) -> abstain, manual review.
+HARD_QUALITY_FLAGS: Final[frozenset[str]] = frozenset({
+    "WRONG_LATERALITY", "NON_PA_POSITION", "CLIPPED_DISTAL_RADIUS_ULNA",
+    "CLIPPED_DIGITS", "FOREIGN_OBJECT", "CAST_OR_HARDWARE", "FRACTURE",
+    "SEVERE_DEFORMITY", "BONE_DYSPLASIA_SUSPECTED", "IMAGE_TOO_SMALL", "DUPLICATE",
+})
+
+
+def auto_quality_flags(img: LoadedImage) -> tuple[list[str], list[str]]:
+    """Deterministic auto-detected quality flags + advisory notes.
+
+    Only flags what can be determined RELIABLY without a validated classifier:
+    IMAGE_TOO_SMALL (dimensions) and WRONG_LATERALITY (DICOM laterality). Anything
+    diagnostic -- fracture, cast, clipping, deformity, dysplasia, rotation,
+    exposure -- is left to clinician declaration; the app does not claim to
+    auto-detect it (that needs a validated model; audit P2). Low contrast is an
+    advisory NOTE, never a gating flag."""
+    flags: list[str] = []
+    if img.width < 200 or img.height < 200:
+        flags.append("IMAGE_TOO_SMALL")
+    if img.laterality and str(img.laterality).upper().startswith("R"):
+        flags.append("WRONG_LATERALITY")
+    notes: list[str] = list(img.warnings)
+    if float(img.analysis.std()) < 12:
+        notes.append("low_contrast_or_near_blank")
+    return flags, notes
+
+
+def gate_ai_estimate(auto_flags: list[str], declared_flags: list[str]) -> dict:
+    """Combine auto + clinician-declared flags and decide whether a whole-hand AI
+    estimate may be shown. Returns a block matching report_output_schema.json's
+    image_quality section, plus the hard/soft split and provenance of each flag."""
+    declared = sorted({f.strip().upper() for f in declared_flags if f and f.strip()})
+    known = [f for f in declared if f in CANONICAL_QUALITY_FLAGS]
+    unknown = [f for f in declared if f not in CANONICAL_QUALITY_FLAGS]
+    all_flags = sorted(set(auto_flags) | set(known))
+    hard = sorted(f for f in all_flags if f in HARD_QUALITY_FLAGS)
+    soft = sorted(f for f in all_flags if f not in HARD_QUALITY_FLAGS)
+    accepted = not hard
+    reason = None if accepted else (
+        "Image-quality gate failed (" + ", ".join(hard) + "). A whole-hand AI "
+        "bone-age estimate is not valid on this film; manual assessment required."
+    )
+    return {
+        "accepted": accepted,
+        "flags": all_flags,
+        "hard_flags": hard,
+        "soft_flags": soft,
+        "auto_flags": sorted(auto_flags),
+        "declared_flags": known,
+        "unknown_declared": unknown,
+        "reason_for_rejection": reason,
+    }
 
 
 def store_radiograph(dest_dir: Path, raw: bytes, img: LoadedImage,

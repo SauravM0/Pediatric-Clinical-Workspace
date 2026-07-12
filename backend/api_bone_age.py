@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 from backend.ai import boneage
 from backend.config import APP_VERSION
 from backend.db import get_db
-from backend.imaging import ImagingError, load_bytes
+from backend.imaging import ImagingError, auto_quality_flags, gate_ai_estimate, load_bytes
 from backend.models import BoneAgeFeedback
 from backend.tw3 import (
     BONE_LABELS,
@@ -157,30 +157,49 @@ async def estimate(
     file: UploadFile = File(...),
     sex: str = Form(...),
     image_domain: str = Form("unknown"),
+    declared_flags: str = Form(""),
 ) -> dict:
     """Stateless AI screening estimate for the top-of-page upload flow.
 
     Whole-image Greulich-Pyle style, NOT TW3 — a suggestion the doctor verifies.
     Works before any assessment exists; nothing is persisted here.
 
-    ``image_domain`` (digital_diagnostic / compressed / film_photo / unknown) drives
-    a quality gate: a model validated on clean digital radiographs cannot claim the
-    same trust on a compressed WhatsApp image or a phone photo of a film, so those
-    get an explicit low-trust flag (directive §16) instead of a silent number.
+    Two independent quality controls:
+    * ``declared_flags`` (comma-separated case_input_schema.json codes) + cheap
+      deterministic checks feed an ACCEPTABILITY GATE (directive S-BA-6): a HARD
+      flag (fracture, cast, wrong laterality, clipped/too-small anatomy…) makes
+      the estimate abstain — "manual assessment required", never a silent age
+      (validation_protocol.md §4). This runs BEFORE the model, independent of it.
+    * ``image_domain`` (digital_diagnostic / compressed / film_photo / unknown)
+      then flags a validated-but-low-trust SOURCE (§16) on an accepted image.
     """
     if sex not in SEXES:
         raise HTTPException(status_code=422, detail=f"unsupported sex: {sex!r}")
     raw = await file.read()
     if not raw:
         raise HTTPException(status_code=422, detail="empty upload")
-    if not boneage.model_available():
-        return {"available": False,
-                "message": "No screening model installed. Train it locally with: "
-                           "python -m backend.ai.train_boneage"}
+
+    # Decode + acceptability gate first — independent of whether a model exists.
     try:
         loaded = load_bytes(raw, file.filename or "")
     except ImagingError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    auto, notes = auto_quality_flags(loaded)
+    quality = gate_ai_estimate(auto, declared_flags.split(","))
+    quality["notes"] = notes
+
+    if not quality["accepted"]:
+        # Hard quality failure: abstain, do NOT run the model, return no age.
+        return {"available": False, "accepted": False, "quality": quality,
+                "source_format": loaded.source_format,
+                "message": quality["reason_for_rejection"]}
+
+    if not boneage.model_available():
+        return {"available": False, "accepted": True, "quality": quality,
+                "message": "No screening model installed. Train it locally with: "
+                           "python -m backend.ai.train_boneage"}
+
     result = boneage.predict_months(Image.fromarray(loaded.analysis), is_male=(sex == "boys"))
 
     domain = image_domain if image_domain in IMAGE_DOMAINS else "unknown"
@@ -196,6 +215,8 @@ async def estimate(
         )
     return {
         "available": True,
+        "accepted": True,
+        "quality": quality,
         "source_format": loaded.source_format,
         "image_domain": domain,
         "low_trust": low_trust,
