@@ -1,0 +1,24 @@
+{
+  "_about": "Authoritative IAP 2015 (Khadilkar et al.) percentile values entered by a HUMAN verifier DIRECTLY from the published paper, to independently confirm the *.csv cells (audit GC-1). This is a second, independent source: do NOT copy from the CSVs -- that would defeat the check. Fill 'values' incrementally; tests/growth/test_iap_source.py enforces every entered cell against the CSV and reports coverage. See PROVENANCE.md.",
+  "source": {
+    "height_weight": "Khadilkar V, et al. Revised IAP Growth Charts for Height, Weight and BMI for 5- to 18-year-old Indian Children. Indian Pediatr 2015;52(1):47-55",
+    "bmi": "Khadilkar VV & Khadilkar AV. Indian J Endocrinol Metab 2015;19(4):470-6",
+    "url_height_weight": "https://www.indianpediatrics.net/jan2015/47.pdf"
+  },
+  "provenance": {
+    "entered_by": "",
+    "verified_by": "",
+    "verification_date": "",
+    "notes": ""
+  },
+  "status": "AWAITING_DUAL_PERSON_VERIFICATION",
+  "values": {
+    "_format": "values[csv_filename][age_years_as_string][column] = published number, e.g. values['boy_height_cm_IAP_5_18.csv']['5.0']['p50'] = 108.9",
+    "boy_height_cm_IAP_5_18.csv": {},
+    "girl_height_cm_IAP_5_18.csv": {},
+    "boy_weight_kg_IAP_5_18.csv": {},
+    "girl_weight_kg_IAP_5_18.csv": {},
+    "boy_bmi_IAP_5_18.csv": {},
+    "girl_bmi_IAP_5_18.csv": {}
+  }
+}
