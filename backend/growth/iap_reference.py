@@ -33,11 +33,18 @@ the drawn curve match the paper's table exactly at every published age.
 
 The LMS fit is still the only source for: BMI's unpublished upper tail
 (75/90/97 -- the paper's BMI table only goes up to the median, so there's
-nothing exact to interpolate there), z-scores for an arbitrary *observed*
-patient value (iap_z_for_value -- inverting a continuous measurement needs a
-continuous model, not 7 discrete table points), and a small guard band just
-above IAP_MIN_AGE (see _EXACT_TABLE_GUARD) that blend.py's WHO/IAP seam
-derivative calculation depends on staying LMS-based end to end.
+nothing exact to interpolate there), and a small guard band just above
+IAP_MIN_AGE (see _EXACT_TABLE_GUARD) that blend.py's WHO/IAP seam derivative
+calculation depends on staying LMS-based end to end.
+
+Scoring an arbitrary *observed* patient value (iap_z_for_value) used to be pure
+LMS, which meant a value sitting exactly on a drawn (exact-table) centile did
+NOT score as that centile -- the displayed curve and the assigned z came from
+two different models (audit GC-3/GC-4). It now inverts the SAME centile curves
+the chart draws (iap_value_at_z at the standard centile z-scores), so display
+and scoring are exact inverses at every published centile and monotone between;
+it falls back to LMS only in the guard band and beyond the outermost drawn
+centile, where the drawn curve is itself LMS-based. See _z_from_display_anchors.
 """
 from __future__ import annotations
 
@@ -237,9 +244,58 @@ def iap_value_at_z(measure: str, sex: str, age_years: float, z: float) -> float 
     return lms_value_at_z(l, m, s, z)
 
 
+# The 7 standard centile z-scores the chart actually draws (identical to
+# curve_builder.Z_FOR_CENTILE; _Z_HEIGHT_WEIGHT already holds exactly these).
+# Kept local to avoid a circular import (curve_builder -> blend -> iap_reference).
+_STANDARD_Z: tuple[float, ...] = tuple(sorted(_Z_HEIGHT_WEIGHT.values()))
+
+
+def _z_from_display_anchors(measure: str, sex: str, age_years: float, value: float) -> float | None:
+    """Invert a value against the SAME centile curves the chart draws.
+
+    Anchors are (drawn value, z) built from iap_value_at_z at each standard
+    centile: for published centiles the anchor is the exact table value, for
+    BMI's model-only upper centiles it is the LMS value -- exactly matching what
+    is rendered. So a patient value on a drawn centile returns exactly that
+    centile; between two drawn centiles z is interpolated monotonically; outside
+    P3/P97 it is linearly extrapolated from the outermost segment. This is the
+    backend twin of the frontend's zForValueFromCentileStats (audit F-2) and
+    resolves the display-vs-scoring model mismatch (audit GC-3/GC-4).
+    """
+    pairs: list[tuple[float, float]] = []
+    for z in _STANDARD_Z:
+        v = iap_value_at_z(measure, sex, age_years, z)
+        if v is not None:
+            pairs.append((v, z))
+    if len(pairs) < 2:
+        return None
+    pairs.sort(key=lambda p: p[0])  # ascending by value (centile ordering holds)
+
+    def _lerp(x0: float, z0: float, x1: float, z1: float) -> float:
+        return z0 if x1 == x0 else z0 + (value - x0) / (x1 - x0) * (z1 - z0)
+
+    n = len(pairs)
+    if value <= pairs[0][0]:
+        return _lerp(pairs[0][0], pairs[0][1], pairs[1][0], pairs[1][1])
+    if value >= pairs[-1][0]:
+        return _lerp(pairs[n - 2][0], pairs[n - 2][1], pairs[-1][0], pairs[-1][1])
+    for i in range(n - 1):
+        if pairs[i][0] <= value <= pairs[i + 1][0]:
+            return _lerp(pairs[i][0], pairs[i][1], pairs[i + 1][0], pairs[i + 1][1])
+    return None
+
+
 def iap_z_for_value(measure: str, sex: str, age_years: float, value: float) -> float | None:
     if not iap_covers(age_years):
         return None
+    # In the exact-table region, invert the drawn centiles directly so a plotted
+    # value is scored on the SAME curve it visually sits on (GC-3/GC-4). Below the
+    # guard band every drawn centile is already LMS, so the exact LMS inverse is
+    # both correct and display-consistent there.
+    if age_years >= IAP_MIN_AGE + _EXACT_TABLE_GUARD:
+        z = _z_from_display_anchors(measure, sex, age_years, value)
+        if z is not None:
+            return z
     l, m, s = _SERIES[(sex, measure)].lms_at(age_years)
     return lms_z_score(value, l, m, s)
 
