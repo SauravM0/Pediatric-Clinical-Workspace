@@ -1116,6 +1116,7 @@
           const [tw3Config, setTw3Config] = useState(null);  // /api/bone-age/config
           const [rusResult, setRusResult] = useState(null);  // /api/bone-age/score
           const [letterResult, setLetterResult] = useState(null); // live /letters-score (RUS+carpal)
+          const [boneReport, setBoneReport] = useState(null); // live /report (structured 20-bone)
           const [patientCode, setPatientCode] = useState(""); // assessment lifecycle
           const [approverName, setApproverName] = useState("");
           const [assessment, setAssessment] = useState(null); // saved lifecycle record
@@ -1476,15 +1477,22 @@
           // Live original-TW3 letter scoring for the report: recomputes RUS + carpal
           // scores/ages as the doctor grades. Numbers stay '—' until licensed tables exist.
           useEffect(() => {
-            if (evalGender !== 'boys' && evalGender !== 'girls') { setLetterResult(null); return; }
+            if (evalGender !== 'boys' && evalGender !== 'girls') { setLetterResult(null); setBoneReport(null); return; }
             const carp = {}; Object.entries(carpalStages).forEach(([n, g]) => carp[carpalCode(n)] = g);
+            const aiYrs = (aiEstimate && aiEstimate.bone_age_years != null) ? aiEstimate.bone_age_years : null;
             const id = setTimeout(() => {
               fetch('/api/bone-age/letters-score', { method:'POST', headers:{ 'Content-Type':'application/json' },
                 body: JSON.stringify({ sex: evalGender, rus_stages: rusStages, carpal_stages: carp }) })
                 .then(r => r.ok ? r.json() : null).then(d => { if (d) setLetterResult(d); }).catch(() => {});
+              // Structured 20-bone report (directive S-BA-4): the backend composes
+              // it; the UI only renders. Recomputes as the doctor grades.
+              fetch('/api/bone-age/report', { method:'POST', headers:{ 'Content-Type':'application/json' },
+                body: JSON.stringify({ sex: evalGender, rus_stages: rusStages, carpal_stages: carp,
+                  chronological_age_years: evalAge > 0 ? evalAge : null, ai_estimate_years: aiYrs }) })
+                .then(r => r.ok ? r.json() : null).then(d => { if (d) setBoneReport(d); }).catch(() => {});
             }, 250);
             return () => clearTimeout(id);
-          }, [rusStages, carpalStages, evalGender]);
+          }, [rusStages, carpalStages, evalGender, evalAge, aiEstimate]);
 
           // Manual grading now uses original TW3 letters A–I (RUS + carpals). The
           // scores/ages stay blank until the clinic's licensed TW3 tables are wired
@@ -2799,42 +2807,72 @@
                               <div>Per-bone TW3 stages · <strong>doctor-graded below</strong> <span style={{ color:'#64748b' }}>(automatic staging is the next AI step — needs the staging model)</span></div>
                             </div>
                           )}
-                          <details style={{ marginTop:'4px' }}>
-                          <summary style={{ cursor:'pointer', fontSize:'11px', fontWeight:'700', color:'#7c3aed', listStyle:'none', padding:'4px 0' }}>▸ Detailed TW3 breakdown (per-bone stages &amp; scores)</summary>
-                          <div style={{ fontFamily:'ui-monospace, Menlo, Consolas, monospace', fontSize:'12.5px', color:'#1e293b', lineHeight:'1.85', marginTop:'6px' }}>
-                            <div style={{ fontWeight:'700', textDecoration:'underline', marginBottom:'6px' }}>Tanner Whitehouse method II and III Bone age</div>
-                            {REPORT_RUS.map(([code, label]) => (
-                              <div key={code}>{label} - {rusStages[code] || '—'}</div>
-                            ))}
-                            {REPORT_CARPALS.map(name => (<div key={name}>{name} - {carpalStages[name] || '—'}</div>))}
-                            {(() => {
-                              // Real numbers come from the live letter score (recomputed as the
-                              // doctor grades), falling back to the saved assessment's block.
-                              // '—' until the licensed tables are entered (backend accuracy gate).
-                              const L = letterResult || (assessment && assessment.letters);
-                              const num = (v) => (v === null || v === undefined) ? '—' : v;
-                              const yrs = (v) => (v === null || v === undefined) ? '—' : (v + ' yrs');
-                              return (
-                                <>
-                                  <div style={{ height:'8px' }} />
-                                  <div style={{ fontWeight:'700' }}>Raw scores</div>
-                                  <div>RUS Grade Score : {num(L && L.rus.total_score)}</div>
-                                  <div>TWII'20 bone grade score : {num(L && L.tw20 && L.tw20.total_score)}</div>
-                                  <div>Carpals grade score : {num(L && L.carpal.total_score)}</div>
-                                  <div style={{ height:'8px' }} />
-                                  <div style={{ fontWeight:'700' }}>Bone ages</div>
-                                  <div>TWII 'RUS' bone age : {yrs(L && L.rus.twii_age_years)}</div>
-                                  <div>TWIII 'RUS' bone age : {yrs(L && L.rus.twiii_age_years)}</div>
-                                  <div>TWII '20' bone age : {yrs(L && L.tw20 && L.tw20.age_years)}</div>
-                                  <div style={{ height:'8px' }} />
-                                  <div style={{ fontWeight:'700' }}>Carpals only</div>
-                                  <div>TWII bone age : {yrs(L && L.carpal.twii_age_years)}</div>
-                                  <div>TWIII bone age : {yrs(L && L.carpal.twiii_age_years)}</div>
-                                </>
-                              );
-                            })()}
-                          </div>
-                          <div style={{ marginTop:'10px', fontSize:'10px', color:'#94a3b8', lineHeight:'1.5' }}>Scores and bone ages fill in from the saved annotation once the clinic's licensed TW3 tables are entered (backend/tw3/letters_tables.json) and pass the reference-case accuracy check. Until then they stay blank — no numbers are guessed. Save/Update the annotation to refresh.</div>
+                          <details style={{ marginTop:'4px' }} open>
+                          <summary style={{ cursor:'pointer', fontSize:'11px', fontWeight:'700', color:'#7c3aed', listStyle:'none', padding:'4px 0' }}>▸ Detailed 20-bone report (per-bone staging · RUS &amp; carpal kept separate)</summary>
+                          {(() => {
+                            const rep = boneReport;
+                            const yrs = (v) => (v === null || v === undefined) ? '—' : (v + ' yr');
+                            const num = (v) => (v === null || v === undefined) ? '—' : v;
+                            const visChip = (v) => {
+                              const map = { STAGED:['#dcfce7','#166534'], NOT_VISIBLE:['#fef3c7','#92400e'], NOT_SCORABLE:['#fee2e2','#991b1b'], NOT_STAGED:['#f1f5f9','#94a3b8'] };
+                              const [bg, fg] = map[v] || map.NOT_STAGED;
+                              return <span style={{ background:bg, color:fg, fontSize:'9px', fontWeight:'800', padding:'1px 6px', borderRadius:'999px', letterSpacing:'0.02em' }}>{v.replace('_',' ')}</span>;
+                            };
+                            const rows = rep ? rep.per_bone_results : [];
+                            return (
+                              <div style={{ marginTop:'6px' }}>
+                                <div style={{ overflowX:'auto' }}>
+                                  <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'11px' }}>
+                                    <thead>
+                                      <tr style={{ textAlign:'left', color:'#64748b', borderBottom:'1px solid #e2e8f0' }}>
+                                        <th style={{ padding:'4px 6px', fontWeight:'700' }}>#</th>
+                                        <th style={{ padding:'4px 6px', fontWeight:'700' }}>Bone</th>
+                                        <th style={{ padding:'4px 6px', fontWeight:'700' }}>Sys</th>
+                                        <th style={{ padding:'4px 6px', fontWeight:'700' }}>Stage</th>
+                                        <th style={{ padding:'4px 6px', fontWeight:'700' }}>Visibility</th>
+                                        <th style={{ padding:'4px 6px', fontWeight:'700', textAlign:'right' }}>Points</th>
+                                        <th style={{ padding:'4px 6px', fontWeight:'700', textAlign:'right' }}>% of max</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {rows.map((b) => (
+                                        <tr key={b.bone_id} style={{ borderBottom:'1px solid #f1f5f9', background: b.system==='CARPAL' ? '#fafafa' : 'white' }}>
+                                          <td style={{ padding:'3px 6px', color:'#94a3b8' }}>{b.display_order}</td>
+                                          <td style={{ padding:'3px 6px', fontWeight:'600', color:'#1e293b' }}>{b.anatomical_name}</td>
+                                          <td style={{ padding:'3px 6px', color:'#64748b' }}>{b.system==='CARPAL' ? 'Carpal' : 'RUS'}</td>
+                                          <td style={{ padding:'3px 6px', fontWeight:'700', color:'#5b21b6' }}>{b.stage && !b.stage.startsWith('NOT_') ? b.stage : '—'}</td>
+                                          <td style={{ padding:'3px 6px' }}>{visChip(b.visibility)}</td>
+                                          <td style={{ padding:'3px 6px', textAlign:'right', color:'#475569' }}>{num(b.points)}</td>
+                                          <td style={{ padding:'3px 6px', textAlign:'right', color:'#475569' }}>{b.pct_of_bone_max != null ? b.pct_of_bone_max + '%' : '—'}</td>
+                                        </tr>
+                                      ))}
+                                      {rows.length === 0 && <tr><td colSpan="7" style={{ padding:'10px 6px', color:'#94a3b8' }}>Grade the bones below to build the report.</td></tr>}
+                                    </tbody>
+                                  </table>
+                                </div>
+                                {rep && (
+                                  <div style={{ marginTop:'10px', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px' }}>
+                                    <div style={{ background:'#f5f3ff', border:'1px solid #ddd6fe', borderRadius:'10px', padding:'10px 12px' }}>
+                                      <div style={{ fontSize:'10px', fontWeight:'800', color:'#7c3aed', textTransform:'uppercase', letterSpacing:'0.05em' }}>RUS (13 bones)</div>
+                                      <div style={{ fontSize:'11px', color:'#475569', marginTop:'4px' }}>Staged {rep.completeness.rus_staged}/13 · score {num(rep.rus.total_score)}</div>
+                                      <div style={{ fontSize:'13px', fontWeight:'800', color:'#5b21b6', marginTop:'2px' }}>TWIII age {yrs(rep.rus.twiii_age_years)} <span style={{ fontSize:'10px', fontWeight:'600', color:'#94a3b8' }}>· TWII {yrs(rep.rus.twii_age_years)}</span></div>
+                                    </div>
+                                    <div style={{ background:'#fafafa', border:'1px solid #e2e8f0', borderRadius:'10px', padding:'10px 12px' }}>
+                                      <div style={{ fontSize:'10px', fontWeight:'800', color:'#64748b', textTransform:'uppercase', letterSpacing:'0.05em' }}>Carpal (7 bones) · separate</div>
+                                      <div style={{ fontSize:'11px', color:'#475569', marginTop:'4px' }}>Staged {rep.completeness.carpal_staged}/7 · score {num(rep.carpal.total_score)}</div>
+                                      <div style={{ fontSize:'13px', fontWeight:'800', color:'#334155', marginTop:'2px' }}>TWIII age {yrs(rep.carpal.twiii_age_years)} <span style={{ fontSize:'10px', fontWeight:'600', color:'#94a3b8' }}>· never averaged with RUS</span></div>
+                                    </div>
+                                  </div>
+                                )}
+                                {rep && rep.scoring_note && (
+                                  <div style={{ marginTop:'10px', fontSize:'10px', color:'#92400e', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'8px 10px', lineHeight:'1.5' }}>{rep.scoring_note}</div>
+                                )}
+                                {rep && (
+                                  <div style={{ marginTop:'8px', fontSize:'10px', color:'#94a3b8', lineHeight:'1.5' }}>{rep.mandatory_disclaimer}</div>
+                                )}
+                              </div>
+                            );
+                          })()}
                           </details>
                         </div>
 

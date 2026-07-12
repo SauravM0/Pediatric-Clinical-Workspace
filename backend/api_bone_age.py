@@ -241,6 +241,35 @@ def letters_score(req: LettersScoreRequest) -> dict:
     return {"any_calibrated": t.any_calibrated(), "rus": g(r.rus), "carpal": g(r.carpal), "tw20": tw20}
 
 
+class ReportRequest(BaseModel):
+    sex: str = Field(..., description="'boys' or 'girls'")
+    rus_stages: dict[str, str] = Field(default_factory=dict, description="RUS bone code -> letter A-I or NOT_VISIBLE/NOT_SCORABLE")
+    carpal_stages: dict[str, str] = Field(default_factory=dict, description="carpal code -> letter A-I or NOT_VISIBLE/NOT_SCORABLE")
+    chronological_age_years: Optional[float] = None
+    ai_estimate_years: Optional[float] = Field(None, description="Whole-image screening estimate, shown as a separate cross-check (NOT TW3)")
+
+
+@router.post("/report")
+def report(req: ReportRequest) -> dict:
+    """Structured 20-bone report (directive S-BA-4): every RUS + carpal bone with
+    its stage, visibility and (once licensed) points, plus SEPARATE RUS/carpal
+    group summaries. Composes the deterministic letter engine only -- no guessing."""
+    from backend.tw3.letters_scoring import LetterTablesError
+    from backend.tw3.report import build_report
+
+    if req.sex not in SEXES:
+        raise HTTPException(status_code=422, detail=f"unsupported sex: {req.sex!r}")
+    try:
+        return build_report(
+            req.sex, req.rus_stages, req.carpal_stages,
+            req.chronological_age_years, req.ai_estimate_years,
+        )
+    except LetterTablesError as exc:
+        raise HTTPException(status_code=500, detail=f"letters_tables_invalid: {exc}") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @router.post("/score")
 def score(req: ScoreRequest) -> dict:
     if req.sex not in SEXES:
