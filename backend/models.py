@@ -154,6 +154,43 @@ class AuditEvent(Base):
     model_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
 
+class BoneAgeFeedback(Base):
+    """Clinician correction of a bone-age estimate — the training-data intake valve.
+
+    This is an *evidence log*, NOT a clinical result: a row here never becomes the
+    patient's reported bone age. It captures what the AI said, what an expert says is
+    correct, which method they used, how sure they are, who they are, and on what image
+    quality — the minimum provenance needed to (a) monitor AI-vs-human accuracy over
+    time and (b) later de-noise labels via multi-rater consensus and retrain.
+
+    Deliberately separate from TW3Assessment so feedback accumulates freely without
+    touching the approval-gated clinical record. ``image_hash`` links a correction to
+    an image even in the stateless top-of-page estimate flow (no persisted radiograph).
+    """
+
+    __tablename__ = "bone_age_feedback"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    radiograph_id: Mapped[int | None] = mapped_column(ForeignKey("radiograph.id"), nullable=True)
+    assessment_id: Mapped[int | None] = mapped_column(ForeignKey("tw3_assessment.id"), nullable=True)
+    image_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    sex: Mapped[str | None] = mapped_column(String(8), nullable=True)  # boys | girls
+    chronological_age_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # What the AI estimated (for AI-vs-human error monitoring).
+    ai_estimate_months: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ai_model_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # The clinician's corrected bone age (the label). Required.
+    corrected_age_months: Mapped[int] = mapped_column(Integer, nullable=False)
+    # How the clinician decided it — keeps incompatible scales from being mixed.
+    # tw3-rus | greulich-pyle | clinical | other
+    method: Mapped[str] = mapped_column(String(24), default="clinical", nullable=False)
+    confidence: Mapped[str] = mapped_column(String(8), default="medium", nullable=False)  # low|medium|high
+    rater_id: Mapped[str | None] = mapped_column(String(120), nullable=True)  # precondition for consensus
+    image_domain: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    application_version: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
 def ensure_schema_version(engine: Engine) -> None:
     """Record the current schema version once."""
     from backend.db import SessionLocal  # local import to avoid cycle at import time

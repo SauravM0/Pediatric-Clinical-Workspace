@@ -1,0 +1,58 @@
+{
+  "report_version": "0.1-research",
+  "case_id": "",
+  "method": {
+    "primary": "WHOLE_HAND_AI_RESEARCH",
+    "allowed": [
+      "WHOLE_HAND_AI_RESEARCH",
+      "TW3_RUS_MANUAL_LICENSED",
+      "TW3_CARPAL_MANUAL_LICENSED",
+      "TW3_RUS_AI_ASSISTED_LICENSED"
+    ]
+  },
+  "chronological_age": {
+    "months": null,
+    "years_months_text": ""
+  },
+  "ai_result": {
+    "estimated_bone_age_months": null,
+    "estimated_bone_age_text": "",
+    "model_confidence_0_to_1": null,
+    "prediction_interval_months": {
+      "lower": null,
+      "upper": null
+    },
+    "difference_from_chronological_age_months": null,
+    "interpretation": "NOT_ASSIGNED",
+    "allowed_interpretations": [
+      "DELAYED",
+      "WITHIN_EXPECTED_RANGE",
+      "ADVANCED",
+      "NOT_ASSIGNED"
+    ]
+  },
+  "per_bone_results": [
+    {
+      "bone_id": "",
+      "predicted_stage": "",
+      "confidence_0_to_1": null,
+      "manual_stage": "",
+      "accepted_by_clinician": false
+    }
+  ],
+  "image_quality": {
+    "accepted": false,
+    "flags": [],
+    "reason_for_rejection": ""
+  },
+  "clinician_review": {
+    "required": true,
+    "reviewer_name": "",
+    "reviewer_role": "",
+    "final_bone_age_months": null,
+    "final_method": "",
+    "signed_at": ""
+  },
+  "patient_facing_conclusion": "",
+  "mandatory_disclaimer": "This result is decision support and is not valid as a final clinical report until reviewed and signed by a qualified clinician."
+}

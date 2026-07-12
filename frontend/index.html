@@ -1109,6 +1109,14 @@
           useEffect(() => { boxesRef.current = boxes; }, [boxes]);
           const [aiEstimate, setAiEstimate] = useState(null); // AI screening estimate
           const [estimateDomain, setEstimateDomain] = useState('unknown'); // quality gate for quick estimate
+          // Suggestion box — clinician's corrected bone age (self-improvement flywheel).
+          const [fbAge, setFbAge] = useState('');
+          const [fbMethod, setFbMethod] = useState('tw3-rus');
+          const [fbConfidence, setFbConfidence] = useState('medium');
+          const [fbRater, setFbRater] = useState('');
+          const [fbNote, setFbNote] = useState('');
+          const [fbMsg, setFbMsg] = useState(null);
+          const [fbBusy, setFbBusy] = useState(false);
           const [aiBusy, setAiBusy] = useState(false);
           const [fatherHeight, setFatherHeight] = useState("");
           const [motherHeight, setMotherHeight] = useState("");
@@ -1610,6 +1618,33 @@
             if (next) {
               try { const r = await fetch(`${LC_API}/${assessment.id}?include_audit=true`); if (r.ok) setAssessment(await r.json()); } catch {}
             }
+          };
+
+          const submitFeedback = async () => {
+            const yrs = parseFloat(fbAge);
+            if (!(yrs > 0)) { setFbMsg({ type:'err', text:'Enter the correct bone age in years.' }); return; }
+            setFbBusy(true); setFbMsg(null);
+            try {
+              const body = {
+                corrected_age_years: yrs,
+                method: fbMethod,
+                confidence: fbConfidence,
+                rater_id: fbRater || null,
+                sex: (evalGender === 'boys' || evalGender === 'girls') ? evalGender : null,
+                chronological_age_years: evalAge || null,
+                ai_estimate_years: (aiEstimate && aiEstimate.bone_age_years != null) ? aiEstimate.bone_age_years : null,
+                ai_model_version: (aiEstimate && aiEstimate.model_version) || null,
+                radiograph_id: (radiograph && radiograph.id) || null,
+                assessment_id: (assessment && assessment.id) || null,
+                image_domain: (radiograph && radiograph.source_domain) || estimateDomain || null,
+                note: fbNote || null,
+              };
+              const res = await fetch('/api/bone-age/feedback', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+              const d = await res.json();
+              if (!res.ok) { setFbMsg({ type:'err', text: d.detail || 'could not save' }); }
+              else { setFbMsg({ type:'ok', text: d.message || 'Thanks — logged.' }); setFbAge(''); setFbNote(''); }
+            } catch (e) { setFbMsg({ type:'err', text: String(e.message || e) }); }
+            finally { setFbBusy(false); }
           };
 
           const runEstimate = async (fileObj) => {
@@ -2571,6 +2606,41 @@
                               )}
                             </div>
                           </div>
+                          {/* Suggestion box — clinician's corrected bone age (self-improvement flywheel). Evidence, not the patient result. */}
+                          <div style={{ marginTop:'14px', paddingTop:'14px', borderTop:'1px dashed #ddd6fe' }}>
+                            <div style={{ fontSize:'11px', fontWeight:'800', color:'#6b21a8', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:'8px' }}>Is this right? Suggest the correct bone age</div>
+                            <div style={{ display:'flex', gap:'10px', flexWrap:'wrap', alignItems:'flex-end' }}>
+                              <div style={{ minWidth:'120px' }}>
+                                <label style={{ fontSize:'9px', fontWeight:'800', color:'#7c3aed', textTransform:'uppercase', letterSpacing:'.05em', display:'block', marginBottom:'3px' }}>Correct bone age (yr)</label>
+                                <input type="number" step="0.1" min="0" max="25" value={fbAge} onChange={e => setFbAge(e.target.value)} placeholder="e.g. 11.5" className="input-field" style={{ padding:'7px 8px', width:'100%', fontSize:'12px' }} />
+                              </div>
+                              <div style={{ minWidth:'130px' }}>
+                                <label style={{ fontSize:'9px', fontWeight:'800', color:'#7c3aed', textTransform:'uppercase', letterSpacing:'.05em', display:'block', marginBottom:'3px' }}>Method used</label>
+                                <select value={fbMethod} onChange={e => setFbMethod(e.target.value)} className="input-field" style={{ padding:'7px 8px', width:'100%', fontSize:'12px' }}>
+                                  <option value="tw3-rus">TW3-RUS</option>
+                                  <option value="greulich-pyle">Greulich–Pyle</option>
+                                  <option value="clinical">Clinical judgement</option>
+                                  <option value="other">Other</option>
+                                </select>
+                              </div>
+                              <div style={{ minWidth:'110px' }}>
+                                <label style={{ fontSize:'9px', fontWeight:'800', color:'#7c3aed', textTransform:'uppercase', letterSpacing:'.05em', display:'block', marginBottom:'3px' }}>Confidence</label>
+                                <select value={fbConfidence} onChange={e => setFbConfidence(e.target.value)} className="input-field" style={{ padding:'7px 8px', width:'100%', fontSize:'12px' }}>
+                                  <option value="high">High</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="low">Low</option>
+                                </select>
+                              </div>
+                              <div style={{ minWidth:'120px' }}>
+                                <label style={{ fontSize:'9px', fontWeight:'800', color:'#7c3aed', textTransform:'uppercase', letterSpacing:'.05em', display:'block', marginBottom:'3px' }}>Your initials / ID</label>
+                                <input value={fbRater} onChange={e => setFbRater(e.target.value)} placeholder="e.g. DR" className="input-field" style={{ padding:'7px 8px', width:'100%', fontSize:'12px' }} />
+                              </div>
+                              <button onClick={submitFeedback} disabled={fbBusy} style={{ padding:'8px 14px', background:'#7c3aed', color:'white', border:'none', borderRadius:'8px', fontSize:'12px', fontWeight:'700', cursor: fbBusy ? 'wait' : 'pointer' }}>{fbBusy ? 'Saving…' : 'Submit suggestion'}</button>
+                            </div>
+                            <input value={fbNote} onChange={e => setFbNote(e.target.value)} placeholder="Optional note (e.g. which bones drove the difference)" className="input-field" style={{ padding:'7px 8px', width:'100%', fontSize:'11px', marginTop:'8px' }} />
+                            {fbMsg && <div style={{ marginTop:'6px', fontSize:'11px', fontWeight:'700', color: fbMsg.type === 'ok' ? '#16a34a' : '#b45309' }}>{fbMsg.text}</div>}
+                            <div style={{ marginTop:'6px', fontSize:'10px', color:'#a78bfa', lineHeight:1.5 }}>Your correction is logged as training evidence to improve accuracy over time. It does <strong>not</strong> change this patient's reported result.</div>
+                          </div>
                           {tw3Config && !tw3Config.ai_estimate_available && (
                             <div style={{ marginTop:'8px', fontSize:'10px', color:'#94a3b8' }}>Bone-age model not installed yet. To enable: <code>python -m backend.ai.train_boneage</code></div>
                           )}
@@ -2640,6 +2710,40 @@
                                   ))}
                                 </div>
                                 <div style={{ marginTop:'8px', fontSize:'10px', color:'#94a3b8', lineHeight:'1.5' }}>Differences reflect the scoring <strong>standard / reference tables</strong>, not the child's radiograph. RUS and carpal bone ages are reported separately — never averaged.</div>
+                              </div>
+                            );
+                          })()}
+                          {/* Cross-check · independent methods (report §4). TW3 stays default; others shown below as a trust signal. */}
+                          {(() => {
+                            const L = letterResult || (assessment && assessment.letters);
+                            const tw3 = (L && L.rus && L.rus.twiii_age_years != null) ? L.rus.twiii_age_years
+                                        : (boneAge !== '' ? parseFloat(boneAge) : null);
+                            const gp = (aiEstimate && aiEstimate.bone_age_years != null) ? aiEstimate.bone_age_years : null;
+                            const carpal = (L && L.carpal && L.carpal.twiii_age_years != null) ? L.carpal.twiii_age_years : null;
+                            const rows = [
+                              ['TW3-RUS', tw3, '#0f766e'],
+                              ['GP model estimate', gp, '#6b21a8'],
+                              ['TW3 carpal', carpal, '#b45309'],
+                            ].filter(r => r[1] != null && !isNaN(r[1]));
+                            if (rows.length < 2) return null;
+                            const vals = rows.map(r => Number(r[1]));
+                            const spread = Math.max(...vals) - Math.min(...vals);
+                            const agree = spread <= 1.0;
+                            return (
+                              <div style={{ marginBottom:'12px', background:'#ffffff', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'14px' }}>
+                                <div style={{ fontSize:'10px', fontWeight:'800', color:'#334155', textTransform:'uppercase', letterSpacing:'.05em', marginBottom:'8px' }}>Cross-check · independent methods</div>
+                                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(120px, 1fr))', gap:'8px' }}>
+                                  {rows.map(([label, age, color], i) => (
+                                    <div key={label} style={{ background: i===0 ? '#f0fdfa' : '#faf5ff', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'8px 10px' }}>
+                                      <div style={{ fontSize:'9px', fontWeight:'800', color, textTransform:'uppercase', letterSpacing:'.04em' }}>{label}{i===0 ? ' · default' : ''}</div>
+                                      <div style={{ fontSize: i===0 ? '22px' : '18px', fontWeight:'900', color, lineHeight:1.15 }}>{Number(age).toFixed(1)} <span style={{ fontSize:'11px', fontWeight:'700' }}>yr</span></div>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div style={{ marginTop:'8px', fontSize:'11px', fontWeight:'700', color: agree ? '#16a34a' : '#b45309' }}>
+                                  {agree ? `✓ Methods agree — within ${spread.toFixed(1)} yr` : `⚠ Methods differ by ${spread.toFixed(1)} yr — re-check staging or image quality`}
+                                </div>
+                                <div style={{ marginTop:'4px', fontSize:'10px', color:'#94a3b8', lineHeight:1.5 }}>TW3-RUS is the authoritative result. The others are an independent cross-check — agreement builds trust; disagreement usually means a mis-staged bone or a low-quality film.</div>
                               </div>
                             );
                           })()}

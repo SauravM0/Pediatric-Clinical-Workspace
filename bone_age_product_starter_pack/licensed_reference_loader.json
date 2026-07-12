@@ -1,0 +1,488 @@
+{
+  "warning": "Do not populate from unlicensed copies. Insert values only from a legally licensed source with documented provenance.",
+  "systems": {
+    "TW3_RUS": {
+      "female": {
+        "bone_stage_points": {
+          "RADIUS": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "ULNA": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "MC1": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "MC3": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "MC5": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "PP1": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "PP3": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "PP5": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "MP3": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "MP5": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "DP1": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "DP3": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "DP5": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          }
+        },
+        "score_to_age_curve": []
+      },
+      "male": {
+        "bone_stage_points": {
+          "RADIUS": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "ULNA": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "MC1": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "MC3": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "MC5": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "PP1": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "PP3": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "PP5": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "MP3": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "MP5": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "DP1": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "DP3": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "DP5": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          }
+        },
+        "score_to_age_curve": []
+      }
+    },
+    "TW3_CARPAL": {
+      "female": {
+        "bone_stage_points": {
+          "CAPITATE": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "HAMATE": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "TRIQUETRAL": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "LUNATE": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "SCAPHOID": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "TRAPEZIUM": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "TRAPEZOID": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          }
+        },
+        "score_to_age_curve": []
+      },
+      "male": {
+        "bone_stage_points": {
+          "CAPITATE": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "HAMATE": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "TRIQUETRAL": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "LUNATE": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "SCAPHOID": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "TRAPEZIUM": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          },
+          "TRAPEZOID": {
+            "A": null,
+            "B": null,
+            "C": null,
+            "D": null,
+            "E": null,
+            "F": null,
+            "G": null,
+            "H": null,
+            "I": null
+          }
+        },
+        "score_to_age_curve": []
+      }
+    },
+    "TW2_TW20_LEGACY": {
+      "status": "OPTIONAL_AND_SEPARATE_FROM_TW3",
+      "female": {
+        "conversion_table": []
+      },
+      "male": {
+        "conversion_table": []
+      }
+    }
+  },
+  "provenance_required": {
+    "book_title": "",
+    "edition": "",
+    "isbn": "",
+    "licensed_owner": "",
+    "pages": "",
+    "entered_by": "",
+    "verified_by": "",
+    "verification_date": ""
+  }
+}

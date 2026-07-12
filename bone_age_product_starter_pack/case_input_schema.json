@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bone age case input",
+  "type": "object",
+  "required": [
+    "case_id",
+    "sex_for_reference",
+    "date_of_birth",
+    "radiograph_date",
+    "image_laterality",
+    "projection",
+    "image_format"
+  ],
+  "properties": {
+    "case_id": {
+      "type": "string"
+    },
+    "patient_id_hash": {
+      "type": "string"
+    },
+    "sex_for_reference": {
+      "enum": [
+        "female",
+        "male"
+      ]
+    },
+    "date_of_birth": {
+      "type": "string",
+      "format": "date"
+    },
+    "radiograph_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "chronological_age_months": {
+      "type": "number",
+      "description": "Calculate from DOB and radiograph date; do not type manually unless verified."
+    },
+    "image_laterality": {
+      "enum": [
+        "left",
+        "right",
+        "unknown"
+      ]
+    },
+    "projection": {
+      "enum": [
+        "PA_hand_wrist",
+        "other",
+        "unknown"
+      ]
+    },
+    "image_format": {
+      "enum": [
+        "DICOM",
+        "PNG",
+        "JPG"
+      ]
+    },
+    "pixel_spacing_mm": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "source_site": {
+      "type": "string"
+    },
+    "scanner_model": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "clinical_context": {
+      "type": "object",
+      "properties": {
+        "height_cm": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "weight_kg": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "diagnosis_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "treatment_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "quality_flags": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "WRONG_LATERALITY",
+          "NON_PA_POSITION",
+          "ROTATION",
+          "MOTION_BLUR",
+          "UNDEREXPOSED",
+          "OVEREXPOSED",
+          "CLIPPED_DISTAL_RADIUS_ULNA",
+          "CLIPPED_DIGITS",
+          "FOREIGN_OBJECT",
+          "CAST_OR_HARDWARE",
+          "FRACTURE",
+          "SEVERE_DEFORMITY",
+          "BONE_DYSPLASIA_SUSPECTED",
+          "IMAGE_TOO_SMALL",
+          "DUPLICATE",
+          "OTHER"
+        ]
+      }
+    }
+  }
+}

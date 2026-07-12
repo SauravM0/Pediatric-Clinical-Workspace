@@ -13,14 +13,20 @@ the database work):
 
 from __future__ import annotations
 
+import statistics
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from PIL import Image
 from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from backend.ai import boneage
+from backend.config import APP_VERSION
+from backend.db import get_db
 from backend.imaging import ImagingError, load_bytes
+from backend.models import BoneAgeFeedback
 from backend.tw3 import (
     BONE_LABELS,
     CARPAL_BONES,
@@ -229,4 +235,154 @@ def score(req: ScoreRequest) -> dict:
             {"bone_code": b.bone_code, "confirmed_stage": b.confirmed_stage, "score": b.score}
             for b in r.bones
         ],
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Feedback / self-improvement flywheel (report §3, §7)
+#
+# The suggestion box: a clinician's corrected bone age is logged as EVIDENCE
+# (never the patient's clinical result). These rows power (a) AI-vs-human
+# accuracy monitoring over time and (b) later consensus de-noising + retraining.
+# ─────────────────────────────────────────────────────────────────────────────
+
+_FEEDBACK_METHODS = {"tw3-rus", "greulich-pyle", "clinical", "other"}
+_CONFIDENCE = {"low", "medium", "high"}
+# A correction on a blurry WhatsApp photo is weaker evidence than one on a clean
+# DICOM; low-trust domains are down-weighted in the accuracy read-out, not dropped.
+_ADJUDICATION_SPREAD_MONTHS = 12  # raters disagreeing by >1yr on one image → review
+
+
+class FeedbackRequest(BaseModel):
+    corrected_age_years: float = Field(..., description="Clinician's corrected bone age, years")
+    method: str = Field("clinical", description="tw3-rus | greulich-pyle | clinical | other")
+    confidence: str = Field("medium", description="low | medium | high")
+    rater_id: Optional[str] = Field(None, description="Who is correcting (enables consensus)")
+    sex: Optional[str] = Field(None, description="boys | girls")
+    chronological_age_years: Optional[float] = None
+    ai_estimate_years: Optional[float] = Field(None, description="What the AI showed, for error tracking")
+    ai_model_version: Optional[str] = None
+    radiograph_id: Optional[int] = None
+    assessment_id: Optional[int] = None
+    image_hash: Optional[str] = None
+    image_domain: Optional[str] = None
+    note: Optional[str] = None
+
+
+def _yr_to_months(years: Optional[float]) -> Optional[int]:
+    return None if years is None else round(years * 12)
+
+
+@router.post("/feedback")
+def submit_feedback(req: FeedbackRequest, db: Session = Depends(get_db)) -> dict:
+    """Record a clinician's corrected bone age. Evidence only — never a patient result."""
+    method = (req.method or "clinical").lower()
+    if method not in _FEEDBACK_METHODS:
+        raise HTTPException(status_code=422, detail=f"unsupported method: {req.method!r}")
+    confidence = (req.confidence or "medium").lower()
+    if confidence not in _CONFIDENCE:
+        raise HTTPException(status_code=422, detail=f"confidence must be low/medium/high")
+    corrected_m = _yr_to_months(req.corrected_age_years)
+    if corrected_m is None or not (0 <= corrected_m <= 300):
+        raise HTTPException(status_code=422, detail="corrected_age_years out of range (0–25 yr)")
+    if req.sex is not None and req.sex not in SEXES:
+        raise HTTPException(status_code=422, detail=f"unsupported sex: {req.sex!r}")
+
+    row = BoneAgeFeedback(
+        radiograph_id=req.radiograph_id,
+        assessment_id=req.assessment_id,
+        image_hash=req.image_hash,
+        sex=req.sex,
+        chronological_age_months=_yr_to_months(req.chronological_age_years),
+        ai_estimate_months=_yr_to_months(req.ai_estimate_years),
+        ai_model_version=req.ai_model_version,
+        corrected_age_months=corrected_m,
+        method=method,
+        confidence=confidence,
+        rater_id=(req.rater_id or None),
+        image_domain=req.image_domain,
+        note=(req.note or None),
+        application_version=APP_VERSION,
+    )
+    db.add(row)
+    db.flush()
+    signed_err = None
+    if row.ai_estimate_months is not None:
+        signed_err = round((row.corrected_age_months - row.ai_estimate_months) / 12, 2)
+    return {
+        "ok": True,
+        "id": row.id,
+        "corrected_age_years": round(corrected_m / 12, 2),
+        "ai_error_years": signed_err,  # + = AI under-estimated vs clinician
+        "message": "Thanks — logged to improve accuracy. This does not change the patient's result.",
+    }
+
+
+def _mae(errs: list[float]) -> Optional[float]:
+    return round(statistics.fmean(errs), 2) if errs else None
+
+
+@router.get("/feedback/stats")
+def feedback_stats(db: Session = Depends(get_db)) -> dict:
+    """Monitoring read-out (report §6.2): running AI-vs-human error + per-image consensus.
+
+    This is what 'daily learning' should really mean — watch the gap, don't silently
+    mutate the model. MAE here is the live evidence that accuracy is (or isn't) improving.
+    """
+    rows = list(db.execute(select(BoneAgeFeedback)).scalars())
+    total = len(rows)
+
+    paired = [r for r in rows if r.ai_estimate_months is not None]
+    abs_errs = [abs(r.corrected_age_months - r.ai_estimate_months) / 12 for r in paired]
+
+    # Trend: MAE of the most recent third vs the rest (are we getting better?).
+    paired_sorted = sorted(paired, key=lambda r: r.created_at or 0)
+    recent_mae = older_mae = None
+    if len(paired_sorted) >= 6:
+        k = max(3, len(paired_sorted) // 3)
+        recent = [abs(r.corrected_age_months - r.ai_estimate_months) / 12 for r in paired_sorted[-k:]]
+        older = [abs(r.corrected_age_months - r.ai_estimate_months) / 12 for r in paired_sorted[:-k]]
+        recent_mae, older_mae = _mae(recent), _mae(older)
+
+    def _breakdown(key) -> dict:
+        out: dict[str, dict] = {}
+        for r in paired:
+            k = getattr(r, key) or "unspecified"
+            out.setdefault(k, []).append(abs(r.corrected_age_months - r.ai_estimate_months) / 12)
+        return {k: {"n": len(v), "mae_years": _mae(v)} for k, v in out.items()}
+
+    # Per-image consensus (report §7.2): group corrections on one image across raters.
+    groups: dict[str, list[BoneAgeFeedback]] = {}
+    for r in rows:
+        gid = r.image_hash or (f"rg:{r.radiograph_id}" if r.radiograph_id else None)
+        if gid:
+            groups.setdefault(gid, []).append(r)
+    consensus = []
+    for gid, items in groups.items():
+        raters = {i.rater_id for i in items if i.rater_id}
+        ages = [i.corrected_age_months / 12 for i in items]
+        spread = round(max(ages) - min(ages), 2)
+        consensus.append({
+            "image": gid,
+            "n_corrections": len(items),
+            "n_raters": len(raters),
+            "median_age_years": round(statistics.median(ages), 2),
+            "spread_years": spread,
+            "needs_adjudication": len(raters) >= 2 and spread * 12 > _ADJUDICATION_SPREAD_MONTHS,
+        })
+    consensus.sort(key=lambda c: c["spread_years"], reverse=True)
+
+    return {
+        "total_feedback": total,
+        "paired_with_ai": len(paired),
+        "ai_vs_human_mae_years": _mae(abs_errs),
+        "trend": {"recent_mae_years": recent_mae, "older_mae_years": older_mae,
+                  "improving": (recent_mae is not None and older_mae is not None
+                                and recent_mae < older_mae)},
+        "by_method": _breakdown("method"),
+        "by_image_domain": _breakdown("image_domain"),
+        "by_confidence": _breakdown("confidence"),
+        "consensus": consensus[:50],
+        "note": ("Evidence log for monitoring + retraining. Corrections never change a "
+                 "patient's reported bone age; model updates are a separate gated release."),
     }
