@@ -1512,7 +1512,7 @@
             let mph = null, mphLow = null, mphHigh = null;
             if (fh && mh && fh > 0 && mh > 0) {
               mph = evalGender === 'boys' ? (fh + mh + 13) / 2 : (fh + mh - 13) / 2;
-              mphLow = mph - 8.5; mphHigh = mph + 8.5;  // ≈ ±2 SD target channel
+              mphLow = mph - 8.5; mphHigh = mph + 8.5;  // ±8.5 cm target range (Tanner); not literally ±2 SD
             }
 
             if (!hasBone && mph === null) return null;
@@ -1526,28 +1526,38 @@
             const skeletalPah = (pct && pct > 0) ? evalHeight / (pct / 100) : null;
             const skeletalCalibrated = pct !== null;
 
-            // Preferred predicted adult height = mid-parental if available, else skeletal.
-            const pah = mph !== null ? mph : skeletalPah;
-            const pahBasis = mph !== null ? 'mid-parental' : (skeletalPah !== null ? 'skeletal' : null);
-            const remaining = (pah !== null && evalHeight > 0) ? pah - evalHeight : null;
-            const withinTarget = (skeletalPah !== null && mphLow !== null)
-              ? (skeletalPah >= mphLow && skeletalPah <= mphHigh) : null;
+            // Two DISTINCT clinical quantities -- NEVER conflated (audit F-1):
+            //   * Mid-parental height (mph) = the GENETIC TARGET: where the child is
+            //     expected to land given the parents. Open Tanner method.
+            //   * Skeletal predicted adult height (predictedPah) = a CHILD-SPECIFIC
+            //     prediction from the child's own bone age + current height. Needs the
+            //     licensed %-attained table; null until calibrated.
+            // A prediction is not a target and one is never substituted for the other
+            // (the old code showed mph under the "Predicted Adult Height" headline).
+            // The clinically useful signal is their DIFFERENCE: does the child's own
+            // trajectory fall inside the genetic channel?
+            const predictedPah = skeletalPah;   // child-specific; null until calibrated
+            const remaining = (predictedPah !== null && evalHeight > 0) ? predictedPah - evalHeight : null;
+            const predVsTarget = (predictedPah !== null && mph !== null) ? predictedPah - mph : null;
+            const withinTarget = (predictedPah !== null && mphLow !== null)
+              ? (predictedPah >= mphLow && predictedPah <= mphHigh) : null;
 
-            // Contextualise chosen prediction against the WHO 19-yr adult height
-            // distribution -- fetched from /api/growth/reference-stats (adultHeightStats
-            // state), i.e. the same Python growth engine as the main growth chart. The
-            // percentile is inverted from the real (LMS-derived, skewed) 7-centile
-            // distribution via zForValueFromCentileStats -- NOT a symmetric SD proxy
-            // (the old (P75-P25)/2 exaggerated tail z-scores ~1.48x; audit F-2).
+            // Population context (19y adult-height reference from the same growth
+            // engine): a percentile for EACH quantity that exists, computed by
+            // inverting the real (LMS-derived, skewed) distribution
+            // (zForValueFromCentileStats -- NOT a symmetric SD proxy; audit F-2), and
+            // kept separate so a target's percentile is never labelled a prediction's.
             const adultAvailable = adultHeightStats && adultHeightStats.available;
             const adultMedian = adultAvailable ? adultHeightStats.p50 : 170;
             const adult = [adultMedian];
-            const pahZ = pah !== null ? zForValueFromCentileStats(adultHeightStats, pah) : null;
-            const pahPct = pahZ !== null ? Math.min(99.9, Math.max(0.1, normalCDF(pahZ) * 100)) : null;
+            const zFor = (v) => (v !== null ? zForValueFromCentileStats(adultHeightStats, v) : null);
+            const pctFor = (z) => (z !== null ? Math.min(99.9, Math.max(0.1, normalCDF(z) * 100)) : null);
+            const predZ = zFor(predictedPah), predPct = pctFor(predZ);
+            const mphZ = zFor(mph), mphPct = pctFor(mphZ);
 
             return { ba, hasBone, diff, autoCat, pct, skeletalPah, skeletalCalibrated,
-                     pah, pahBasis, remaining, pahZ, pahPct,
-                     mph, mphLow, mphHigh, withinTarget, adult };
+                     predictedPah, predVsTarget, remaining, predZ, predPct,
+                     mph, mphLow, mphHigh, mphZ, mphPct, withinTarget, adult };
           }, [boneAge, evalAge, evalGender, evalHeight, fatherHeight, motherHeight, adultHeightStats]);
 
           // ── Assessment lifecycle (persisted via /api/bone-age/assessments) ──────────
@@ -3204,48 +3214,77 @@
                           </div>
                         ) : (
                           <div>
-                            {/* Predicted adult height hero */}
-                            <div className="hero-result" style={{ background:'linear-gradient(135deg,#f5f3ff,#eef2ff)', border:'1.5px solid #ddd6fe', borderRadius:'16px', padding:'24px', marginTop:'16px' }}>
-                              <div>
-                                <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.08em', color:'#7c3aed', marginBottom:'8px' }}>Predicted Adult Height</div>
-                                {boneMetrics.pah !== null ? (
-                                  <>
-                                    <div style={{ display:'flex', alignItems:'baseline', gap:'10px' }}>
-                                      <span className="hero-value" style={{ fontWeight:'900', color:'#5b21b6', lineHeight:1 }}>{boneMetrics.pah.toFixed(1)}</span>
-                                      <span style={{ fontSize:'13px', color:'#7c3aed', fontWeight:'600' }}>cm</span>
-                                    </div>
-                                    <div style={{ fontSize:'11px', color:'#8b5cf6', marginTop:'4px' }}>
-                                      ≈ {Math.floor(boneMetrics.pah/30.48)}′{Math.round((boneMetrics.pah/2.54)%12)}″
-                                      {boneMetrics.remaining !== null ? ` · ${boneMetrics.remaining.toFixed(1)} cm left to grow` : ''}
-                                    </div>
-                                  </>
-                                ) : (
-                                  <div style={{ fontSize:'13px', fontWeight:'700', color:'#7c3aed', maxWidth:'340px', lineHeight:'1.6' }}>
-                                    Add both parents' heights for a genetic-target prediction, or calibrate the TW3 skeletal reference below.
+                            {/* ── Mid-parental genetic TARGET (open Tanner method; the quantity we actually have) ── */}
+                            {boneMetrics.mph !== null ? (
+                              <div className="hero-result" style={{ background:'linear-gradient(135deg,#f5f3ff,#eef2ff)', border:'1.5px solid #ddd6fe', borderRadius:'16px', padding:'24px', marginTop:'16px' }}>
+                                <div>
+                                  <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.08em', color:'#7c3aed', marginBottom:'8px' }}>Mid-Parental Target Height</div>
+                                  <div style={{ display:'flex', alignItems:'baseline', gap:'10px' }}>
+                                    <span className="hero-value" style={{ fontWeight:'900', color:'#5b21b6', lineHeight:1 }}>{boneMetrics.mph.toFixed(1)}</span>
+                                    <span style={{ fontSize:'13px', color:'#7c3aed', fontWeight:'600' }}>cm</span>
                                   </div>
+                                  <div style={{ fontSize:'11px', color:'#8b5cf6', marginTop:'4px' }}>
+                                    ≈ {Math.floor(boneMetrics.mph/30.48)}′{Math.round((boneMetrics.mph/2.54)%12)}″ · genetic target from parents (Tanner) · range {boneMetrics.mphLow.toFixed(0)}–{boneMetrics.mphHigh.toFixed(0)} cm
+                                  </div>
+                                </div>
+                                <div style={{ textAlign:'right' }}>
+                                  <StatusBadge text="Genetic target — not a prediction" variant="info" />
+                                  {boneMetrics.mphPct !== null && <div style={{ marginTop:'10px', fontSize:'12px', color:'#7c3aed', fontWeight:'700' }}>{boneMetrics.mphPct.toFixed(1)}th centile (Khadilkar)</div>}
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ marginTop:'16px', background:'#f8fafc', border:'1px dashed #cbd5e1', borderRadius:'12px', padding:'16px', fontSize:'13px', fontWeight:'700', color:'#7c3aed', lineHeight:'1.6' }}>
+                                Add both parents' heights for the mid-parental (genetic target) height and its ±8.5 cm range.
+                              </div>
+                            )}
+
+                            {/* target channel bar — marker = skeletal prediction if calibrated, else the target itself */}
+                            {boneMetrics.mph !== null && (() => {
+                              const lo = boneMetrics.mphLow, hi = boneMetrics.mphHigh, span = hi - lo;
+                              const marker = boneMetrics.predictedPah !== null ? boneMetrics.predictedPah : boneMetrics.mph;
+                              const pos = Math.min(Math.max(((marker - lo) / span) * 100, 1), 99);
+                              return (
+                                <div style={{ marginTop:'14px', background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e2e8f0' }}>
+                                  <div style={{ position:'relative', height:'10px', borderRadius:'99px', background:'#e9d5ff' }}>
+                                    <div style={{ position:'absolute', top:'-3px', left:`${pos}%`, width:'16px', height:'16px', borderRadius:'50%', background:'white', border:'3px solid #7c3aed', transform:'translateX(-50%)', boxShadow:'0 1px 4px rgba(0,0,0,0.2)' }}></div>
+                                  </div>
+                                  <div style={{ display:'flex', justifyContent:'space-between', marginTop:'8px', fontSize:'10px', fontWeight:'700', color:'#94a3b8' }}>
+                                    <span>{lo.toFixed(0)} cm</span>
+                                    <span style={{ color:'#7c3aed' }}>target range ±8.5 cm{boneMetrics.predictedPah !== null ? ' · marker = skeletal prediction' : ''}</span>
+                                    <span>{hi.toFixed(0)} cm</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                            {/* ── Skeletal PREDICTED adult height — child-specific, calibration-gated, never the target ── */}
+                            <div style={{ marginTop:'16px', background: (boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null) ? '#f8fafc' : '#fffbeb', border: (boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null) ? '1px solid #e2e8f0' : '1px solid #fde68a', borderRadius:'12px', padding:'16px' }}>
+                              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
+                                <span style={{ fontSize:'11px', fontWeight:'700', letterSpacing:'0.05em', textTransform:'uppercase', color:'#64748b' }}>Predicted Adult Height · TW3 skeletal</span>
+                                {(boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null) && (
+                                  <div><span style={{ fontSize:'24px', fontWeight:'900', color:'#1e293b' }}>{boneMetrics.predictedPah.toFixed(1)}</span><span style={{ fontSize:'11px', color:'#94a3b8', marginLeft:'5px' }}>cm</span></div>
                                 )}
                               </div>
-                              <div style={{ textAlign:'right' }}>
-                                {boneMetrics.pahBasis && <StatusBadge text={boneMetrics.pahBasis === 'mid-parental' ? 'Mid-parental (genetic target)' : 'TW3 skeletal'} variant="info" />}
-                                {boneMetrics.pahPct !== null && <div style={{ marginTop:'10px', fontSize:'12px', color:'#7c3aed', fontWeight:'700' }}>{boneMetrics.pahPct.toFixed(1)}th centile (Khadilkar)</div>}
-                                {boneMetrics.hasBone && <div style={{ fontSize:'11px', color:'#a78bfa', marginTop:'2px' }}>bone age {boneMetrics.ba.toFixed(1)} yr</div>}
-                              </div>
+                              {(boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null) ? (
+                                <>
+                                  <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>
+                                    {boneMetrics.predPct !== null ? `${boneMetrics.predPct.toFixed(1)}th centile · ` : ''}{boneMetrics.pct.toFixed(1)}% of adult height attained at bone age {boneMetrics.ba.toFixed(1)} yr{boneMetrics.remaining !== null ? ` · ${boneMetrics.remaining.toFixed(1)} cm left to grow` : ''}
+                                  </div>
+                                  {boneMetrics.predVsTarget !== null && (
+                                    <div style={{ fontSize:'11px', fontWeight:'700', marginTop:'8px', color: boneMetrics.withinTarget ? '#059669' : '#d97706' }}>
+                                      {boneMetrics.predVsTarget >= 0 ? '+' : ''}{boneMetrics.predVsTarget.toFixed(1)} cm vs genetic target · {boneMetrics.withinTarget ? 'within' : 'outside'} mid-parental channel
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <div style={{ fontSize:'11px', color:'#92400e', lineHeight:'1.7', marginTop:'4px' }}>
+                                  <strong>Calibration required — no value shown by design.</strong> A skeletal prediction needs the licensed TW3 “% of adult height attained by bone age” reference (or another validated method) in <code>TW3_CONFIG.pctAdultHeight</code>. The mid-parental target above is a <em>genetic target</em>, not a prediction, and is never substituted here.
+                                </div>
+                              )}
                             </div>
 
-                            {/* Khadilkar context strip */}
+                            {/* Bone age vs chronological + target on the population reference */}
                             <div className="secondary-grid" style={{ marginTop:'16px' }}>
-                              <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e8ecf0' }}>
-                                <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Prediction on Khadilkar</div>
-                                {boneMetrics.pahZ !== null ? (
-                                  <>
-                                    <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
-                                      <span style={{ fontSize:'26px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{boneMetrics.pahZ >= 0 ? '+' : ''}{boneMetrics.pahZ.toFixed(2)}</span>
-                                      <span style={{ fontSize:'12px', color:'#94a3b8' }}>SDS</span>
-                                    </div>
-                                    <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{boneMetrics.pahPct.toFixed(1)}th percentile · vs {evalGender === 'boys' ? 'male' : 'female'} adult ({boneMetrics.adult[0]} cm)</div>
-                                  </>
-                                ) : <div style={{ fontSize:'12px', color:'#94a3b8' }}>Prediction unavailable</div>}
-                              </div>
                               <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e8ecf0' }}>
                                 <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Bone Age vs Chronological</div>
                                 {boneMetrics.hasBone ? (
@@ -3258,60 +3297,19 @@
                                   </>
                                 ) : <div style={{ fontSize:'12px', color:'#94a3b8' }}>No bone age set</div>}
                               </div>
-                            </div>
-
-                            {/* TW3 skeletal adult-height prediction (calibration-gated) */}
-                            {boneMetrics.hasBone && (
-                              boneMetrics.skeletalCalibrated ? (
-                                <div style={{ marginTop:'16px', background:'#f8fafc', borderRadius:'12px', padding:'16px', border:'1px solid #e2e8f0' }}>
-                                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
-                                    <span style={{ fontSize:'11px', fontWeight:'700', letterSpacing:'0.05em', textTransform:'uppercase', color:'#64748b' }}>TW3 Skeletal Prediction</span>
-                                    <div><span style={{ fontSize:'24px', fontWeight:'900', color:'#1e293b' }}>{boneMetrics.skeletalPah.toFixed(1)}</span><span style={{ fontSize:'11px', color:'#94a3b8', marginLeft:'5px' }}>cm</span></div>
-                                  </div>
-                                  <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{boneMetrics.pct.toFixed(1)}% of adult height attained at bone age {boneMetrics.ba.toFixed(1)} yr{boneMetrics.withinTarget !== null ? ` · ${boneMetrics.withinTarget ? 'within' : 'outside'} mid-parental channel` : ''}</div>
-                                </div>
-                              ) : (
-                                <div style={{ marginTop:'16px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'12px', padding:'14px 16px', fontSize:'11px', color:'#92400e', lineHeight:'1.7' }}>
-                                  <strong>TW3 skeletal adult-height prediction: calibration required.</strong> Supply the licensed TW3 “% of adult height attained by bone age” reference in <code>TW3_CONFIG.pctAdultHeight</code> to enable it. No approximate value is shown, by design. The prediction above uses the mid-parental (genetic target) method, which is open and non-proprietary.
-                                </div>
-                              )
-                            )}
-
-                            {/* Mid-parental target */}
-                            {boneMetrics.mph !== null ? (
-                              <div style={{ marginTop:'16px', background:'#f8fafc', borderRadius:'12px', padding:'16px', border:'1px solid #e2e8f0' }}>
-                                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'10px' }}>
-                                  <span style={{ fontSize:'11px', fontWeight:'700', letterSpacing:'0.05em', textTransform:'uppercase', color:'#64748b' }}>Mid-Parental Target Height</span>
-                                  <div>
-                                    <span style={{ fontSize:'24px', fontWeight:'900', color:'#1e293b' }}>{boneMetrics.mph.toFixed(1)}</span>
-                                    <span style={{ fontSize:'11px', color:'#94a3b8', marginLeft:'5px' }}>cm</span>
-                                  </div>
-                                </div>
-                                {/* target channel bar — marker at skeletal prediction if available */}
-                                {(() => {
-                                  const lo = boneMetrics.mphLow, hi = boneMetrics.mphHigh;
-                                  const span = hi - lo;
-                                  const marker = boneMetrics.skeletalPah !== null ? boneMetrics.skeletalPah : boneMetrics.mph;
-                                  const pos = Math.min(Math.max(((marker - lo) / span) * 100, -8), 108);
-                                  return (
-                                    <div>
-                                      <div style={{ position:'relative', height:'10px', borderRadius:'99px', background:'#e9d5ff' }}>
-                                        <div style={{ position:'absolute', top:'-3px', left:`${Math.min(Math.max(pos,1),99)}%`, width:'16px', height:'16px', borderRadius:'50%', background:'white', border:'3px solid #7c3aed', transform:'translateX(-50%)', boxShadow:'0 1px 4px rgba(0,0,0,0.2)' }}></div>
-                                      </div>
-                                      <div style={{ display:'flex', justifyContent:'space-between', marginTop:'8px', fontSize:'10px', fontWeight:'700', color:'#94a3b8' }}>
-                                        <span>{lo.toFixed(0)} cm</span>
-                                        <span style={{ color:'#7c3aed' }}>target channel ±2 SD</span>
-                                        <span>{hi.toFixed(0)} cm</span>
-                                      </div>
+                              <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e8ecf0' }}>
+                                <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Genetic Target on Khadilkar</div>
+                                {(boneMetrics.mph !== null && boneMetrics.mphZ !== null) ? (
+                                  <>
+                                    <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
+                                      <span style={{ fontSize:'26px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{boneMetrics.mphZ >= 0 ? '+' : ''}{boneMetrics.mphZ.toFixed(2)}</span>
+                                      <span style={{ fontSize:'12px', color:'#94a3b8' }}>SDS</span>
                                     </div>
-                                  );
-                                })()}
+                                    <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>{boneMetrics.mphPct.toFixed(1)}th percentile · target vs {evalGender === 'boys' ? 'male' : 'female'} adult ({boneMetrics.adult[0]} cm)</div>
+                                  </>
+                                ) : <div style={{ fontSize:'12px', color:'#94a3b8' }}>Add parents' heights for target SDS</div>}
                               </div>
-                            ) : (
-                              <div style={{ marginTop:'16px', background:'#f8fafc', borderRadius:'10px', padding:'12px 14px', fontSize:'11px', color:'#94a3b8', lineHeight:'1.6', border:'1px solid #e2e8f0' }}>
-                                Add both parents' heights for the mid-parental (genetic target) prediction and channel.
-                              </div>
-                            )}
+                            </div>
 
                             {/* Detail rows */}
                             <MetricRow label="Current Height" value={evalHeight.toFixed(1)} unit="cm" sub={`Chronological age ${evalAge.toFixed(1)} yr`} />
