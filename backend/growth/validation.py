@@ -26,6 +26,9 @@ Checks, for every measure x sex x centile:
      crosses either).
   5. Source-value reproduction -- the engine's own value at each *exact*
      published (age, centile) point matches the published number.
+  6. Transition value continuity -- no visible value JUMP where pure-WHO hands
+     off to the WHO/IAP bridge at BLEND_LO (~age 3). Quantified and gated so a
+     discontinuity can never be shipped silently (audit GC-2/GC-3).
 
 Returns a structured report; also used as the basis for pytest tests in
 tests/test_growth_engine.py.
@@ -133,6 +136,52 @@ def check_bmi_smoothness() -> dict:
                 "pass": passed, "direction_changes": sign_changes,
                 "overshoot": round(overshoot, 4), "overshoot_margin": round(margin, 4),
             }
+    return results
+
+
+# A value JUMP where pure-WHO hands off to the bridge at BLEND_LO must never
+# grow into a clinically visible step at ~age 3. These bounds are sub-render-line
+# (a step under them is invisible on the chart); above them the composite would
+# be shipping a hidden discontinuity and must fail (audit GC-2/GC-3).
+TRANSITION_STEP_ATOL = {"height": 0.5, "weight": 0.3, "bmi": 0.2}  # cm / kg / kg·m^-2
+
+
+def check_transition_value_continuity() -> dict:
+    """Check (gating): no visible VALUE JUMP at the WHO -> bridge handoff (BLEND_LO).
+
+    blend._quintic_bridge can, when the two references disagree so much that a
+    monotone path between their exact endpoints is impossible (secant <= 0),
+    legitimately absorb the mismatch as a single flat step ENTERING the window
+    (blend.py). On the current data that step is exactly 0 for every centile (the
+    references never disagree that hard here), but the old code would have shipped
+    such a step SILENTLY, marked 'non-gating'. GC-2/GC-3: a curve must not pass
+    merely because a known discontinuity is flagged non-gating.
+
+    So the step is quantified for every measure/sex/centile and GATED against a
+    sub-render-line tolerance. If a future data change (or a new centile/measure)
+    reintroduces a real jump at ~age 3, this fails loudly and forces a
+    reference-policy decision (widen the window, or show WHO and IAP separately)
+    instead of hiding the step in the chart.
+    """
+    results = {}
+    for sex in SEXES:
+        for measure in MEASURES:
+            atol = TRANSITION_STEP_ATOL[measure]
+            for centile, z in curve_builder.Z_FOR_CENTILE.items():
+                bridge = blend._quintic_bridge(measure, sex, z)
+                who_lo = blend.who.who_value_at_z(measure, sex, blend.BLEND_LO, z)
+                if bridge is None or who_lo is None:
+                    results[f"{sex}|{measure}|P{centile}"] = {
+                        "pass": True, "step": None, "note": "no bridge / no WHO coverage"}
+                    continue
+                # bridge[0] is the composite's value at BLEND_LO; pure WHO holds
+                # right up to BLEND_LO, so their difference IS the handoff jump.
+                step = float(abs(bridge[0] - who_lo))
+                results[f"{sex}|{measure}|P{centile}"] = {
+                    "pass": bool(step <= atol),
+                    "step": round(step, 5),
+                    "tolerance": atol,
+                }
     return results
 
 
@@ -327,6 +376,7 @@ def run_full_validation(age_min: float = 0.0, age_max: float = 18.0, render_step
     report = ValidationReport()
     report.details["no_decrease_in_blend_window"] = check_no_decrease_in_blend_window()
     report.details["bmi_smoothness"] = check_bmi_smoothness()
+    report.details["transition_value_continuity"] = check_transition_value_continuity()
     report.details["edge_slope_continuity"] = check_edge_slope_continuity()
     report.details["edge_curvature_continuity"] = check_edge_curvature_continuity()
     report.details["monotonic_age"] = check_monotonic_age(series_by_measure_sex)

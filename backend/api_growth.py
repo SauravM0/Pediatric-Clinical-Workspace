@@ -51,7 +51,10 @@ def get_chart_series(
         "unit": _UNITS[measure],
         "age_min": age_min,
         "age_max": age_max,
-        "reference": "WHO (<5y) blended with IAP 2015 India (5-18y), 4.0-5.0y transition",
+        # Honest label: the 3.0-5.0y span is a PRODUCT-DERIVED composite (a
+        # monotone WHO<->IAP bridge), not a published WHO or Khadilkar curve
+        # (audit GC-1/GC-2). Window is 3.0-5.0y (blend.BLEND_LO..BLEND_HI).
+        "reference": "Product-derived WHO/IAP composite · WHO 2006 <3y · IAP 2015 India 5–18y",
         "centiles": curve_builder.series_to_json(series),
     }
 
