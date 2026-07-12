@@ -72,3 +72,7 @@
 - **Item 2.2** (reference_cases gate for TW3-C, S-BA-2): ✅ done — commit `259e8a3`. `tw3_tables.json` gains a `curve_validation` block (tolerance/min_cases/reference_cases) + regenerated checksum; `scoring.validate_curve()` scores entered films on the shipped curve; `provisional_curve = declared AND not validated`, so the digitized curve clears only once ≥3 local films reproduce within 0.5y. `/config` surfaces a patient-safe status. +5 tests; bone-age suite 8 passed. Films entered later by the clinic.
 
 **Phase 2 (data-integrity foundation) complete** — both items ship the loader/gate/schema/test now, values entered lawfully later.
+
+### Phase 3 — Bone-age accuracy & reporting (align to report_output_schema.json)
+- **Item 3.1** (detailed 20-bone report, S-BA-4): ✅ done — commit `23e3b6b`. `backend/tw3/report.py` composes all 20 rows (13 RUS + 7 carpal) with stage, **visibility** (STAGED/NOT_VISIBLE/NOT_SCORABLE/NOT_STAGED), points + %-of-max (once licensed); RUS & carpal ages kept **separate, never averaged**; no invented per-bone age; AI figure shown only as a separate cross-check; completeness + clinician_review + disclaimer. `POST /api/bone-age/report`; frontend renders a live structured table + separate RUS/carpal cards. Verified live (radius=H/ulna=G → STAGED rows, zero console errors). +7 tests; bone_age+frontend 23 passed.
+- **Item 3.2** (image-quality + OOD gate, S-BA-6): _next_ — wire `imaging` quality checks + `case_input_schema.quality_flags` into `/estimate`; hard-flag ⇒ abstain (no silent age).
