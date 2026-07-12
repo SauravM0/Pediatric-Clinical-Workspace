@@ -69,4 +69,6 @@
 
 ### Phase 2 — Data-integrity foundation
 - **Item 2.1** (growth CSV provenance + checksum + source-verification, GC-1): ✅ done — commit `49d0bd3`. `data_integrity.py` checksums the numeric content of all 6 CSVs (CRLF-robust); `checksums.json` locks 1134 cells; `PROVENANCE.md` records paper sources + workflow; `iap_2015_published_reference.json` is the human-fill second-source template (can't be marked VERIFIED until fully covered). Paper is 403/access-restricted → seeding stays a human dual-person step (honest). Proven: value edit detected, CRLF reformat ignored. +5 tests (4 pass, 1 skip-until-verified).
-- **Item 2.2** (reference_cases gate for TW3-C, S-BA-2 pt1): _next_ — fully buildable now (mechanism only; films entered later).
+- **Item 2.2** (reference_cases gate for TW3-C, S-BA-2): ✅ done — commit `259e8a3`. `tw3_tables.json` gains a `curve_validation` block (tolerance/min_cases/reference_cases) + regenerated checksum; `scoring.validate_curve()` scores entered films on the shipped curve; `provisional_curve = declared AND not validated`, so the digitized curve clears only once ≥3 local films reproduce within 0.5y. `/config` surfaces a patient-safe status. +5 tests; bone-age suite 8 passed. Films entered later by the clinic.
+
+**Phase 2 (data-integrity foundation) complete** — both items ship the loader/gate/schema/test now, values entered lawfully later.
