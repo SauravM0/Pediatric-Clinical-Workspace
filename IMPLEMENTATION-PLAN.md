@@ -62,4 +62,11 @@
 - **Item 1.4** (unify growth display vs scoring inversion, GC-3/4): ✅ done — commit `30508e0`. `iap_z_for_value` now inverts the same centile curves the chart draws; round-trip z error 0.0 across 294 checks (was ~0.05–0.1 SD). +14 tests; existing growth suite 44 passed, no regressions.
 - **Item 1.5** (surface & gate the WHO↔IAP composite discontinuity, GC-2/3): ✅ done — commit `534db40`. New gating `check_transition_value_continuity` quantifies the age-3 handoff step (0.0 on current data) and fails loudly if one is ever reintroduced; chart relabelled an honest "product-derived WHO/IAP composite" (window corrected to 3–5y). +4 tests incl. an injected-step gate proof.
 
-**Phase 1 (safe code fixes) complete** — 5 items, all backend/growth or frontend, each isolated + tested. Full-suite sign-off below.
+**Phase 1 (safe code fixes) complete** — 5 items, all backend/growth or frontend, each isolated + tested. Full suite: **73 passed**.
+
+### Starter pack explored (2026-07-12)
+`bone_age_product_starter_pack/` = **contracts/schemas only** (bone inventory, case-input incl. `quality_flags`, per-bone annotation, `report_output_schema.json`, empty `licensed_reference_loader.json`, `validation_protocol.md`). **No** published IAP values, **no** licensed TW3 tables, **no** films. So it informs Phase 3 (report schema, licensed loader, image-quality gate) — it does **not** hand over the paper values GC-1 needs.
+
+### Phase 2 — Data-integrity foundation
+- **Item 2.1** (growth CSV provenance + checksum + source-verification, GC-1): ✅ done — commit `49d0bd3`. `data_integrity.py` checksums the numeric content of all 6 CSVs (CRLF-robust); `checksums.json` locks 1134 cells; `PROVENANCE.md` records paper sources + workflow; `iap_2015_published_reference.json` is the human-fill second-source template (can't be marked VERIFIED until fully covered). Paper is 403/access-restricted → seeding stays a human dual-person step (honest). Proven: value edit detected, CRLF reformat ignored. +5 tests (4 pass, 1 skip-until-verified).
+- **Item 2.2** (reference_cases gate for TW3-C, S-BA-2 pt1): _next_ — fully buildable now (mechanism only; films entered later).
