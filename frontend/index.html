@@ -441,6 +441,38 @@
           return z >= 0 ? 1 - p : p;
         }
 
+        // Central-quartile -> standard-deviation factor. For a normal distribution
+        // P75 and P25 sit at z = +/-0.6744898, so (P75 - P25) = 1.3489795 * SD.
+        // The old code used (P75-P25)/2, which understates SD by ~1.48x and
+        // exaggerates every derived z-score/percentile (audit F-2).
+        const IQR_TO_SD = 1.3489795;
+
+        // Standard-normal quantiles of the 7 published centiles, ascending. Used to
+        // invert an observed value against a reference distribution WITHOUT assuming
+        // normality: interpolate the value across the real (LMS-derived, possibly
+        // skewed) percentile anchors from /api/growth/reference-stats, giving the
+        // EXACT z at each published centile and a monotone estimate between them.
+        // This mirrors what /api/growth/point does continuously, from the already
+        // fetched 7-point distribution (no extra request). See tests/growth/
+        // test_adult_height_zscore.py for the parity check against the backend.
+        const CENTILE_Z = [[3,-1.8807936],[10,-1.2815516],[25,-0.6744898],[50,0.0],[75,0.6744898],[90,1.2815516],[97,1.8807936]];
+        function zForValueFromCentileStats(stats, value) {
+          if (!stats || !stats.available || !(value > 0)) return null;
+          const pts = CENTILE_Z
+            .map(([c, z]) => [stats['p' + c], z])
+            .filter((p) => typeof p[0] === 'number');
+          if (pts.length < 2) return null;
+          pts.sort((a, b) => a[0] - b[0]);   // ascending by value
+          const lerp = (x0, z0, x1, z1) => (x1 === x0 ? z0 : z0 + (value - x0) / (x1 - x0) * (z1 - z0));
+          const n = pts.length;
+          if (value <= pts[0][0]) return lerp(pts[0][0], pts[0][1], pts[1][0], pts[1][1]);
+          if (value >= pts[n - 1][0]) return lerp(pts[n - 2][0], pts[n - 2][1], pts[n - 1][0], pts[n - 1][1]);
+          for (let i = 0; i < n - 1; i++) {
+            if (value >= pts[i][0] && value <= pts[i + 1][0]) return lerp(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]);
+          }
+          return null;
+        }
+
         // Everything below reads the ALREADY-FETCHED backend series (growthSeries state,
         // from /api/growth/chart -- see the useEffect in App()) rather than recomputing
         // any LMS/blend math client-side. This is array search over server-provided
@@ -468,10 +500,11 @@
           return { decimal: null, label: "N/A" };
         }
 
-        // Display-only 1-SD spread (½·(P84-P16), approximated here via the already-fetched
-        // 75th/25th centiles as a slightly wider but always-available proxy) read from the
-        // fetched point metrics -- median/point z-scoring itself comes from
-        // /api/growth/point (growthPoint state), not from any local calculation.
+        // Display-only ~1-SD spread, derived from the already-fetched 75th/25th
+        // centiles as SD = (P75 - P25) / 1.3489795 (the correct IQR->SD factor for
+        // a roughly-normal measure; the old /2 understated it ~1.48x -- audit F-2).
+        // Median/point z-scoring itself comes from /api/growth/point (growthPoint
+        // state), not from any local calculation.
         function spreadFromSeries(seriesForMeasure, ageYears) {
           const c = seriesForMeasure && seriesForMeasure.centiles;
           if (!c || !c['75'] || !c['25']) return null;
@@ -484,7 +517,7 @@
             return best;
           };
           const i75 = nearestIdx(c['75']), i25 = nearestIdx(c['25']);
-          return (c['75'][i75][1] - c['25'][i25][1]) / 2;
+          return (c['75'][i75][1] - c['25'][i25][1]) / IQR_TO_SD;
         }
 
         // SDS bar: maps z from -4..+4 to 0..100%
@@ -1502,17 +1535,15 @@
 
             // Contextualise chosen prediction against the WHO 19-yr adult height
             // distribution -- fetched from /api/growth/reference-stats (adultHeightStats
-            // state), i.e. the same Python growth engine as the main growth chart, not a
-            // locally-held LMS table. adultHeightStats gives 7 standard percentiles rather
-            // than an exact L,M,S triplet, so the SD used here is a symmetric (P75-P25)/2
-            // approximation for this one auxiliary display metric -- consistent with how
-            // this value was approximated before, just sourced from the backend now.
+            // state), i.e. the same Python growth engine as the main growth chart. The
+            // percentile is inverted from the real (LMS-derived, skewed) 7-centile
+            // distribution via zForValueFromCentileStats -- NOT a symmetric SD proxy
+            // (the old (P75-P25)/2 exaggerated tail z-scores ~1.48x; audit F-2).
             const adultAvailable = adultHeightStats && adultHeightStats.available;
             const adultMedian = adultAvailable ? adultHeightStats.p50 : 170;
-            const adultSD = adultAvailable ? (adultHeightStats.p75 - adultHeightStats.p25) / 2 : 7;
-            const adult = [adultMedian, adultSD];
-            const pahZ = (pah !== null && adultAvailable && adultSD > 0) ? (pah - adultMedian) / adultSD : null;
-            const pahPct = pahZ !== null ? normalCDF(pahZ) * 100 : null;
+            const adult = [adultMedian];
+            const pahZ = pah !== null ? zForValueFromCentileStats(adultHeightStats, pah) : null;
+            const pahPct = pahZ !== null ? Math.min(99.9, Math.max(0.1, normalCDF(pahZ) * 100)) : null;
 
             return { ba, hasBone, diff, autoCat, pct, skeletalPah, skeletalCalibrated,
                      pah, pahBasis, remaining, pahZ, pahPct,
