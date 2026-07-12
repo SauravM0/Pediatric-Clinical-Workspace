@@ -55,4 +55,6 @@
 ---
 
 ## Progress log
-- **Phase 0:** branch + baseline — _in progress_.
+- **Phase 0:** ✅ branch `fix/clinical-accuracy-remediation` created; baseline **39 passed**; checkpoint commit `31b869a`.
+- **Item 1.1** (pin `rcpchgrowth`): ✅ done — commit `b47f5c9`, +2 tests green.
+- **Item 1.2** (SD bug F-2): _next_.
