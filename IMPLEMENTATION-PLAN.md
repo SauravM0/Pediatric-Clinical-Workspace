@@ -60,4 +60,6 @@
 - **Item 1.2** (SD bug F-2): ✅ done — commit `78187ed`. PAH percentile now inverts the real LMS distribution (exact at published centiles); `spreadFromSeries` uses IQR→SD 1.349. +6 parity tests; frontend + growth suite **47 passed**; live app zero console errors.
 - **Item 1.3** (split PAH vs mid-parental target, F-1): ✅ done — commit `9ede9f5`. Target, calibration-gated skeletal prediction, and their difference are now distinct; prediction never borrows the target. Verified live (boy 178/165 → target 178.0 cm @ 57.9th centile, prediction card = "calibration required"). +5 source-guard tests.
 - **Item 1.4** (unify growth display vs scoring inversion, GC-3/4): ✅ done — commit `30508e0`. `iap_z_for_value` now inverts the same centile curves the chart draws; round-trip z error 0.0 across 294 checks (was ~0.05–0.1 SD). +14 tests; existing growth suite 44 passed, no regressions.
-- **Item 1.5** (surface & gate the WHO↔IAP composite discontinuity, GC-2/3): _next_.
+- **Item 1.5** (surface & gate the WHO↔IAP composite discontinuity, GC-2/3): ✅ done — commit `534db40`. New gating `check_transition_value_continuity` quantifies the age-3 handoff step (0.0 on current data) and fails loudly if one is ever reintroduced; chart relabelled an honest "product-derived WHO/IAP composite" (window corrected to 3–5y). +4 tests incl. an injected-step gate proof.
+
+**Phase 1 (safe code fixes) complete** — 5 items, all backend/growth or frontend, each isolated + tested. Full-suite sign-off below.
