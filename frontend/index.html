@@ -1848,6 +1848,8 @@
                 if (d.status.scoring_ready) setLtMsg({ type:'ok', text:'Saved — TW3 scoring is ON (accuracy gate passed). The report now fills with real numbers.' });
                 else if (!d.status.reference_validation.all_passed && d.status.reference_validation.n_cases > 0)
                   setLtMsg({ type:'err', text:'Saved, but scoring stays OFF: the reference case is not reproduced by these values — recheck the points/curve or the reported numbers.' });
+                else if (d.status.provenance_complete === false)
+                  setLtMsg({ type:'err', text:'Saved, but scoring stays OFF: document the licensed source in the Provenance tab (book, edition, owner, who entered/verified, date).' });
                 else setLtMsg({ type:'err', text:'Saved, but scoring stays OFF: fill every bone’s points, the score→age curves, and a reference case.' });
               }
             } catch (e) { setLtMsg({ type:'err', text:String(e.message||e) }); }
@@ -3166,7 +3168,9 @@
                           </div>
                           {ltStatus && (
                             <div style={{ marginBottom:'10px', fontSize:'11px', fontWeight:'700', color: ltStatus.scoring_ready ? '#059669' : '#b45309' }}>
-                              {ltStatus.scoring_ready ? '✓ Scoring is ON — report fills with real numbers.' : '○ Scoring OFF — table incomplete or reference not reproduced.'}
+                              {ltStatus.scoring_ready ? '✓ Scoring is ON — report fills with real numbers.'
+                                : ltStatus.provenance_complete === false ? '○ Scoring OFF — document the licensed source (Provenance tab).'
+                                : '○ Scoring OFF — table incomplete or reference not reproduced.'}
                             </div>
                           )}
                           {!ltTables ? (
@@ -3174,7 +3178,7 @@
                           ) : (
                             <div>
                               <div style={{ display:'flex', gap:'6px', flexWrap:'wrap', marginBottom:'10px' }}>
-                                {[['rus','RUS points'],['carpal','Carpal points'],['tw20',"TWII'20 points"],['curves','Score→age curves'],['ref','Reference case']].map(([k,label]) => (
+                                {[['rus','RUS points'],['carpal','Carpal points'],['tw20',"TWII'20 points"],['curves','Score→age curves'],['ref','Reference case'],['prov','Provenance']].map(([k,label]) => (
                                   <button key={k} onClick={() => setLtSection(k)} style={{ padding:'5px 10px', borderRadius:'8px', fontSize:'11px', fontWeight:'700', cursor:'pointer', border:'1px solid #ddd6fe', background: ltSection===k ? '#7c3aed' : 'white', color: ltSection===k ? 'white' : '#7c3aed' }}>{label}</button>
                                 ))}
                                 {ltSection !== 'ref' && (
@@ -3233,6 +3237,20 @@
                                               style={{ width:'100%', fontFamily:'ui-monospace, monospace', fontSize:'11px', padding:'6px', border:'1px solid #e2e8f0', borderRadius:'6px' }} />
                                   </div>
                                   <div style={{ gridColumn:'1/-1', fontSize:'10px', color:'#94a3b8' }}>One "score, age" pair per line (ascending score). ≥2 points per curve. Carpal / TWII'20 curves optional if you only report RUS.</div>
+                                </div>
+                              )}
+
+                              {ltSection === 'prov' && (
+                                <div style={{ display:'grid', gap:'8px', gridTemplateColumns:'repeat(auto-fit, minmax(180px, 1fr))' }}>
+                                  {[['book_title','Book title *'],['edition','Edition / year *'],['isbn','ISBN'],['licensed_owner','Licensed owner *'],['pages','Pages'],['entered_by','Entered by *'],['verified_by','Verified by *'],['verification_date','Verification date *']].map(([k, label]) => (
+                                    <div key={k}>
+                                      <label style={{ fontSize:'10px', fontWeight:'700', color:'#64748b', display:'block', marginBottom:'2px' }}>{label}</label>
+                                      <input type={k === 'verification_date' ? 'date' : 'text'} value={(ltTables.provenance || {})[k] || ''}
+                                        onChange={e => setLtTables(t => ({ ...t, provenance: { ...(t.provenance || {}), [k]: e.target.value } }))}
+                                        style={{ width:'100%', padding:'5px 7px', fontSize:'11px', border:'1px solid #e2e8f0', borderRadius:'6px' }} />
+                                    </div>
+                                  ))}
+                                  <div style={{ gridColumn:'1/-1', fontSize:'10px', color:'#94a3b8', lineHeight:'1.5' }}>* required. Licensed TW3 values may not drive scoring without a documented, legally-owned source.{ltStatus && ltStatus.missing_provenance && ltStatus.missing_provenance.length > 0 ? ` Still missing: ${ltStatus.missing_provenance.join(', ')}.` : ''}</div>
                                 </div>
                               )}
 

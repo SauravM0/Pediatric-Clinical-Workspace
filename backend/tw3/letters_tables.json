@@ -4,6 +4,17 @@
   "version": "letters-0-uncalibrated",
   "source_reference": "TO BE FILLED by the clinic from its licensed TW3 book. Record the exact title, edition and year here once entered.",
   "instructions": "For each bone, enter the point value of every valid maturity letter (A-I) for boys and girls. Not every bone uses every letter — leave letters the source does not define OUT (do not put 0). Then enter the score-to-age anchor points for each curve as ascending [score, ageYears] pairs. Finally fill reference_cases with 1-2 of the clinic's own historically-reported films so the software can PROVE the transcription is correct before enabling scoring.",
+  "provenance": {
+    "_about": "Documented licensing provenance (bone_age_product_starter_pack/licensed_reference_loader.json 'provenance_required'). Scoring stays OFF until book_title, edition, licensed_owner, entered_by, verified_by and verification_date are all filled — licensed values must never drive results without a documented, legally-owned source.",
+    "book_title": "",
+    "edition": "",
+    "isbn": "",
+    "licensed_owner": "",
+    "pages": "",
+    "entered_by": "",
+    "verified_by": "",
+    "verification_date": ""
+  },
   "sexes": ["boys", "girls"],
   "stages": ["A", "B", "C", "D", "E", "F", "G", "H", "I"],
   "rus_bones": ["radius", "ulna", "mc1", "mc3", "mc5", "pp1", "pp3", "pp5", "mp3", "mp5", "dp1", "dp3", "dp5"],

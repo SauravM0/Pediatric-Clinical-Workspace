@@ -30,6 +30,15 @@ LETTER_CALCULATION_VERSION = "tw3-letters-scoring-1.0"
 _CURVES = ("twii", "twiii")
 _ALL20 = RUS_BONES + CARPAL_BONES  # TWII'20 uses all 20 bones with its own points
 
+# Documented provenance is mandatory before licensed values may drive scoring
+# (bone_age_product_starter_pack/licensed_reference_loader.json "provenance_required":
+# "Insert values only from a legally licensed source with documented provenance").
+# ISBN/pages are recorded but not gated (some editions lack an ISBN); these six are
+# the legal + traceability minimum.
+REQUIRED_PROVENANCE_FIELDS = (
+    "book_title", "edition", "licensed_owner", "entered_by", "verified_by", "verification_date",
+)
+
 
 class LetterTablesError(ValueError):
     """Raised when letters_tables.json is structurally malformed."""
@@ -51,11 +60,22 @@ class LetterTables:
     # a single score→age curve (all 20 bones sum toward one bone age).
     tw20_pts: dict = field(default_factory=dict)   # [sex][bone(any of 20)][letter] -> points
     tw20_age: dict = field(default_factory=dict)   # [sex] -> ascending [score, years]
+    # Structured licensing provenance (book/edition/owner/who entered+verified/when).
+    provenance: dict = field(default_factory=dict)
     raw: dict = field(repr=False, default_factory=dict)
 
     def _pts_calibrated(self, table: dict, bones: tuple[str, ...], sex: str) -> bool:
         by_bone = table.get(sex, {})
         return all(bool(by_bone.get(b)) for b in bones)
+
+    def missing_provenance(self) -> list[str]:
+        p = self.provenance or {}
+        return [f for f in REQUIRED_PROVENANCE_FIELDS if not str(p.get(f, "")).strip()]
+
+    def provenance_complete(self) -> bool:
+        """True only when the licensed source is fully documented -- required
+        before any entered value may drive scoring."""
+        return not self.missing_provenance()
 
     def rus_points_calibrated(self, sex: str) -> bool:
         return self._pts_calibrated(self.rus_pts, RUS_BONES, sex)
@@ -162,6 +182,7 @@ def build_from_dict(data: dict) -> LetterTables:
         reference_cases=cases,
         tw20_pts=_validate_pts(data.get("tw20_stage_to_score", {}), _ALL20, "tw20_stage_to_score"),
         tw20_age=_validate_sex_curve(data.get("tw20_score_to_age", {}), "tw20_score_to_age"),
+        provenance=(data.get("provenance") or {}) if isinstance(data.get("provenance"), dict) else {},
         raw=data,
     )
 
@@ -401,6 +422,11 @@ def letters_status() -> dict:
         for sex in SEXES
     }
     validation = validate_reference_cases(t)
+    # Scoring turns on only when ALL THREE gates pass: values are entered
+    # (calibrated), the clinic's own reference films reproduce within tolerance
+    # (transcription/accuracy), and the licensed source is fully documented
+    # (provenance). Any missing gate keeps scoring OFF -- nothing is guessed and
+    # nothing undocumented is trusted.
     return {
         "method": t.method,
         "version": t.version,
@@ -408,5 +434,9 @@ def letters_status() -> dict:
         "any_calibrated": t.any_calibrated(),
         "per_sex": per_sex,
         "reference_validation": validation,
-        "scoring_ready": t.any_calibrated() and validation["all_passed"],
+        "provenance": t.provenance,
+        "provenance_complete": t.provenance_complete(),
+        "missing_provenance": t.missing_provenance(),
+        "scoring_ready": (t.any_calibrated() and validation["all_passed"]
+                          and t.provenance_complete()),
     }
