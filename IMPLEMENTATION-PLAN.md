@@ -80,3 +80,6 @@
 - **Item 3.4** (licensed-reference provenance gate): ✅ done — commit `62f7165`. `LetterTables` gains a structured `provenance` block; `scoring_ready = calibrated AND reference cases reproduce AND provenance complete` (6 required fields from the starter pack's `provenance_required`). Frontend adds a Provenance tab to the licensed-tables editor + gate-aware status/save messages. Verified live. +6 tests.
 
 **Phase 3 (bone-age accuracy & reporting) complete** — detailed 20-bone report, image acceptability gate, conformal uncertainty, and the 3-gate licensed loader all shipped, tested, and browser-verified.
+
+### Phase 4 — Formula strand
+- **F-3** (QRISK3 relocate + validate): ✅ done — commit `c1bf7ef`. Coefficients **verified against the authoritative ClinRisk/CRAN QRISK3** (exact match). Relocated to `backend/cvd/qrisk3.py` + `POST /api/cvd/qrisk3`; eligibility (25–84 + BMI) enforced with no score outside it; `imputed_fields` reported. Tests: authoritative parity, frontend↔backend coefficient-identity guard, one-factor clinical direction, eligibility, imputation (23). Frontend adds per-patient imputed chip + "not applicable" block. Proven end-to-end: identical 8.3% for a 55yo Indian male frontend vs backend.
