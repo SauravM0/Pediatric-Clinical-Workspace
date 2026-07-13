@@ -24,6 +24,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.api_bone_age import router as bone_age_router
 from backend.api_assessments import router as assessments_router
+from backend.api_cvd import router as cvd_router
 from backend.api_growth import router as growth_router
 from backend.api_growth_report import router as growth_report_router
 from backend.config import APP_VERSION
@@ -85,6 +86,7 @@ if FRONTEND_DIR.exists():
 
 app.include_router(bone_age_router)
 app.include_router(assessments_router)
+app.include_router(cvd_router)
 app.include_router(growth_router)
 app.include_router(growth_report_router)
 

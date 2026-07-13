@@ -3734,12 +3734,35 @@
                           </div>
                         )}
 
+                        {/* Imputed-input disclosure — never a precise-looking score from incomplete data (audit F-3) */}
+                        {qriskMetrics.risk !== null && (() => {
+                          const imp = [];
+                          if (qriskMetrics.missingRatio) imp.push('cholesterol ratio');
+                          if (systolic === '') imp.push('systolic BP');
+                          if (sbpSD === '') imp.push('SBP variability (SD)');
+                          return imp.length ? (
+                            <div style={{ marginTop:'10px', fontSize:'10.5px', color:'#92400e', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'7px 10px', lineHeight:'1.5' }}>
+                              ⚠ Estimated with defaulted inputs: <strong>{imp.join(', ')}</strong>. Enter these for a patient-specific score.
+                            </div>
+                          ) : null;
+                        })()}
+
+                        {/* Eligibility gate — QRISK3 is validated only for adults 25–84 (audit F-3) */}
+                        {qriskMetrics.risk === null && (
+                          <div style={{ marginTop:'16px', background:'#fef2f2', border:'1.5px solid #fecaca', borderRadius:'12px', padding:'14px 16px' }}>
+                            <div style={{ fontSize:'12px', fontWeight:'800', color:'#991b1b' }}>QRISK3 not applicable</div>
+                            <div style={{ fontSize:'11px', color:'#b91c1c', marginTop:'4px', lineHeight:'1.5' }}>
+                              {!qriskMetrics.inAgeRange ? 'QRISK3 is validated only for adults aged 25–84. This patient is outside that range — no score is shown.' : 'Enter height and weight (BMI) to compute the score.'}
+                            </div>
+                          </div>
+                        )}
+
                         <div style={{ marginTop:'16px', background:'#eef2ff', border:'1px solid #c7d2fe', borderRadius:'10px', padding:'12px 14px', fontSize:'11px', color:'#4338ca', lineHeight:'1.7' }}>
                           <strong>India note:</strong> QRISK3 is derived on a UK cohort. Its Indian/South-Asian ethnicity term raises risk relative to White, but studies suggest it may still under-estimate true risk in Indians. Treat ≥ 10% as the usual statin-consideration threshold, and interpret alongside the <strong>Lipid Association of India</strong> risk stratification and ICMR guidance. QRISK3 does not apply to established CVD, familial hypercholesterolaemia, or type-appropriate secondary prevention.
                         </div>
 
                         <div style={{ marginTop:'auto', paddingTop:'18px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
-                          QRISK3-2017 · Hippisley-Cox J et al., BMJ 2017;357:j2099 · ClinRisk open-source coefficients (GNU LGPL). Clinician must verify — decision support only, not a diagnostic device.
+                          QRISK3-2017 · Hippisley-Cox J et al., BMJ 2017;357:j2099 · ClinRisk open-source coefficients (GNU LGPL), verified against the CRAN QRISK3 reference. Clinician must verify — decision support only, not a diagnostic device.
                         </div>
                       </div>
                     )}
