@@ -54,15 +54,24 @@ def _valid_letters(stages: Mapping[str, str]) -> dict[str, str]:
     return {b: s for b, s in (stages or {}).items() if s in LETTER_STAGES}
 
 
-def _bone_row(code: str, system: str, stage: Optional[str], pts_for_sex: dict) -> dict:
+def _bone_row(code: str, system: str, stage: Optional[str], pts_for_sex: dict,
+              accepted: bool = False) -> dict:
     vis = _visibility(stage)
+    clean_stage = stage if stage not in (None, "") else None
     row = {
         "bone_id": code.upper(),
         "bone_code": code,
         "system": system,
         "anatomical_name": BONE_LABELS.get(code) or CARPAL_LABELS.get(code) or code,
         "display_order": _DISPLAY_ORDER[code],
-        "stage": stage if stage not in (None, "") else None,
+        "stage": clean_stage,           # kept for the existing UI
+        # report_output_schema.json alignment (Plan 1 WI-5): the doctor-confirmed
+        # stage, a slot for the future AI suggestion (Plan 4, null until then),
+        # its confidence, and per-bone clinician acceptance.
+        "manual_stage": clean_stage,
+        "predicted_stage": None,
+        "confidence_0_to_1": None,
+        "accepted_by_clinician": bool(accepted),
         "visibility": vis,
         "scored": False,
         "points": None,
@@ -102,6 +111,15 @@ def _counts(codes, stages: Mapping[str, str]) -> tuple[int, int]:
     return staged, flagged
 
 
+def _age_for_curve(group, preferred_curve: str) -> Optional[float]:
+    """Definitive age from the PREFERRED licensed curve edition, falling back to
+    the other only if the preferred one is not calibrated (Plan 1 WI-6). TWIII is
+    the default for a licensed TW3 book; TWII for a TW2 licence."""
+    primary = group.twiii_age_years if preferred_curve == "twiii" else group.twii_age_years
+    fallback = group.twii_age_years if preferred_curve == "twiii" else group.twiii_age_years
+    return primary if primary is not None else fallback
+
+
 def build_report(
     sex: str,
     rus_stages: Mapping[str, str],
@@ -109,6 +127,8 @@ def build_report(
     chronological_age_years: Optional[float] = None,
     ai_estimate_years: Optional[float] = None,
     tables: Optional[LetterTables] = None,
+    preferred_curve: str = "twiii",
+    accepted: Optional[Mapping[str, bool]] = None,
 ) -> dict:
     """Compose the structured 20-bone report. Scores/ages are present only where
     the licensed tables make them legitimate; otherwise the report is the
@@ -118,16 +138,21 @@ def build_report(
     tables = tables or load_letter_tables()
     rus_stages = dict(rus_stages or {})
     carpal_stages = dict(carpal_stages or {})
+    accepted = dict(accepted or {})
+    preferred_curve = preferred_curve if preferred_curve in ("twiii", "twii") else "twiii"
 
     r = compute_letters(_valid_letters(rus_stages), _valid_letters(carpal_stages), sex, tables)
 
     rus_pts = tables.rus_pts.get(sex, {})
     carpal_pts = tables.carpal_pts.get(sex, {})
-    per_bone = [_bone_row(c, "RUS", rus_stages.get(c), rus_pts) for c in RUS_BONES]
-    per_bone += [_bone_row(c, "CARPAL", carpal_stages.get(c), carpal_pts) for c in CARPAL_BONES]
+    per_bone = [_bone_row(c, "RUS", rus_stages.get(c), rus_pts, accepted.get(c, False))
+                for c in RUS_BONES]
+    per_bone += [_bone_row(c, "CARPAL", carpal_stages.get(c), carpal_pts, accepted.get(c, False))
+                 for c in CARPAL_BONES]
 
-    # A definitive RUS bone age exists only from a licensed curve (TWIII preferred).
-    rus_age = r.rus.twiii_age_years if r.rus.twiii_age_years is not None else r.rus.twii_age_years
+    # A definitive RUS bone age exists only from a licensed curve, from the
+    # preferred edition (TWIII by default; Plan 1 WI-6).
+    rus_age = _age_for_curve(r.rus, preferred_curve)
     diff = maturation = None
     if rus_age is not None and chronological_age_years is not None:
         diff = round(rus_age - float(chronological_age_years), 2)
@@ -143,6 +168,8 @@ def build_report(
             "table_version": r.table_version,
             "calculation_version": r.calculation_version,
             "scoring_enabled": tables.any_calibrated(),
+            "definitive_curve": preferred_curve,   # TWIII default (Plan 1 WI-6)
+            "checksum_verified": tables.checksum_verified,
         },
         "sex": sex,
         "chronological_age_years": chronological_age_years,
@@ -164,6 +191,8 @@ def build_report(
             "age_years": r.tw20.age_years,
         },
         "definitive_bone_age_years": rus_age,
+        # Carpal age is reported SEPARATELY and is never averaged with RUS.
+        "carpal_definitive_age_years": _age_for_curve(r.carpal, preferred_curve),
         "difference_from_chronological_years": diff,
         "maturation": maturation or "NOT_ASSIGNED",
         # The whole-image AI number is a SEPARATE screening cross-check, not TW3.

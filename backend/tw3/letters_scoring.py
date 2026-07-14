@@ -21,6 +21,7 @@ from typing import Any, Mapping, Optional
 
 from .constants import CARPAL_BONES, LETTER_STAGES, RUS_BONES, SEXES
 from .scoring import _interp_months  # reuse the exact interpolation used for RUS
+from .tables import compute_checksum  # reuse the RUS table's exact canonical checksum
 
 # Overridable (like the DB path) so tests / alternate deployments never write the
 # shipped template.
@@ -63,6 +64,11 @@ class LetterTables:
     # Structured licensing provenance (book/edition/owner/who entered+verified/when).
     provenance: dict = field(default_factory=dict)
     raw: dict = field(repr=False, default_factory=dict)
+    # Tamper-lock (Plan 1 WI-1): True only when the file carries a checksum that
+    # matches its content -- i.e. the licensed values were committed through the
+    # locking save path and have not been edited out-of-band since. A licensed
+    # clinical table must be immutable-by-detection, at parity with the RUS table.
+    checksum_verified: bool = False
 
     def _pts_calibrated(self, table: dict, bones: tuple[str, ...], sex: str) -> bool:
         by_bone = table.get(sex, {})
@@ -94,6 +100,17 @@ class LetterTables:
 
     def tw20_curve_calibrated(self, sex: str) -> bool:
         return len(self.tw20_age.get(sex, [])) >= 2
+
+    def allowed_letters(self, bone: str) -> tuple[str, ...]:
+        """Letters valid for a bone = the letters that actually have a point value
+        (across sexes / RUS+carpal+tw20 tables), ordered A-I. Falls back to the
+        full A-I set for bones with no entered points yet, so the UI can still
+        offer stages pre-calibration (mirrors tables._derive_allowed_stages)."""
+        present: set[str] = set()
+        for sex in SEXES:
+            for tbl in (self.rus_pts, self.carpal_pts, self.tw20_pts):
+                present.update((tbl.get(sex, {}).get(bone) or {}).keys())
+        return tuple(l for l in LETTER_STAGES if l in present) if present else LETTER_STAGES
 
     def any_calibrated(self) -> bool:
         return any(self.rus_points_calibrated(s) or self.carpal_points_calibrated(s)
@@ -171,6 +188,24 @@ def build_from_dict(data: dict) -> LetterTables:
     cases = [c for c in data.get("reference_cases", [])
              if isinstance(c, dict) and not str(c.get("id", "")).startswith(("example", "_"))
              and "_fill" not in c]
+
+    # Tamper-lock: if a checksum is stored it MUST match the (checksum-excluded)
+    # content, else the licensed table was altered since it was verified -> refuse
+    # to load (scoring stays disabled). Absent checksum = uncalibrated template,
+    # not an error. Canonicalization ignores formatting/whitespace, so a reformat
+    # does not trip the lock; only a content change does.
+    stored = data.get("checksum")
+    checksum_verified = False
+    if stored:
+        actual = compute_checksum(data)
+        if actual != stored:
+            raise LetterTablesError(
+                "letters tables checksum mismatch -- the licensed table has been "
+                "altered since it was verified. Scoring is disabled until it is "
+                f"re-verified. (expected {str(stored)[:12]}..., got {actual[:12]}...)"
+            )
+        checksum_verified = True
+
     return LetterTables(
         method=data.get("method", "TW3-letters"),
         version=data.get("version", "letters-0-uncalibrated"),
@@ -184,10 +219,12 @@ def build_from_dict(data: dict) -> LetterTables:
         tw20_age=_validate_sex_curve(data.get("tw20_score_to_age", {}), "tw20_score_to_age"),
         provenance=(data.get("provenance") or {}) if isinstance(data.get("provenance"), dict) else {},
         raw=data,
+        checksum_verified=checksum_verified,
     )
 
 
-def load_letter_tables(path: Path = _TABLES_PATH) -> LetterTables:
+def load_letter_tables(path: Optional[Path] = None) -> LetterTables:
+    path = path or _TABLES_PATH
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
@@ -197,21 +234,37 @@ def load_letter_tables(path: Path = _TABLES_PATH) -> LetterTables:
     return build_from_dict(data)
 
 
-def load_raw_tables(path: Path = _TABLES_PATH) -> dict:
+def load_raw_tables(path: Optional[Path] = None) -> dict:
     """Raw JSON for editing in the UI (keeps _fill hints and example cases)."""
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        return json.loads((path or _TABLES_PATH).read_text(encoding="utf-8"))
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
 
 
-def save_letter_tables(data: dict, path: Path = _TABLES_PATH) -> LetterTables:
-    """Validate then atomically write the tables file. Never writes an invalid file."""
-    tables = build_from_dict(data)          # raises LetterTablesError if malformed
+def save_letter_tables(data: dict, path: Optional[Path] = None) -> LetterTables:
+    """Validate, checksum-lock, then atomically write the tables file. Never writes
+    an invalid file. Every save recomputes and stores the checksum so the written
+    table is locked against later out-of-band edits (parity with the RUS table)."""
+    path = path or _TABLES_PATH
+    data = {k: v for k, v in data.items() if k != "checksum"}
+    data["checksum"] = compute_checksum(data)
+    tables = build_from_dict(data)          # validates + verifies the fresh checksum
     tmp = path.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     tmp.replace(path)
     return tables
+
+
+def lock_tables(path: Optional[Path] = None) -> LetterTables:
+    """Recompute and store the checksum for the CURRENT file, locking it against
+    later out-of-band edits. Use after entering/reconciling licensed values by hand;
+    the UI save path (save_letter_tables) already locks automatically."""
+    path = path or _TABLES_PATH
+    data = load_raw_tables(path)
+    if not data:
+        raise LetterTablesError(f"cannot lock: no readable tables at {path}")
+    return save_letter_tables(data, path)
 
 
 # ── scoring ──────────────────────────────────────────────────────────────────
@@ -422,11 +475,12 @@ def letters_status() -> dict:
         for sex in SEXES
     }
     validation = validate_reference_cases(t)
-    # Scoring turns on only when ALL THREE gates pass: values are entered
+    # Scoring turns on only when ALL FOUR gates pass: values are entered
     # (calibrated), the clinic's own reference films reproduce within tolerance
-    # (transcription/accuracy), and the licensed source is fully documented
-    # (provenance). Any missing gate keeps scoring OFF -- nothing is guessed and
-    # nothing undocumented is trusted.
+    # (transcription/accuracy), the licensed source is fully documented
+    # (provenance), and the table is checksum-locked & unaltered (tamper-lock,
+    # Plan 1 WI-1). Any missing gate keeps scoring OFF -- nothing is guessed,
+    # nothing undocumented is trusted, and no post-verification edit is honoured.
     return {
         "method": t.method,
         "version": t.version,
@@ -437,6 +491,17 @@ def letters_status() -> dict:
         "provenance": t.provenance,
         "provenance_complete": t.provenance_complete(),
         "missing_provenance": t.missing_provenance(),
+        "checksum_verified": t.checksum_verified,
         "scoring_ready": (t.any_calibrated() and validation["all_passed"]
-                          and t.provenance_complete()),
+                          and t.provenance_complete() and t.checksum_verified),
     }
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--lock" in sys.argv:
+        _t = lock_tables()
+        print(f"Locked {_TABLES_PATH.name}: checksum written, verified={_t.checksum_verified}")
+    else:
+        print(json.dumps(letters_status(), indent=2, ensure_ascii=False))
