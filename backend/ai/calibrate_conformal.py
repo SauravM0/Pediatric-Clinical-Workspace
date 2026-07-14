@@ -90,12 +90,26 @@ def main() -> None:
         emp = conformal.empirical_coverage(residuals, q)
         print(f"  target {cov_str} -> +/-{q:.1f} mo ({q/12:.2f} y), empirical coverage {emp:.3f}")
 
+    # Subgroup-conditional (Mondrian) calibration: sex x predicted-age-band
+    # (Plan 3 WI-3). The band uses the PREDICTED age so the same group rule is
+    # available at inference. Small groups fall back to the marginal quantile.
+    sex_val = sex[val]
+    groups = [conformal.bucket(bool(sex_val[i] > 0.5), float(preds[i]))
+              for i in range(len(preds))]
+    grouped = conformal.calibrate_grouped(residuals, groups, _COVERAGE_LEVELS)
+    print("Subgroup (Mondrian) calibration (q90 per sex x age-band):")
+    for g, gc in sorted(grouped["groups"].items()):
+        tag = " [fallback->marginal]" if gc.get("fallback") else ""
+        print(f"  {g}: n={gc['n_calib']}  q90=+/-{gc['quantiles'].get('0.90')} mo{tag}")
+
     meta["conformal"] = {
         "method": "split-conformal (absolute residual)",
         "dataset": f"RSNA val split (seed {_SPLIT_SEED}, first {_VAL_FRACTION:.0%})",
         "recomputed_val_mae_months": round(mae, 1),
         "n_calib": cal["n_calib"],
         "quantiles_months": cal["quantiles"],
+        "by_group": grouped["groups"],
+        "min_group": grouped["min_group"],
         "default_coverage": "0.90",
     }
     boneage.META_PATH.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")

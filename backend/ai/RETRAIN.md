@@ -1,13 +1,25 @@
-# Retrain the bone-age screening model on the full RSNA set
+# Retrain / refine the bone-age screening model
 
-The shipped model saw only ~1,425 images → **MAE ≈ 14 months**. The full RSNA
-training set is ~**12,611 images** (~9× more data), which is the dominant lever
-for accuracy. Same architecture on the full set typically reaches **MAE ≈ 6–9
-months**. It's still a whole-image Greulich-Pyle *screening* estimate — **not
-TW3** — but far more useful as a triage number.
+> **Current baseline (corrected 2026-07-13).** The **shipped** model is already
+> trained on the **full RSNA set** — see `backend/ai/models/boneage_gp.json`:
+> `n_images: 12611`, `input_size: 224`, **`val_mae_months: 8.6`**, with conformal
+> intervals calibrated. The old "~1,425 images → MAE ≈ 14 months" note was stale
+> and has been removed. "Just add more data" is no longer the lever — that lever
+> is spent.
+
+The remaining accuracy headroom (toward the RSNA-achievable ~4–6 months) is in
+**cropping, calibration, architecture/input, and a learned India recalibration** —
+see `plans/PLAN-3-screening-model-accuracy.md` for the full plan. The reproducible
+recipe that produced the shipped model is pinned in
+`backend/ai/training_recipe.json`.
+
+This is still a whole-image Greulich-Pyle **screening** estimate — **NOT TW3** — a
+suggestion the doctor verifies, shown as a separate cross-check.
 
 > The accurate clinical result stays the doctor-graded **20-bone TW3** report
 > (Advanced → grading + Licensed TW3 tables). This model is only the rough triage.
+
+## Retraining (still valid, e.g. after a data or recipe change)
 
 ## 1. Get the data (free)
 

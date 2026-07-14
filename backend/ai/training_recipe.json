@@ -1,0 +1,27 @@
+{
+  "_about": "Pinned, reproducible training recipe for the shipped bone-age screening model (Plan 3 WI-1). Any candidate model must record its own recipe so results are comparable and the shipped 8.6mo baseline is reproducible. This describes what produced backend/ai/models/boneage_gp.onnx.",
+  "recipe_version": "screening-recipe-1.0",
+  "task": "whole-image Greulich-Pyle bone-age regression (screening, NOT TW3)",
+  "architecture": "MobileNetV3-Small backbone + [global-pooled features (576) + sex (1)] -> Linear(256) -> ReLU -> Dropout(0.3) -> Linear(1)",
+  "input_size": 224,
+  "channels": "grayscale replicated to 3, ImageNet mean/std normalisation",
+  "loss": "L1 (mean absolute error, months)",
+  "optimizer": "Adam, lr features=3e-4 head=1e-3, weight_decay=1e-4",
+  "lr_schedule": "CosineAnnealingLR(T_max=epochs)",
+  "batch_size": 32,
+  "augmentation": {
+    "rotation_deg": [-12, 12],
+    "translate_px": [-8, 8],
+    "scale": [0.92, 1.08],
+    "brightness": [0.9, 1.1],
+    "horizontal_flip": false,
+    "note": "no horizontal flip -- hands are always left; flipping would corrupt laterality"
+  },
+  "split": {"val_fraction": 0.15, "seed": 42, "by": "random-per-image (RSNA public set)"},
+  "dataset": "RSNA Pediatric Bone Age (full, ~12611 images)",
+  "shipped_metrics": {"val_mae_months": 8.6, "conformal_quantiles_months": {"0.80": 13.89, "0.90": 18.58, "0.95": 22.07}},
+  "caveats": [
+    "RSNA is a US cohort; GP skeletal age runs biased in Indian children -- handle with a LEARNED per-subgroup recalibration (PLAN-3 WI-6), never a fixed universal offset.",
+    "The 15% split is a TUNING/val split, not a locked external test; carve a locked test per PLAN-5 WI-1 before release claims."
+  ]
+}

@@ -71,3 +71,99 @@ def empirical_coverage(residuals: Iterable[float], half_width: float) -> float:
     """Fraction of residuals within +/- half_width -- for validating a calibration."""
     r = [abs(float(x)) for x in residuals]
     return sum(1 for x in r if x <= half_width) / len(r) if r else 0.0
+
+
+# ── subgroup-conditional (Mondrian) conformal (directive S-BA-5 / Plan 3 WI-3) ──
+#
+# A single marginal interval is the SAME width for a clear 6-yo film and an
+# ambiguous pubertal one. Mondrian conformal calibrates a separate quantile per
+# group (here sex x age-band) so coverage holds WITHIN a group and intervals
+# sharpen where the model is reliable. The group must be computable from the
+# inputs at inference time -- so the age band uses the PREDICTED bone age, not the
+# (unknown) true age. Groups too small to guarantee coverage fall back to the
+# marginal quantile (honest: marginal coverage, not conditional).
+
+_AGE_BANDS_YEARS = ((5.0, "0-5y"), (8.0, ">5-8y"), (12.0, ">8-12y"), (15.0, ">12-15y"))
+
+
+def age_band_months(months: float) -> str:
+    """validation_protocol.md §3 age band for an age in MONTHS."""
+    years = float(months) / 12.0
+    for hi, label in _AGE_BANDS_YEARS:
+        if years <= hi:
+            return label
+    return ">15-18y"
+
+
+def bucket(is_male: bool, months: float) -> str:
+    """Mondrian group key = sex x predicted-age-band, e.g. 'boys:>8-12y'."""
+    return f"{'boys' if is_male else 'girls'}:{age_band_months(months)}"
+
+
+def calibrate_grouped(residuals: Iterable[float], groups: Iterable[str],
+                      coverage_levels: Iterable[float], *, min_group: int = 30) -> dict:
+    """Per-group conformal half-widths. A group with fewer than ``min_group``
+    calibration residuals falls back to the marginal quantiles (``fallback=True``)
+    rather than pretend to a conditional guarantee it cannot give.
+
+    Returns ``{"groups": {g: {"n_calib", "quantiles", "fallback"}}, "marginal":
+    {...}, "min_group": n}``.
+    """
+    residuals = [abs(float(x)) for x in residuals]
+    groups = [str(g) for g in groups]
+    marginal = calibrate(residuals, coverage_levels)
+    buckets: dict[str, list[float]] = {}
+    for r, g in zip(residuals, groups):
+        buckets.setdefault(g, []).append(r)
+    out: dict[str, dict] = {}
+    for g, rs in sorted(buckets.items()):
+        if len(rs) >= min_group:
+            c = calibrate(rs, coverage_levels)
+            c["fallback"] = False
+        else:
+            c = {"n_calib": len(rs), "quantiles": dict(marginal["quantiles"]), "fallback": True}
+        out[g] = c
+    return {"groups": out, "marginal": marginal, "min_group": int(min_group)}
+
+
+def group_quantile(groups: Optional[dict], marginal_quantiles: Optional[dict],
+                   group: str, coverage_str: str) -> tuple[Optional[float], bool]:
+    """Half-width for ``group`` at ``coverage_str``. Returns ``(q, fallback)`` --
+    fallback True when the group is unknown/too-small and the marginal was used."""
+    g = (groups or {}).get(str(group))
+    if g and coverage_str in (g.get("quantiles") or {}):
+        return g["quantiles"][coverage_str], bool(g.get("fallback", False))
+    q = (marginal_quantiles or {}).get(coverage_str)
+    return q, True
+
+
+def select_interval(meta: dict, is_male: bool, months: float) -> dict:
+    """Pick the uncertainty half-width for a prediction from the model metadata.
+
+    Prefers a subgroup-conditional (Mondrian) conformal quantile when the metadata
+    carries ``conformal.by_group``; else the marginal conformal quantile; else a
+    clearly-labelled +/-MAE approximation; else nothing. Pure -- no model needed --
+    so the selection logic is unit-testable. Returns
+    ``{kind, half, coverage, group, fallback}``.
+    """
+    mae = meta.get("val_mae_months")
+    conf = meta.get("conformal") or {}
+    coverage = conf.get("default_coverage", "0.90")
+    quants = conf.get("quantiles_months") or {}
+    by_group = conf.get("by_group")
+
+    kind, half, group, fallback = "none", None, None, False
+    if by_group:
+        group = bucket(is_male, months)
+        q, fb = group_quantile(by_group, quants, group, coverage)
+        if isinstance(q, (int, float)):
+            kind, half, fallback = "conformal_grouped", float(q), bool(fb)
+    if half is None:
+        q = quants.get(coverage)
+        if isinstance(q, (int, float)):
+            kind, half = "conformal", float(q)
+        elif isinstance(mae, (int, float)):
+            kind, half = "mae_approx", float(mae)
+    coverage_out = coverage if kind in ("conformal", "conformal_grouped") else None
+    return {"kind": kind, "half": half, "coverage": coverage_out,
+            "group": group, "fallback": fallback}

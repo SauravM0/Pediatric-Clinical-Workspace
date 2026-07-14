@@ -80,16 +80,11 @@ def predict_months(image: Image.Image | bytes, is_male: bool) -> Optional[dict]:
     from . import conformal as _conformal
 
     mae = meta.get("val_mae_months")
-    conf = meta.get("conformal") or {}
-    quants = conf.get("quantiles_months") or {}
-    coverage = conf.get("default_coverage", "0.90")
-    q = quants.get(coverage)
-    if isinstance(q, (int, float)):
-        interval_kind, half = "conformal", float(q)
-    elif isinstance(mae, (int, float)):
-        interval_kind, half, coverage = "mae_approx", float(mae), None
-    else:
-        interval_kind, half, coverage = "none", None, None
+    # Prefer a subgroup-conditional (Mondrian) conformal interval when calibrated,
+    # else a marginal conformal interval, else a labelled +/-MAE approximation
+    # (directive S-BA-5 / Plan 3 WI-3). Pure selection -- see conformal.select_interval.
+    sel = _conformal.select_interval(meta, is_male, months)
+    interval_kind, half, coverage = sel["kind"], sel["half"], sel["coverage"]
     ci_low_months, ci_high_months = _conformal.interval(months, half)
 
     return {
@@ -99,8 +94,10 @@ def predict_months(image: Image.Image | bytes, is_male: bool) -> Optional[dict]:
         "method": "Greulich-Pyle whole-image estimate (screening, not TW3)",
         "val_mae_months": mae,
         "uncertainty_months": None if half is None else round(half, 1),
-        "interval_kind": interval_kind,   # "conformal" | "mae_approx" | "none"
+        "interval_kind": interval_kind,   # "conformal_grouped" | "conformal" | "mae_approx" | "none"
         "interval_coverage": coverage,    # e.g. "0.90" for a conformal interval
+        "interval_group": sel["group"],   # e.g. "boys:>8-12y" when subgroup-calibrated
+        "interval_group_fallback": sel["fallback"],  # True if the group fell back to marginal
         "ci_low_years": None if ci_low_months is None else round(ci_low_months / 12, 1),
         "ci_high_years": None if ci_high_months is None else round(ci_high_months / 12, 1),
         "population_note": (
