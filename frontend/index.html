@@ -1128,6 +1128,10 @@
           const [covBusy, setCovBusy] = useState(false);
           const [monitoring, setMonitoring] = useState(null); // /api/bone-age/monitoring
           const [monBusy, setMonBusy] = useState(false);
+          const [adjItems, setAdjItems] = useState(null);     // /api/bone-age/adjudication (open)
+          const [adjBusy, setAdjBusy] = useState(false);
+          const [adjReviewer, setAdjReviewer] = useState(""); // the resolving clinician
+          const [adjMsg, setAdjMsg] = useState(null);
           const [ltTables, setLtTables] = useState(null);     // licensed TW3 tables editor
           const [ltStatus, setLtStatus] = useState(null);
           const [ltSection, setLtSection] = useState('rus');  // rus | carpal | curves | ref
@@ -1770,6 +1774,29 @@
               if (r.ok) setMonitoring(await r.json());
             } catch {}
             finally { setMonBusy(false); }
+          };
+
+          const loadAdjudication = async () => {
+            setAdjBusy(true); setAdjMsg(null);
+            try {
+              const r = await fetch('/api/bone-age/adjudication?status=open');
+              if (r.ok) setAdjItems((await r.json()).items || []);
+            } catch (e) { setAdjMsg({ type:'err', text:String(e.message||e) }); }
+            finally { setAdjBusy(false); }
+          };
+
+          const resolveAdjudication = async (id, stage) => {
+            if (!adjReviewer.trim()) { setAdjMsg({ type:'err', text:'Enter the reviewing clinician first.' }); return; }
+            setAdjBusy(true); setAdjMsg(null);
+            try {
+              const r = await fetch(`/api/bone-age/adjudication/${id}/resolve`, {
+                method:'POST', headers:{ 'Content-Type':'application/json' },
+                body: JSON.stringify({ resolved_stage: stage, resolved_by: adjReviewer.trim() }),
+              });
+              if (r.ok) { setAdjMsg({ type:'ok', text:`Resolved to stage ${stage}.` }); await loadAdjudication(); }
+              else { const e = await r.json(); setAdjMsg({ type:'err', text: e.detail || 'Resolve failed.' }); }
+            } catch (e) { setAdjMsg({ type:'err', text:String(e.message||e) }); }
+            finally { setAdjBusy(false); }
           };
 
           // ── Licensed TW3 table entry (original-TW3 letters) ──────────────────────
@@ -3213,6 +3240,51 @@
                               </div>
                             );
                           })()}
+                        </div>
+
+                        {/* Adjudication queue (Plan 2 WI-4) — disputed bones a senior reads, never averaged */}
+                        <div style={{ marginTop:'16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'16px' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px' }}>
+                            <div>
+                              <div style={{ fontSize:'11px', fontWeight:'800', color:'#334155', textTransform:'uppercase', letterSpacing:'.05em' }}>Adjudication queue</div>
+                              <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>Bones where independent reads disagree are queued for a senior read — resolved to one stage, never silently averaged.</div>
+                            </div>
+                            <button onClick={loadAdjudication} disabled={adjBusy} style={lcBtn('#475569', adjBusy)}>{adjBusy ? 'Loading…' : (adjItems ? 'Refresh' : 'Load queue')}</button>
+                          </div>
+                          {adjItems && (
+                            <div style={{ marginTop:'10px' }}>
+                              <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'10px', flexWrap:'wrap' }}>
+                                <label style={{ fontSize:'11px', color:'#475569' }}>Reviewing clinician</label>
+                                <input value={adjReviewer} onChange={e => setAdjReviewer(e.target.value)} placeholder="e.g. Dr Rao"
+                                       style={{ fontSize:'11px', padding:'4px 8px', border:'1px solid #cbd5e1', borderRadius:'6px' }} />
+                              </div>
+                              {adjItems.length === 0 ? (
+                                <div style={{ fontSize:'11px', color:'#94a3b8' }}>No disputed bones open. Multi-reader disagreements appear here for resolution.</div>
+                              ) : (
+                                <div style={{ maxHeight:'240px', overflowY:'auto', border:'1px solid #e2e8f0', borderRadius:'8px' }}>
+                                  {adjItems.map(it => (
+                                    <div key={it.id} style={{ padding:'8px 10px', borderTop:'1px solid #f1f5f9', display:'flex', justifyContent:'space-between', alignItems:'center', gap:'10px', flexWrap:'wrap' }}>
+                                      <div style={{ fontSize:'11px', color:'#334155' }}>
+                                        <strong>{it.bone_code}</strong> <span style={{ color:'#cbd5e1' }}>· {it.film_key}</span>
+                                        <div style={{ fontSize:'10px', color:'#64748b', marginTop:'2px' }}>
+                                          {it.n_readers} readers · votes {Object.entries(it.votes).map(([s,n]) => `${s}:${n}`).join('  ')}
+                                        </div>
+                                      </div>
+                                      <div style={{ display:'flex', gap:'4px', flexWrap:'wrap' }}>
+                                        {Object.keys(it.votes).sort().map(stage => (
+                                          <button key={stage} onClick={() => resolveAdjudication(it.id, stage)} disabled={adjBusy}
+                                                  style={{ fontSize:'11px', fontWeight:'700', padding:'3px 9px', border:'1px solid #cbd5e1', borderRadius:'6px', background:'#f8fafc', color:'#334155', cursor: adjBusy?'default':'pointer' }}>
+                                            {stage}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              {adjMsg && <div style={{ marginTop:'8px', fontSize:'11px', fontWeight:'700', color: adjMsg.type==='ok'?'#059669':'#dc2626' }}>{adjMsg.text}</div>}
+                            </div>
+                          )}
                         </div>
 
                         {/* Licensed TW3 tables — doctor enters her own reference values here (§18) */}
