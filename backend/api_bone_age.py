@@ -519,7 +519,12 @@ def _mae(errs: list[float]) -> Optional[float]:
 
 @router.get("/feedback/stats")
 def feedback_stats(db: Session = Depends(get_db)) -> dict:
-    """Monitoring read-out (report §6.2): running AI-vs-human error + per-image consensus.
+    """Monitoring read-out (report §6.2): running AI-vs-human error + per-image consensus."""
+    return compute_feedback_stats(db)
+
+
+def compute_feedback_stats(db: Session) -> dict:
+    """AI-vs-human error + trend + breakdowns + per-image consensus.
 
     This is what 'daily learning' should really mean — watch the gap, don't silently
     mutate the model. MAE here is the live evidence that accuracy is (or isn't) improving.
@@ -580,4 +585,71 @@ def feedback_stats(db: Session = Depends(get_db)) -> dict:
         "consensus": consensus[:50],
         "note": ("Evidence log for monitoring + retraining. Corrections never change a "
                  "patient's reported bone age; model updates are a separate gated release."),
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Monitoring & drift surface (Plan 2 WI-6): the AI-vs-human trend, input-domain
+# drift, and a SOFT external plausibility panel (CPP priors). None of it gates
+# anything — "daily learning" means watching the gap, not mutating the model.
+# ─────────────────────────────────────────────────────────────────────────────
+
+_TW3_BANDS = ("<6", "6-7", "7-8", "8-9", "9-10", "10-11", "11-12", "12-13", "13+")
+_LOW_TRUST_DOMAINS = {"compressed", "photo"}
+
+
+def _tw3_band(years: float) -> str:
+    if years < 6:
+        return "<6"
+    if years >= 13:
+        return "13+"
+    lo = int(years)                       # 6..12
+    return f"{lo}-{lo + 1}"
+
+
+@router.get("/monitoring")
+def monitoring(db: Session = Depends(get_db)) -> dict:
+    """Monitoring dashboard payload: AI-vs-human trend + input drift + soft CPP priors."""
+    from backend.monitoring import priors
+
+    stats = compute_feedback_stats(db)
+    rows = list(db.execute(select(BoneAgeFeedback)).scalars())
+
+    # Input-domain drift: share of low-trust films (compressed / phone photos) in the
+    # most recent third vs the rest — a rising share means the model is seeing worse input.
+    ordered = sorted(rows, key=lambda r: r.created_at or 0)
+
+    def _low_trust_share(sample: list) -> Optional[float]:
+        return round(sum(1 for r in sample if (r.image_domain or "") in _LOW_TRUST_DOMAINS)
+                     / len(sample), 3) if sample else None
+
+    recent_share = older_share = None
+    if len(ordered) >= 6:
+        k = max(3, len(ordered) // 3)
+        recent_share, older_share = _low_trust_share(ordered[-k:]), _low_trust_share(ordered[:-k])
+
+    # Observed TW3 bone-age band distribution from clinician-confirmed/corrected ages.
+    observed: dict[str, int] = {b: 0 for b in _TW3_BANDS}
+    for r in rows:
+        if r.corrected_age_months is not None:
+            observed[_tw3_band(r.corrected_age_months / 12)] += 1
+
+    return {
+        "stats": stats,
+        "input_drift": {
+            "low_trust_domains": sorted(_LOW_TRUST_DOMAINS),
+            "recent_low_trust_share": recent_share,
+            "older_low_trust_share": older_share,
+            "worsening": (recent_share is not None and older_share is not None
+                          and recent_share > older_share),
+        },
+        "plausibility": {
+            "observed_bands": observed,
+            "vs_cpp": priors.plausibility_check(observed, "cpp"),
+            "vs_control": priors.plausibility_check(observed, "control"),
+            "maturity_notes": priors.MATURITY_NOTES,
+        },
+        "note": ("Watch-the-gap monitoring only. The CPP plausibility panel is a SOFT, "
+                 "external, non-Indian-validated prior — never a release gate or a patient "
+                 "conclusion. Nothing here mutates a model or a reported age."),
     }

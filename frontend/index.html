@@ -1126,6 +1126,8 @@
           const [radiograph, setRadiograph] = useState(null); // attached film metadata
           const [coverage, setCoverage] = useState(null);     // /api/bone-age/coverage
           const [covBusy, setCovBusy] = useState(false);
+          const [monitoring, setMonitoring] = useState(null); // /api/bone-age/monitoring
+          const [monBusy, setMonBusy] = useState(false);
           const [ltTables, setLtTables] = useState(null);     // licensed TW3 tables editor
           const [ltStatus, setLtStatus] = useState(null);
           const [ltSection, setLtSection] = useState('rus');  // rus | carpal | curves | ref
@@ -1759,6 +1761,15 @@
               if (r.ok) setCoverage(await r.json());
             } catch {}
             finally { setCovBusy(false); }
+          };
+
+          const loadMonitoring = async () => {
+            setMonBusy(true);
+            try {
+              const r = await fetch('/api/bone-age/monitoring');
+              if (r.ok) setMonitoring(await r.json());
+            } catch {}
+            finally { setMonBusy(false); }
           };
 
           // ── Licensed TW3 table entry (original-TW3 letters) ──────────────────────
@@ -3155,6 +3166,53 @@
                               <div style={{ marginTop:'8px', fontSize:'10px', color:'#94a3b8', lineHeight:'1.5' }}>Bands (unique patients): minimal 1–9 · experimental 10–24 · limited 25–49 · candidate ≥50. Engineering thresholds only — not proof of clinical validity.</div>
                             </div>
                           )}
+                        </div>
+
+                        {/* Monitoring & drift (Plan 2 WI-6) — watch the AI-vs-human gap; never mutate the model */}
+                        <div style={{ marginTop:'16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'16px' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px' }}>
+                            <div>
+                              <div style={{ fontSize:'11px', fontWeight:'800', color:'#334155', textTransform:'uppercase', letterSpacing:'.05em' }}>Monitoring &amp; drift</div>
+                              <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>AI-vs-clinician error over time, input-quality drift, and a soft external plausibility check. Watch-the-gap only — this never changes a model or a reported age.</div>
+                            </div>
+                            <button onClick={loadMonitoring} disabled={monBusy} style={lcBtn('#475569', monBusy)}>{monBusy ? 'Loading…' : (monitoring ? 'Refresh' : 'Load monitoring')}</button>
+                          </div>
+                          {monitoring && (() => {
+                            const st = monitoring.stats || {}; const tr = st.trend || {};
+                            const dr = monitoring.input_drift || {}; const pl = monitoring.plausibility || {};
+                            const pct = v => v == null ? '—' : `${Math.round(v * 100)}%`;
+                            const yr = v => v == null ? '—' : `${v} yr`;
+                            return (
+                              <div style={{ marginTop:'10px' }}>
+                                <div style={{ display:'flex', flexWrap:'wrap', gap:'10px', marginBottom:'10px' }}>
+                                  <div style={{ flex:'1 1 150px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'10px' }}>
+                                    <div style={{ fontSize:'10px', color:'#64748b' }}>AI vs clinician MAE</div>
+                                    <div style={{ fontSize:'18px', fontWeight:'800', color:'#334155' }}>{yr(st.ai_vs_human_mae_years)}</div>
+                                    <div style={{ fontSize:'10px', color:'#94a3b8' }}>{st.paired_with_ai || 0} paired · {st.total_feedback || 0} total</div>
+                                  </div>
+                                  <div style={{ flex:'1 1 150px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'10px' }}>
+                                    <div style={{ fontSize:'10px', color:'#64748b' }}>Trend (recent vs older)</div>
+                                    <div style={{ fontSize:'18px', fontWeight:'800', color: tr.improving ? '#059669' : '#334155' }}>{yr(tr.recent_mae_years)} {tr.improving ? '↓' : ''}</div>
+                                    <div style={{ fontSize:'10px', color:'#94a3b8' }}>was {yr(tr.older_mae_years)}</div>
+                                  </div>
+                                  <div style={{ flex:'1 1 150px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'10px' }}>
+                                    <div style={{ fontSize:'10px', color:'#64748b' }}>Low-trust input share</div>
+                                    <div style={{ fontSize:'18px', fontWeight:'800', color: dr.worsening ? '#d97706' : '#334155' }}>{pct(dr.recent_low_trust_share)} {dr.worsening ? '↑' : ''}</div>
+                                    <div style={{ fontSize:'10px', color:'#94a3b8' }}>was {pct(dr.older_low_trust_share)} · compressed/photo</div>
+                                  </div>
+                                </div>
+                                {pl.vs_cpp && (
+                                  <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'10px' }}>
+                                    <div style={{ fontSize:'11px', fontWeight:'800', color:'#92400e' }}>External plausibility (soft · non-gating)</div>
+                                    <div style={{ fontSize:'11px', color:'#334155', marginTop:'4px' }}>
+                                      Observed bone-age distribution vs published cohorts — TV distance: CPP {pl.vs_cpp.tv_distance ?? '—'} · control {pl.vs_control?.tv_distance ?? '—'}.
+                                    </div>
+                                    <div style={{ fontSize:'10px', color:'#b45309', marginTop:'6px', lineHeight:'1.5' }}>⚠ {pl.vs_cpp.caveat}</div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* Licensed TW3 tables — doctor enters her own reference values here (§18) */}
