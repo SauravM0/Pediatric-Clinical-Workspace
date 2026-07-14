@@ -294,6 +294,27 @@ branch with clean commits is simpler to review. No push/PR unless you ask.
 
 ---
 
+## 7a. Progress log
+
+- **Phase A — DONE (2026-07-14).** Foundation sealed; every orphaned module now
+  called by the running app or a real offline job, suite green throughout.
+  - A0: committed the existing tested Plan 1–5 backend as focused per-plan commits;
+    pinned `httpx` for a reproducible suite. Baseline 127 green.
+  - A1: `python -m backend.ai.release` offline CLI (consumes an evaluation artifact,
+    runs the Plan 5 gate, writes a model card, records `ModelRelease`; never
+    auto-promotes) + `GET /api/bone-age/releases` audit endpoint.
+  - A2: `GET /api/bone-age/monitoring` (AI-vs-human trend + input drift + soft CPP
+    priors) + a "Monitoring & drift" dashboard panel. Browser-verified.
+  - A3: adjudication review UI (list + resolve disputed bones). Browser-verified
+    (seeded a 3-way tie, resolved + persisted).
+  - A4: suggestion-activation gate wired — `suggestion_activation()` + per-bone
+    `ai_suggestion_status` on assessment detail + `GET /api/bone-age/suggestion-activation`.
+    All bones "manual" until a stager ships (no fabricated suggestions).
+  - A5: guard test locking the single release path (gate + sign-off required; no bypass).
+  - End state: **142 bone-age tests green**; orphan list cleared (only `predict_stage`
+    stays unwired — correctly, it is Plan 4 and needs a trained model).
+- **Phases B–F:** not started (asset/GPU/cohort-gated per §6).
+
 ## 8. Honest ceiling (unchanged, restated so no phase overclaims)
 
 - Real licensed tables + a few reproducing reference films make the engine **lawful and correct**;
