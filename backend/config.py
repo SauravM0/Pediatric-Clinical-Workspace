@@ -11,7 +11,7 @@ import os
 from pathlib import Path
 
 APP_VERSION = "1.4.0"
-DB_SCHEMA_VERSION = "2"
+DB_SCHEMA_VERSION = "3"
 REPORT_TEMPLATE_VERSION = "1.0"
 
 APP_ROOT = Path(__file__).resolve().parents[1]

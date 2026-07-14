@@ -75,6 +75,7 @@ def create_assessment(db: Session, *, patient_code: str, sex: str,
                       date_of_birth: Optional[datetime] = None,
                       chronological_age_months: Optional[int] = None,
                       stage_system: str = DEFAULT_STAGE_SYSTEM,
+                      reader_id: Optional[str] = None, read_round: int = 1,
                       actor: str = "local-user") -> TW3Assessment:
     if sex not in ("boys", "girls"):
         raise AssessmentError(f"unsupported sex: {sex!r}")
@@ -86,6 +87,7 @@ def create_assessment(db: Session, *, patient_code: str, sex: str,
         patient_id=patient.id, sex_at_birth=sex,
         chronological_age_months=chronological_age_months,
         stage_system=stage_system,
+        reader_id=reader_id, read_round=read_round,
         assessment_status=AssessmentStatus.DRAFT.value,
         application_version=APP_VERSION,
     )
@@ -158,7 +160,8 @@ def _letters_block(a: TW3Assessment) -> dict:
 
 
 def set_bone_stage(db: Session, assessment_id: int, bone_code: str, stage: Optional[str],
-                   *, actor: str = "local-user", reason: Optional[str] = None) -> TW3Assessment:
+                   *, actor: str = "local-user", reason: Optional[str] = None,
+                   rater_id: Optional[str] = None) -> TW3Assessment:
     a = get_assessment(db, assessment_id)
     if a.assessment_status == AssessmentStatus.APPROVED.value:
         raise AssessmentError("assessment is approved and immutable; open a revision to edit")
@@ -183,6 +186,8 @@ def set_bone_stage(db: Session, assessment_id: int, bone_code: str, stage: Optio
     previous = row.confirmed_stage
     row.doctor_stage = stage
     row.confirmed_stage = stage
+    if rater_id is not None:
+        row.rater_id = rater_id
     if row.ai_suggested_stage and stage and stage != row.ai_suggested_stage:
         row.doctor_modified_ai_result = True
         row.modification_reason = reason

@@ -99,6 +99,21 @@ def _image_domain(rg: Radiograph) -> tuple[str, str]:
     return "unknown", "unknown"
 
 
+_CONSENT_CLEARED = frozenset({"consented", "research_ok"})
+
+
+def _consent_ok(radiograph: Optional[Radiograph], require_consent: bool) -> bool:
+    """Consent gate (Plan 2 WI-9). 'withheld' is ALWAYS excluded. When
+    ``require_consent`` is set, only positively-consented films pass; otherwise
+    unknown/absent consent is allowed (opt-in strictness for production)."""
+    status = radiograph.consent_status if radiograph is not None else None
+    if status == "withheld":
+        return False
+    if require_consent:
+        return status in _CONSENT_CLEARED
+    return True
+
+
 def _split_by_patient(patient_ids: list[int], seed: int,
                       ratios: tuple[float, float, float]) -> dict[int, str]:
     """Deterministically assign whole patients to splits. Returns {patient_id: split}."""
@@ -210,17 +225,27 @@ def _collect(db: Session) -> list[_FilmRecord]:
 # ── main export ──────────────────────────────────────────────────────────────
 
 def export_dataset(db: Session, out_dir: Path, *, seed: int = 42,
-                   ratios: tuple[float, float, float] = _DEFAULT_RATIOS) -> dict:
-    """Export the doctor-confirmed dataset to ``out_dir``. Returns the manifest dict."""
+                   ratios: tuple[float, float, float] = _DEFAULT_RATIOS,
+                   require_consent: bool = False) -> dict:
+    """Export the doctor-confirmed dataset to ``out_dir``. Returns the manifest dict.
+
+    ``require_consent`` (Plan 2 WI-9): when True, only positively-consented films are
+    exported; films with consent 'withheld' are excluded regardless. The excluded
+    count is recorded in the manifest — a non-consented film never reaches the dataset.
+    """
     if abs(sum(ratios) - 1.0) > 1e-6:
         raise ExportError(f"split ratios must sum to 1.0, got {ratios}")
 
     out_dir = Path(out_dir)
-    records = _collect(db)
+    all_records = _collect(db)
+    records = [r for r in all_records if _consent_ok(r.radiograph, require_consent)]
+    excluded_consent = len(all_records) - len(records)
     if not records:
         raise ExportError(
-            "no doctor-confirmed assessments to export. Stage at least one bone "
-            "and save an assessment first."
+            "no exportable assessments. Stage at least one bone and save an "
+            "assessment first"
+            + (f" (and {excluded_consent} film(s) were excluded by the consent gate)."
+               if excluded_consent else ".")
         )
 
     # Patient-level split over every patient that has a confirmed annotation.
@@ -380,7 +405,9 @@ def export_dataset(db: Session, out_dir: Path, *, seed: int = 42,
             "per_split_patients": {s: len(splits[s]) for s in _SPLITS},
             "multireader_films": consensus_summary["n_multireader_films"],
             "films_needing_adjudication": consensus_summary["films_needing_adjudication"],
+            "excluded_by_consent": excluded_consent,
         },
+        "require_consent": require_consent,
         "stage_systems_present": sorted({r.assessment.stage_system for r in records}),
         "notes": [
             "Patient-level splits — no child appears in two splits.",

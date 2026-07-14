@@ -74,6 +74,10 @@ class Radiograph(Base):
     # the doctor can correct it. Drives per-domain evaluation and warnings.
     source_domain: Mapped[str | None] = mapped_column(String(24), nullable=True)
     anonymisation_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Consent for using de-identified crops in offline training (Plan 2 WI-9):
+    # unknown | consented | research_ok | withheld. 'withheld' is ALWAYS excluded
+    # from export; strict positive-consent is opt-in via export require_consent.
+    consent_status: Mapped[str | None] = mapped_column(String(24), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
@@ -88,6 +92,11 @@ class TW3Assessment(Base):
     # 'tw3c-rus' (grades 1-8, 13 RUS, scoring on) or 'tw3-letters' (A-I, 20 bones,
     # scoring off until licensed tables exist).
     stage_system: Mapped[str] = mapped_column(String(24), default="tw3c-rus", nullable=False)
+    # Reader attribution (Plan 2 WI-1): who produced this read, and which
+    # independent-read round it is for the same film — enables multi-reader
+    # consensus + adjudication computed from real assessments, not just feedback.
+    reader_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    read_round: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     assessment_method: Mapped[str] = mapped_column(String(32), default="TW3-C-RUS")
     assessment_status: Mapped[str] = mapped_column(String(24), default="draft", nullable=False)
     total_rus_score: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -124,6 +133,7 @@ class BoneAssessment(Base):
     bone_code: Mapped[str] = mapped_column(String(16), nullable=False)
     bone_group: Mapped[str] = mapped_column(String(8), default="rus", nullable=False)  # rus | carpal
     doctor_stage: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    rater_id: Mapped[str | None] = mapped_column(String(120), nullable=True)  # who staged (Plan 2 WI-1)
     ai_suggested_stage: Mapped[str | None] = mapped_column(String(4), nullable=True)
     ai_stage_probabilities: Mapped[str | None] = mapped_column(Text, nullable=True)
     confirmed_stage: Mapped[str | None] = mapped_column(String(4), nullable=True)
@@ -189,6 +199,62 @@ class BoneAgeFeedback(Base):
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     application_version: Mapped[str | None] = mapped_column(String(16), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class ModelRelease(Base):
+    """Audit record of a gated model release (Plan 2 WI-7).
+
+    A "learned" model is a RELEASE CANDIDATE, never a live mutation. It ships only
+    when the Plan 5 release-gate engine passes (beat incumbent, no subgroup
+    regression, calibrated, engineering gates) AND a human signs off. Every
+    candidate — deployed, rejected, or awaiting sign-off — is recorded here so a
+    model change is always auditable and reproducible.
+    """
+
+    __tablename__ = "model_release"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    model_kind: Mapped[str] = mapped_column(String(16), nullable=False)  # screening|localizer|stager
+    version: Mapped[str] = mapped_column(String(64), nullable=False)
+    incumbent_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    dataset_manifest_checksum: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    beat_incumbent: Mapped[bool] = mapped_column(Boolean, default=False)
+    gates_passed: Mapped[bool] = mapped_column(Boolean, default=False)
+    verdict_passed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # candidate (passed gate, awaiting sign-off) | deployed | rejected
+    status: Mapped[str] = mapped_column(String(16), default="candidate", nullable=False)
+    signed_off_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    signed_off_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    metrics_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reasons: Mapped[str | None] = mapped_column(Text, nullable=True)
+    model_card_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    application_version: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class AdjudicationItem(Base):
+    """A bone whose independent reads disagree, queued for a senior read (Plan 2 WI-4).
+
+    Multi-rater staging of the SAME film is reduced to consensus (consensus.py); a
+    bone with no clear majority is NOT silently averaged — it lands here for a
+    qualified reviewer to resolve. The resolved label then takes precedence when the
+    training dataset is exported. ``film_key`` is a radiograph id or image hash (as a
+    string), so this works for both persisted and stateless-upload flows.
+    """
+
+    __tablename__ = "adjudication_item"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    film_key: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    stage_system: Mapped[str] = mapped_column(String(24), nullable=False)
+    bone_code: Mapped[str] = mapped_column(String(16), nullable=False)
+    votes_json: Mapped[str | None] = mapped_column(Text, nullable=True)   # {stage: count}
+    n_readers: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(12), default="open", nullable=False)  # open | resolved
+    resolved_stage: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
 
 
 def ensure_schema_version(engine: Engine) -> None:

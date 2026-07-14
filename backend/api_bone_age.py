@@ -89,6 +89,57 @@ def _curve_validation_summary(tables) -> dict:
     }
 
 
+def _letters_stream_config() -> dict:
+    """Original-TW3 letters stream config (Plan 1 WI-4): dynamic and gate-driven.
+
+    Scoring turns ON only when all FOUR licensed-table gates pass (values entered,
+    reference films reproduce, provenance documented, checksum locked). A checksum
+    failure disables scoring and discloses why -- it never 500s the whole config.
+    Per-bone allowed letters are the letters that actually have a licensed point
+    value once calibrated; otherwise the full A-I set (annotation only).
+    """
+    from backend.tw3.letters_scoring import (
+        LetterTablesError, letters_status, load_letter_tables)
+
+    def bones(stages_for) -> list:
+        return [
+            {"code": c, "label": (BONE_LABELS.get(c) or CARPAL_LABELS.get(c)),
+             "group": bone_group(c), "stages": list(stages_for(c))}
+            for c in (RUS_BONES + CARPAL_BONES)
+        ]
+
+    label = "Original TW3 letters (A–I) · 13 RUS + 7 carpals"
+    try:
+        lt = load_letter_tables()
+        st = letters_status()
+        ready = bool(st["scoring_ready"])
+        return {
+            "label": label,
+            "scoring_enabled": ready,
+            "letter_stages_unverified": not ready,
+            "gates": {
+                "any_calibrated": st["any_calibrated"],
+                "reference_cases_pass": st["reference_validation"]["all_passed"],
+                "provenance_complete": st["provenance_complete"],
+                "checksum_verified": st["checksum_verified"],
+            },
+            "note": None if ready else (
+                "Annotation only — RUS and carpal scores/ages stay '—' until the "
+                "clinic's licensed TW3 tables pass all four gates (values entered, "
+                "reference films reproduce, provenance documented, checksum locked)."),
+            "bones": bones(lt.allowed_letters if ready else (lambda _c: LETTER_STAGES)),
+        }
+    except LetterTablesError as exc:
+        return {
+            "label": label,
+            "scoring_enabled": False,
+            "letter_stages_unverified": True,
+            "error": str(exc),
+            "note": f"Licensed tables unavailable ({exc}); annotation only.",
+            "bones": bones(lambda _c: LETTER_STAGES),
+        }
+
+
 class ScoreRequest(BaseModel):
     sex: str = Field(..., description="'boys' or 'girls'")
     stages: dict[str, str] = Field(
@@ -134,20 +185,7 @@ def config() -> dict:
                     for c in RUS_BONES
                 ],
             },
-            StageSystem.TW3_LETTERS.value: {
-                "label": "Original TW3 letters (A–I) · 13 RUS + 7 carpals",
-                "scoring_enabled": False,
-                # Per-bone letter restrictions need the licensed original-TW3
-                # source, which the project does not have; every bone offers A–I.
-                "letter_stages_unverified": True,
-                "note": "Annotation only — RUS and carpal scores/ages stay '—' "
-                        "until the clinic's licensed TW3 tables are supplied.",
-                "bones": [
-                    {"code": c, "label": (BONE_LABELS.get(c) or CARPAL_LABELS.get(c)),
-                     "group": bone_group(c), "stages": list(LETTER_STAGES)}
-                    for c in (RUS_BONES + CARPAL_BONES)
-                ],
-            },
+            StageSystem.TW3_LETTERS.value: _letters_stream_config(),
         },
     }
 
@@ -403,6 +441,48 @@ def submit_feedback(req: FeedbackRequest, db: Session = Depends(get_db)) -> dict
         "ai_error_years": signed_err,  # + = AI under-estimated vs clinician
         "message": "Thanks — logged to improve accuracy. This does not change the patient's result.",
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Adjudication queue (Plan 2 WI-4): disputed per-bone stages queued for a senior
+# read instead of being silently averaged. Built on the pure consensus engine.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class AdjudicationRefreshRequest(BaseModel):
+    films: list[dict] = Field(
+        default_factory=list,
+        description="Independent reads: [{film_key, stage_system, stages:{bone:stage}}, ...]")
+
+
+@router.post("/adjudication/refresh")
+def adjudication_refresh(req: AdjudicationRefreshRequest, db: Session = Depends(get_db)) -> dict:
+    from backend.tw3 import adjudication
+    return adjudication.refresh_from_consensus(db, req.films)
+
+
+@router.get("/adjudication")
+def adjudication_list(status: Optional[str] = None, db: Session = Depends(get_db)) -> dict:
+    from backend.tw3 import adjudication
+    items = adjudication.list_items(db, status=status)
+    return {"count": len(items), "items": [adjudication.to_dict(i) for i in items]}
+
+
+class AdjudicationResolveRequest(BaseModel):
+    resolved_stage: str = Field(..., description="the reviewer's single chosen stage")
+    resolved_by: str = Field(..., description="the reviewing clinician")
+    reason: Optional[str] = None
+
+
+@router.post("/adjudication/{item_id}/resolve")
+def adjudication_resolve(item_id: int, req: AdjudicationResolveRequest,
+                         db: Session = Depends(get_db)) -> dict:
+    from backend.tw3 import adjudication
+    try:
+        item = adjudication.resolve(db, item_id, resolved_stage=req.resolved_stage,
+                                    resolved_by=req.resolved_by, reason=req.reason)
+    except adjudication.AdjudicationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"ok": True, **adjudication.to_dict(item)}
 
 
 def _mae(errs: list[float]) -> Optional[float]:

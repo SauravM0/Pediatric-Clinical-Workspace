@@ -36,9 +36,18 @@ _ADDED_COLUMNS: dict[str, dict[str, str]] = {
         "stage_system": "VARCHAR(24) NOT NULL DEFAULT 'tw3c-rus'",
         "total_carpal_score": "FLOAT",
         "carpal_bone_age_months": "INTEGER",
+        # schema v3 (Plan 2 WI-1): reader attribution for multi-reader consensus
+        "reader_id": "VARCHAR(120)",
+        "read_round": "INTEGER NOT NULL DEFAULT 1",
     },
-    "bone_assessment": {"bone_group": "VARCHAR(8) NOT NULL DEFAULT 'rus'"},
-    "radiograph": {"source_domain": "VARCHAR(24)"},
+    "bone_assessment": {
+        "bone_group": "VARCHAR(8) NOT NULL DEFAULT 'rus'",
+        "rater_id": "VARCHAR(120)",                 # schema v3 (Plan 2 WI-1)
+    },
+    "radiograph": {
+        "source_domain": "VARCHAR(24)",
+        "consent_status": "VARCHAR(24)",            # schema v3 (Plan 2 WI-9)
+    },
 }
 
 
