@@ -427,6 +427,43 @@ def report_html(db: Session, assessment_id: int, *, actor: str = "local-user") -
     return html
 
 
+# ── AI stage-suggestion activation gate (Plan 2 WI-8 wiring) ────────────────────
+
+def suggestion_activation(db: Session, *, sex: str = "all") -> dict:
+    """Per-bone: may an AI stage suggestion be shown? (label-quality gate.)
+
+    Cheap short-circuit until an auto-stager model exists — with no model, every
+    bone is "manual" and no coverage query runs. Once Plan 4 installs a stager, the
+    full gate applies: support (distinct patients/stage) ^ consensus agreement ^
+    validated calibration (backend.ai.suggestion_gate). Never fabricates a
+    suggestion; the doctor still confirms every bone.
+    """
+    from backend.ai import stage_classifier
+    from backend.ai.suggestion_gate import activation_map
+
+    installed = list(stage_classifier.available_bones() or [])
+    if not installed:
+        return {"any_model_installed": False, "n_allowed": 0, "decisions": {},
+                "note": "auto-staging model not installed — all bones manual"}
+
+    from backend.tw3.pipeline.export_dataset import coverage_report
+    calibrated = {b: bool((stage_classifier.model_metadata(b) or {}).get("calibrated"))
+                  for b in installed}
+    amap = activation_map(coverage_report(db), calibrated_bones=calibrated, sex=sex)
+    return {"any_model_installed": True, **amap}
+
+
+def _bone_suggestion_status(activation: dict, bone_code: str) -> dict:
+    """Compact per-bone read of the activation decision for the serializer."""
+    dec = (activation.get("decisions") or {}).get(bone_code)
+    if not activation.get("any_model_installed"):
+        return {"status": "manual", "reason": "auto-staging model not installed"}
+    if dec is None:
+        return {"status": "manual", "reason": "no coverage for this bone yet"}
+    return {"status": "eligible" if dec["allowed"] else "manual",
+            "reason": None if dec["allowed"] else "; ".join(dec["reasons"])}
+
+
 # ── Serialization ─────────────────────────────────────────────────────────────
 
 def assessment_to_dict(db: Session, a: TW3Assessment, *, include_audit: bool = False) -> dict:
@@ -440,6 +477,7 @@ def assessment_to_dict(db: Session, a: TW3Assessment, *, include_audit: bool = F
     bones_sorted = sorted(a.bones, key=lambda x: order.get(x.bone_code, len(order)))
     rus_done = sum(1 for b in a.bones if b.bone_group == "rus" and b.confirmed_stage)
     carpal_done = sum(1 for b in a.bones if b.bone_group == "carpal" and b.confirmed_stage)
+    activation = suggestion_activation(db, sex=a.sex_at_birth or "all")
 
     data = {
         "id": a.id,
@@ -476,6 +514,7 @@ def assessment_to_dict(db: Session, a: TW3Assessment, *, include_audit: bool = F
                 "bone_group": b.bone_group,
                 "confirmed_stage": b.confirmed_stage,
                 "ai_suggested_stage": b.ai_suggested_stage,
+                "ai_suggestion_status": _bone_suggestion_status(activation, b.bone_code),
                 "sex_specific_score": b.sex_specific_score,
                 "doctor_modified_ai_result": b.doctor_modified_ai_result,
                 "localisation_box": json.loads(b.localisation_box) if b.localisation_box else None,

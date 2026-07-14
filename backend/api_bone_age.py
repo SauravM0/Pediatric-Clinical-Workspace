@@ -491,6 +491,18 @@ def adjudication_resolve(item_id: int, req: AdjudicationResolveRequest,
 # runs offline (`python -m backend.ai.release`); this only exposes the audit trail.
 # ─────────────────────────────────────────────────────────────────────────────
 
+@router.get("/suggestion-activation")
+def suggestion_activation(sex: str = "all", db: Session = Depends(get_db)) -> dict:
+    """Per-bone AI stage-suggestion eligibility (Plan 2 WI-8 gate).
+
+    The live interlock Plan 4's stager must consult before showing a suggestion:
+    a bone qualifies only on support + consensus agreement + validated calibration.
+    Until an auto-stager model is installed, every bone is 'manual' (no suggestion).
+    """
+    from backend.assessment_service import suggestion_activation as _activation
+    return _activation(db, sex=sex)
+
+
 @router.get("/releases")
 def release_list(db: Session = Depends(get_db), limit: int = 50) -> dict:
     from backend.models import ModelRelease

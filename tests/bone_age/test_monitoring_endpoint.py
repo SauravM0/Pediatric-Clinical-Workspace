@@ -21,10 +21,14 @@ from backend.server import app
 @pytest.fixture(scope="module")
 def client():
     init_db()
-    # Seed 9 corrections: older reads are clean/high-error, recent reads are
-    # low-trust/low-error -> drift worsens, trend improves.
+    # These API test modules share one SQLite DB (the engine binds to the first
+    # module's TW3_DB_PATH). /monitoring aggregates the whole feedback table, so
+    # start from a clean feedback slate for deterministic counts/trend/drift.
     base = datetime(2026, 1, 1)
     with session_scope() as db:
+        db.query(BoneAgeFeedback).delete()
+        # Seed 9 corrections: older reads are clean/high-error, recent reads are
+        # low-trust/low-error -> drift worsens, trend improves.
         for i in range(9):
             recent = i >= 6
             db.add(BoneAgeFeedback(
