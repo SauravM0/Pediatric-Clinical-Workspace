@@ -10,9 +10,12 @@ import tempfile
 
 os.environ.setdefault("TW3_DB_PATH", os.path.join(tempfile.mkdtemp(), "release_test.db"))
 
+import json
+
 import pytest
 
-from backend.ai.release import CANDIDATE, DEPLOYED, REJECTED, decide_release, record_release
+from backend.ai.release import (CANDIDATE, DEPLOYED, REJECTED, decide_from_spec,
+                                decide_release, main, record_release)
 from backend.db import init_db, session_scope
 from backend.models import ModelRelease
 
@@ -84,3 +87,92 @@ def test_unknown_kind_raises():
     with pytest.raises(ValueError):
         decide_release(model_kind="magic", version="v", dataset="d",
                        targets=_TARGETS, candidate_preds=_CANDIDATE_WIN)
+
+
+# ── CLI entrypoint (PLAN-0 A1) — the harness consumes an evaluation artifact ──
+
+def _spec(**over) -> dict:
+    base = {"model_kind": "screening", "version": "v2", "dataset": "rsna-locked-test",
+            "incumbent_version": "v1", "targets": _TARGETS,
+            "candidate_preds": _CANDIDATE_WIN, "incumbent_preds": _INCUMBENT,
+            "min_improvement_months": 0.3}
+    base.update(over)
+    return base
+
+
+def test_decide_from_spec_requires_core_fields():
+    with pytest.raises(ValueError):
+        decide_from_spec({"model_kind": "screening"})  # missing targets/candidate_preds/...
+
+
+def test_cli_signed_off_winner_deploys_writes_card_and_records(tmp_path):
+    preds = tmp_path / "preds.json"
+    preds.write_text(json.dumps(_spec(version="v2cli")), encoding="utf-8")
+    card = tmp_path / "card.json"
+
+    rc = main([str(preds), "--sign-off", "Dr Rao", "--card-out", str(card)])
+
+    assert rc == 0
+    assert card.exists()
+    saved = json.loads(card.read_text(encoding="utf-8"))
+    assert saved["gate_passed"] is True and saved["version"] == "v2cli"
+    with session_scope() as db:
+        row = db.query(ModelRelease).filter_by(version="v2cli", status=DEPLOYED).first()
+        assert row is not None and row.signed_off_by == "Dr Rao"
+        assert row.model_card_path == str(card)
+
+
+def test_cli_no_signoff_stays_candidate_never_auto_promotes(tmp_path):
+    preds = tmp_path / "preds.json"
+    preds.write_text(json.dumps(_spec(version="v3")), encoding="utf-8")
+
+    rc = main([str(preds), "--card-out", str(tmp_path / "c.json")])
+
+    assert rc == 0   # passed the gate, but no sign-off => candidate, not deployed
+    with session_scope() as db:
+        row = db.query(ModelRelease).filter_by(version="v3").first()
+        assert row.status == CANDIDATE and row.signed_off_at is None
+
+
+def test_cli_gate_breach_rejects_and_exits_nonzero(tmp_path):
+    # candidate MAE ~10mo > 6mo engineering gate -> rejected regardless of sign-off.
+    breach = _spec(version="v4", incumbent_preds=[t + 30 for t in _TARGETS],
+                   candidate_preds=[t + 10 for t in _TARGETS])
+    preds = tmp_path / "preds.json"
+    preds.write_text(json.dumps(breach), encoding="utf-8")
+
+    rc = main([str(preds), "--sign-off", "Dr Rao", "--card-out", str(tmp_path / "c.json")])
+
+    assert rc == 1
+    with session_scope() as db:
+        row = db.query(ModelRelease).filter_by(version="v4").first()
+        assert row.status == REJECTED and row.signed_off_by is None
+
+
+def test_cli_dry_run_writes_card_but_does_not_record(tmp_path):
+    preds = tmp_path / "preds.json"
+    preds.write_text(json.dumps(_spec(version="v5")), encoding="utf-8")
+    card = tmp_path / "c.json"
+
+    rc = main([str(preds), "--sign-off", "Dr Rao", "--dry-run", "--card-out", str(card)])
+
+    assert rc == 0 and card.exists()
+    with session_scope() as db:
+        assert db.query(ModelRelease).filter_by(version="v5").first() is None
+
+
+def test_releases_endpoint_lists_recorded_decisions(tmp_path):
+    from fastapi.testclient import TestClient
+    from backend.server import app
+
+    # record one via the CLI, then read it back through the audit endpoint.
+    preds = tmp_path / "preds.json"
+    preds.write_text(json.dumps(_spec(version="v6")), encoding="utf-8")
+    main([str(preds), "--sign-off", "Dr Rao", "--card-out", str(tmp_path / "c.json")])
+
+    body = TestClient(app).get("/api/bone-age/releases").json()
+    assert body["count"] >= 1
+    versions = {r["version"] for r in body["releases"]}
+    assert "v6" in versions
+    v6 = next(r for r in body["releases"] if r["version"] == "v6")
+    assert v6["status"] == DEPLOYED and v6["verdict_passed"] is True

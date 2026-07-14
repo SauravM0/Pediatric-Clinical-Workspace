@@ -485,6 +485,34 @@ def adjudication_resolve(item_id: int, req: AdjudicationResolveRequest,
     return {"ok": True, **adjudication.to_dict(item)}
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Model releases (Plan 2 WI-7): read-only audit of every gated release decision.
+# A model is a RELEASE CANDIDATE, never a live mutation — the actual gate + record
+# runs offline (`python -m backend.ai.release`); this only exposes the audit trail.
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/releases")
+def release_list(db: Session = Depends(get_db), limit: int = 50) -> dict:
+    from backend.models import ModelRelease
+    rows = list(db.execute(
+        select(ModelRelease).order_by(ModelRelease.created_at.desc()).limit(limit)).scalars())
+    return {
+        "count": len(rows),
+        "releases": [{
+            "id": r.id, "model_kind": r.model_kind, "version": r.version,
+            "incumbent_version": r.incumbent_version, "status": r.status,
+            "verdict_passed": r.verdict_passed, "beat_incumbent": r.beat_incumbent,
+            "gates_passed": r.gates_passed, "signed_off_by": r.signed_off_by,
+            "signed_off_at": r.signed_off_at.isoformat() if r.signed_off_at else None,
+            "dataset_manifest_checksum": r.dataset_manifest_checksum,
+            "model_card_path": r.model_card_path,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        } for r in rows],
+        "note": ("Every candidate — deployed, rejected, or awaiting sign-off — is recorded. "
+                 "No model auto-promotes; deployment needs a passing gate AND a human signer."),
+    }
+
+
 def _mae(errs: list[float]) -> Optional[float]:
     return round(statistics.fmean(errs), 2) if errs else None
 

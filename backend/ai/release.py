@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional, Sequence
 
 from backend.ai.validation.release_gate import Verdict, evaluate_candidate
@@ -138,3 +139,88 @@ def record_release(db, decision: ReleaseDecision, *, model_kind: str, version: s
     db.add(row)
     db.flush()
     return row
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Offline CLI entrypoint (PLAN-0 A1).
+#
+# The harness never invents predictions. It consumes an EVALUATION ARTIFACT — the
+# candidate's (and incumbent's) predictions on the LOCKED test set, produced by an
+# offline evaluation run (Phase C/D/E) — decides the release via the Plan 5 gate,
+# writes a model card, and records the decision to the ModelRelease audit table.
+#
+#   python -m backend.ai.release preds.json --sign-off "Dr Rao" --card-out card.json
+#
+# preds.json (the artifact):
+#   { "model_kind": "screening", "version": "v2", "dataset": "rsna-locked-test",
+#     "incumbent_version": "v1", "dataset_manifest_checksum": "sha256…",
+#     "targets": [...], "candidate_preds": [...], "incumbent_preds": [...],
+#     "groups": [...]?, "intervals": [[lo,hi],...]?, "target_coverage": 0.9?,
+#     "min_improvement_months": 0.3?, "subgroup_regression_tol_months": 0.0?,
+#     "external": false? }
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Keys of the artifact forwarded verbatim to decide_release (besides sign-off,
+# which comes from the CLI so a human — not a file — authorises deployment).
+_SPEC_KEYS = (
+    "model_kind", "version", "dataset", "incumbent_version",
+    "targets", "candidate_preds", "incumbent_preds",
+    "groups", "intervals", "target_coverage",
+    "min_improvement_months", "subgroup_regression_tol_months", "external",
+)
+
+
+def decide_from_spec(spec: Mapping[str, Any], *, signed_off_by: Optional[str] = None) -> ReleaseDecision:
+    """Run the gate for an evaluation artifact dict (does not persist)."""
+    kwargs = {k: spec[k] for k in _SPEC_KEYS if k in spec}
+    for required in ("model_kind", "version", "dataset", "targets", "candidate_preds"):
+        if required not in kwargs:
+            raise ValueError(f"evaluation artifact is missing required field {required!r}")
+    return decide_release(signed_off_by=signed_off_by, **kwargs)
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    """Gate + record a candidate from an evaluation artifact. Exit 1 if rejected."""
+    import argparse
+
+    ap = argparse.ArgumentParser(
+        prog="python -m backend.ai.release",
+        description="Offline gated-release harness: gate a candidate model against the "
+                    "incumbent on the locked test set and record the decision.")
+    ap.add_argument("predictions", help="path to the evaluation-artifact JSON (see module docstring)")
+    ap.add_argument("--sign-off", dest="signed_off_by", default=None,
+                    help="named human signer; deployment requires BOTH a passing gate and this")
+    ap.add_argument("--card-out", dest="card_out", default=None,
+                    help="where to write the model card JSON (default: alongside the artifact)")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="run the gate and write the card but do NOT record to the DB")
+    args = ap.parse_args(argv)
+
+    spec = json.loads(Path(args.predictions).read_text(encoding="utf-8"))
+    decision = decide_from_spec(spec, signed_off_by=args.signed_off_by)
+
+    card_path = Path(args.card_out) if args.card_out else Path(args.predictions).with_suffix(".card.json")
+    card_path.write_text(json.dumps(decision.model_card, indent=2), encoding="utf-8")
+
+    print(f"model_kind={spec.get('model_kind')} version={spec.get('version')}")
+    print(f"verdict: {'PASS' if decision.verdict.passed else 'FAIL'}  ->  status={decision.status}")
+    for reason in decision.verdict.reasons:
+        print(f"  - {reason}")
+    print(f"model card: {card_path}")
+
+    if not args.dry_run:
+        from backend.db import session_scope
+        with session_scope() as db:
+            row = record_release(
+                db, decision, model_kind=spec["model_kind"], version=spec["version"],
+                incumbent_version=spec.get("incumbent_version"),
+                dataset_manifest_checksum=spec.get("dataset_manifest_checksum"),
+                signed_off_by=args.signed_off_by, model_card_path=str(card_path))
+            print(f"recorded ModelRelease id={row.id} status={row.status}")
+
+    return 1 if decision.status == REJECTED else 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    import sys
+    sys.exit(main())
