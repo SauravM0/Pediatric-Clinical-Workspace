@@ -1,0 +1,13 @@
+{
+  "_about": "Encoded engineering gates (Plan 5 WI-5) from bone_age_product_starter_pack/validation_protocol.md §6. These are product-development targets, NOT regulatory acceptance criteria. Thresholds are versioned here (not inline in code) so a change is a reviewed, logged event. Measured on the LOCKED test set.",
+  "protocol_version": "gates-1.0",
+  "whole_hand": {
+    "max_mae_months": 6.0,
+    "max_subgroup_mae_months": 9.0,
+    "min_pct_within_12mo": 90.0
+  },
+  "staging": {
+    "min_overall_weighted_kappa": 0.80,
+    "min_bone_weighted_kappa": 0.70
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "_about": "Frozen locked-test registry (Plan 5 WI-1). The single source of truth for which patients/images are OFF-LIMITS to training, tuning, feedback, and conformal calibration. This shipped file is an EMPTY TEMPLATE — no real test set is frozen yet (see PLAN-5 open decision #1: carve an internal RSNA locked test distinct from the conformal val split). Populate patient_ids + image_hashes, then lock it: they are checksum-verified on load. Nothing here identifies a patient; ids are opaque group keys and content hashes.",
+  "dataset": "TEMPLATE",
+  "source": "TEMPLATE",
+  "frozen_at": "",
+  "patient_ids": [],
+  "image_hashes": []
+}
