@@ -1,0 +1,403 @@
+{
+  "report_type": "bone-age-validation-report-1.0",
+  "generated_at": "2026-07-14T17:40:19+00:00",
+  "protocol_version": "validation-protocol-1.0",
+  "model_version": "boneage-gp-mnv3s-ft-colab-2026-07-05",
+  "dataset": "rsna-bone-age-validation-2017 (1425 held-out images)",
+  "external_validation": false,
+  "provenance": {
+    "model_version": "boneage-gp-mnv3s-ft-colab-2026-07-05",
+    "model_file": "boneage_gp.onnx",
+    "trained_on": "RSNA full (Colab 224px)",
+    "locked_test_dataset": "rsna-bone-age-validation-2017 (1425 held-out images)",
+    "locked_test_source": "internal-rsna",
+    "locked_test_checksum": "afa2cf24aa3004a893d2cb977c52c3fb67c97f310f4a2cb0b2334eceae1eaa94",
+    "locked_test_frozen_at": "2026-07-14T17:39:25+00:00",
+    "n_test": 1425,
+    "leak_guard": "passed \u2014 locked test disjoint from training"
+  },
+  "headline": {
+    "mae_months": 8.993,
+    "pct_within_12mo": 75.65,
+    "gates_passed": false
+  },
+  "whole_hand": {
+    "n": 1425,
+    "mae_months": 8.993,
+    "median_ae_months": 7.0,
+    "rmse_months": 11.753,
+    "signed_bias_months": -0.84,
+    "signed_bias_ci95_months": [
+      -1.493,
+      -0.209
+    ],
+    "bland_altman": {
+      "mean_diff_months": -0.84,
+      "sd_diff_months": 11.727,
+      "loa_lower_months": -23.826,
+      "loa_upper_months": 22.146
+    },
+    "pct_within_months": {
+      "3": 26.04,
+      "6": 45.05,
+      "9": 62.04,
+      "12": 75.65
+    },
+    "coverage": {
+      "empirical": 0.8947,
+      "n_covered": 1275,
+      "n": 1425,
+      "target": 0.9,
+      "meets_target": false
+    }
+  },
+  "subgroups": {
+    "overall": {
+      "n": 1425,
+      "mae_months": 8.993,
+      "median_ae_months": 7.0,
+      "rmse_months": 11.753,
+      "signed_bias_months": -0.84,
+      "signed_bias_ci95_months": [
+        -1.493,
+        -0.209
+      ],
+      "bland_altman": {
+        "mean_diff_months": -0.84,
+        "sd_diff_months": 11.727,
+        "loa_lower_months": -23.826,
+        "loa_upper_months": 22.146
+      },
+      "pct_within_months": {
+        "3": 26.04,
+        "6": 45.05,
+        "9": 62.04,
+        "12": 75.65
+      }
+    },
+    "subgroups": [
+      {
+        "group": {
+          "sex": "boys",
+          "age_band": "0-5y"
+        },
+        "n": 66,
+        "mae_months": 11.212,
+        "median_ae_months": 10.0,
+        "rmse_months": 13.401,
+        "signed_bias_months": 9.152,
+        "signed_bias_ci95_months": [
+          6.803,
+          11.561
+        ],
+        "bland_altman": {
+          "mean_diff_months": 9.152,
+          "sd_diff_months": 9.864,
+          "loa_lower_months": -10.182,
+          "loa_upper_months": 28.485
+        },
+        "pct_within_months": {
+          "3": 13.64,
+          "6": 27.27,
+          "9": 45.45,
+          "12": 63.64
+        }
+      },
+      {
+        "group": {
+          "sex": "boys",
+          "age_band": ">12-15y"
+        },
+        "n": 338,
+        "mae_months": 6.817,
+        "median_ae_months": 5.0,
+        "rmse_months": 8.996,
+        "signed_bias_months": -3.041,
+        "signed_bias_ci95_months": [
+          -3.982,
+          -2.083
+        ],
+        "bland_altman": {
+          "mean_diff_months": -3.041,
+          "sd_diff_months": 8.479,
+          "loa_lower_months": -19.66,
+          "loa_upper_months": 13.577
+        },
+        "pct_within_months": {
+          "3": 36.09,
+          "6": 57.1,
+          "9": 73.67,
+          "12": 86.09
+        }
+      },
+      {
+        "group": {
+          "sex": "boys",
+          "age_band": ">15-18y"
+        },
+        "n": 66,
+        "mae_months": 10.121,
+        "median_ae_months": 9.0,
+        "rmse_months": 12.01,
+        "signed_bias_months": -6.455,
+        "signed_bias_ci95_months": [
+          -8.833,
+          -4.03
+        ],
+        "bland_altman": {
+          "mean_diff_months": -6.455,
+          "sd_diff_months": 10.206,
+          "loa_lower_months": -26.458,
+          "loa_upper_months": 13.549
+        },
+        "pct_within_months": {
+          "3": 15.15,
+          "6": 34.85,
+          "9": 53.03,
+          "12": 69.7
+        }
+      },
+      {
+        "group": {
+          "sex": "boys",
+          "age_band": ">5-8y"
+        },
+        "n": 94,
+        "mae_months": 9.372,
+        "median_ae_months": 8.0,
+        "rmse_months": 11.866,
+        "signed_bias_months": 3.117,
+        "signed_bias_ci95_months": [
+          0.893,
+          5.372
+        ],
+        "bland_altman": {
+          "mean_diff_months": 3.117,
+          "sd_diff_months": 11.51,
+          "loa_lower_months": -19.444,
+          "loa_upper_months": 25.678
+        },
+        "pct_within_months": {
+          "3": 26.6,
+          "6": 41.49,
+          "9": 54.26,
+          "12": 71.28
+        }
+      },
+      {
+        "group": {
+          "sex": "boys",
+          "age_band": ">8-12y"
+        },
+        "n": 209,
+        "mae_months": 10.34,
+        "median_ae_months": 8.0,
+        "rmse_months": 13.228,
+        "signed_bias_months": -2.904,
+        "signed_bias_ci95_months": [
+          -4.641,
+          -1.167
+        ],
+        "bland_altman": {
+          "mean_diff_months": -2.904,
+          "sd_diff_months": 12.936,
+          "loa_lower_months": -28.259,
+          "loa_upper_months": 22.45
+        },
+        "pct_within_months": {
+          "3": 20.1,
+          "6": 38.28,
+          "9": 56.46,
+          "12": 69.38
+        }
+      },
+      {
+        "group": {
+          "sex": "girls",
+          "age_band": "0-5y"
+        },
+        "n": 59,
+        "mae_months": 7.932,
+        "median_ae_months": 6.0,
+        "rmse_months": 10.597,
+        "signed_bias_months": 2.542,
+        "signed_bias_ci95_months": [
+          -0.017,
+          5.169
+        ],
+        "bland_altman": {
+          "mean_diff_months": 2.542,
+          "sd_diff_months": 10.376,
+          "loa_lower_months": -17.795,
+          "loa_upper_months": 22.88
+        },
+        "pct_within_months": {
+          "3": 28.81,
+          "6": 52.54,
+          "9": 72.88,
+          "12": 77.97
+        }
+      },
+      {
+        "group": {
+          "sex": "girls",
+          "age_band": ">12-15y"
+        },
+        "n": 124,
+        "mae_months": 10.016,
+        "median_ae_months": 8.0,
+        "rmse_months": 13.351,
+        "signed_bias_months": -6.839,
+        "signed_bias_ci95_months": [
+          -8.758,
+          -4.798
+        ],
+        "bland_altman": {
+          "mean_diff_months": -6.839,
+          "sd_diff_months": 11.513,
+          "loa_lower_months": -29.404,
+          "loa_upper_months": 15.726
+        },
+        "pct_within_months": {
+          "3": 24.19,
+          "6": 45.16,
+          "9": 56.45,
+          "12": 70.97
+        }
+      },
+      {
+        "group": {
+          "sex": "girls",
+          "age_band": ">15-18y"
+        },
+        "n": 17,
+        "mae_months": 15.941,
+        "median_ae_months": 14.0,
+        "rmse_months": 19.154,
+        "signed_bias_months": -15.118,
+        "signed_bias_ci95_months": [
+          -20.765,
+          -10.0
+        ],
+        "bland_altman": {
+          "mean_diff_months": -15.118,
+          "sd_diff_months": 12.124,
+          "loa_lower_months": -38.88,
+          "loa_upper_months": 8.645
+        },
+        "pct_within_months": {
+          "3": 11.76,
+          "6": 11.76,
+          "9": 41.18,
+          "12": 47.06
+        }
+      },
+      {
+        "group": {
+          "sex": "girls",
+          "age_band": ">5-8y"
+        },
+        "n": 150,
+        "mae_months": 9.873,
+        "median_ae_months": 8.0,
+        "rmse_months": 12.958,
+        "signed_bias_months": 3.327,
+        "signed_bias_ci95_months": [
+          1.333,
+          5.407
+        ],
+        "bland_altman": {
+          "mean_diff_months": 3.327,
+          "sd_diff_months": 12.566,
+          "loa_lower_months": -21.302,
+          "loa_upper_months": 27.956
+        },
+        "pct_within_months": {
+          "3": 22.0,
+          "6": 40.0,
+          "9": 59.33,
+          "12": 72.0
+        }
+      },
+      {
+        "group": {
+          "sex": "girls",
+          "age_band": ">8-12y"
+        },
+        "n": 302,
+        "mae_months": 8.606,
+        "median_ae_months": 7.0,
+        "rmse_months": 11.242,
+        "signed_bias_months": 1.401,
+        "signed_bias_ci95_months": [
+          0.109,
+          2.633
+        ],
+        "bland_altman": {
+          "mean_diff_months": 1.401,
+          "sd_diff_months": 11.173,
+          "loa_lower_months": -20.499,
+          "loa_upper_months": 23.3
+        },
+        "pct_within_months": {
+          "3": 26.82,
+          "6": 46.36,
+          "9": 63.58,
+          "12": 78.48
+        }
+      }
+    ],
+    "worst_subgroup": {
+      "group": {
+        "sex": "girls",
+        "age_band": ">15-18y"
+      },
+      "mae_months": 15.941
+    }
+  },
+  "staging": null,
+  "gates": {
+    "protocol_version": "gates-1.0",
+    "gates": [
+      {
+        "gate": "whole_hand.mae",
+        "measured": 8.993,
+        "threshold": 6.0,
+        "comparator": "<=",
+        "status": "fail"
+      },
+      {
+        "gate": "whole_hand.subgroup_mae",
+        "measured": 15.941,
+        "threshold": 9.0,
+        "comparator": "<=",
+        "status": "fail"
+      },
+      {
+        "gate": "whole_hand.pct_within_12mo",
+        "measured": 75.65,
+        "threshold": 90.0,
+        "comparator": ">=",
+        "status": "fail"
+      },
+      {
+        "gate": "staging.overall_weighted_kappa",
+        "measured": null,
+        "threshold": 0.8,
+        "comparator": ">=",
+        "status": "not_measured"
+      },
+      {
+        "gate": "staging.min_bone_weighted_kappa",
+        "measured": null,
+        "threshold": 0.7,
+        "comparator": ">=",
+        "status": "not_measured"
+      }
+    ],
+    "passed": false,
+    "n_fail": 3,
+    "n_not_measured": 2
+  },
+  "disclaimer": "Internal validation only. A passing internal test is NOT a clinical accuracy claim; external, expert-consensus, subgroup-stratified validation on the target population is required before any patient-facing accuracy statement."
+}

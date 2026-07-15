@@ -1,0 +1,28 @@
+<!-- validation report (Plan 5 WI-7) -->
+<style>
+  .vr { font-family: system-ui, sans-serif; max-width: 860px; }
+  .vr table { border-collapse: collapse; width: 100%; margin: 6px 0 18px; }
+  .vr td, .vr th { border: 1px solid #d0d7de; padding: 4px 8px; font-size: 14px; }
+  .vr h2 { font-size: 16px; margin: 18px 0 4px; }
+  .vr .muted { color: #57606a; font-size: 13px; }
+</style>
+<div class="vr">
+  <h1>Bone-age validation report</h1>
+  <p class="muted">bone-age-validation-report-1.0 · model boneage-gp-mnv3s-ft-colab-2026-07-05 ·
+     dataset rsna-bone-age-validation-2017 (1425 held-out images) · 2026-07-14T17:40:19+00:00</p>
+  <p><strong>Gate verdict:</strong>
+     <span style="color:#fff;background:#cf222e;padding:2px 10px;border-radius:12px">FAIL</span>
+     &nbsp; MAE 8.993 mo &nbsp;·&nbsp; ±12mo 75.65%
+     &nbsp;·&nbsp; INTERNAL</p>
+
+  <h2>Whole-hand metrics</h2><table><tr><td>N</td><td style='text-align:right'>1425</td></tr><tr><td>MAE (months)</td><td style='text-align:right'>8.993</td></tr><tr><td>Median AE</td><td style='text-align:right'>7.0</td></tr><tr><td>RMSE</td><td style='text-align:right'>11.753</td></tr><tr><td>Signed bias</td><td style='text-align:right'>-0.84</td></tr></table>
+  <h2>Agreement (% within)</h2><table><tr><td>±3 mo</td><td style='text-align:right'>26.04%</td></tr><tr><td>±6 mo</td><td style='text-align:right'>45.05%</td></tr><tr><td>±9 mo</td><td style='text-align:right'>62.04%</td></tr><tr><td>±12 mo</td><td style='text-align:right'>75.65%</td></tr></table>
+  <h2>Bland–Altman</h2><table><tr><td>Mean diff</td><td style='text-align:right'>-0.84</td></tr><tr><td>SD diff</td><td style='text-align:right'>11.727</td></tr><tr><td>LoA lower</td><td style='text-align:right'>-23.826</td></tr><tr><td>LoA upper</td><td style='text-align:right'>22.146</td></tr></table>
+  <h2>Subgroups</h2>
+  <table><tr><th>Group</th><th>N</th><th>MAE (mo)</th><th>±12mo</th></tr><tr><td>sex=boys, age_band=0-5y</td><td>66</td><td style='text-align:right'>11.212</td><td style='text-align:right'>63.64%</td></tr><tr><td>sex=boys, age_band=&gt;12-15y</td><td>338</td><td style='text-align:right'>6.817</td><td style='text-align:right'>86.09%</td></tr><tr><td>sex=boys, age_band=&gt;15-18y</td><td>66</td><td style='text-align:right'>10.121</td><td style='text-align:right'>69.7%</td></tr><tr><td>sex=boys, age_band=&gt;5-8y</td><td>94</td><td style='text-align:right'>9.372</td><td style='text-align:right'>71.28%</td></tr><tr><td>sex=boys, age_band=&gt;8-12y</td><td>209</td><td style='text-align:right'>10.34</td><td style='text-align:right'>69.38%</td></tr><tr><td>sex=girls, age_band=0-5y</td><td>59</td><td style='text-align:right'>7.932</td><td style='text-align:right'>77.97%</td></tr><tr><td>sex=girls, age_band=&gt;12-15y</td><td>124</td><td style='text-align:right'>10.016</td><td style='text-align:right'>70.97%</td></tr><tr><td>sex=girls, age_band=&gt;15-18y</td><td>17</td><td style='text-align:right'>15.941</td><td style='text-align:right'>47.06%</td></tr><tr><td>sex=girls, age_band=&gt;5-8y</td><td>150</td><td style='text-align:right'>9.873</td><td style='text-align:right'>72.0%</td></tr><tr><td>sex=girls, age_band=&gt;8-12y</td><td>302</td><td style='text-align:right'>8.606</td><td style='text-align:right'>78.48%</td></tr></table>
+  <p class="muted">Worst subgroup: {&#x27;group&#x27;: {&#x27;sex&#x27;: &#x27;girls&#x27;, &#x27;age_band&#x27;: &#x27;&gt;15-18y&#x27;}, &#x27;mae_months&#x27;: 15.941}</p>
+  <h2>Engineering gates</h2>
+  <table><tr><th>Gate</th><th>Measured</th><th>Threshold</th><th>Status</th></tr><tr><td>whole_hand.mae</td><td style='text-align:right'>8.993</td><td style='text-align:right'>&lt;= 6.0</td><td><span style="color:#fff;background:#cf222e;padding:1px 7px;border-radius:10px;font-size:12px">fail</span></td></tr><tr><td>whole_hand.subgroup_mae</td><td style='text-align:right'>15.941</td><td style='text-align:right'>&lt;= 9.0</td><td><span style="color:#fff;background:#cf222e;padding:1px 7px;border-radius:10px;font-size:12px">fail</span></td></tr><tr><td>whole_hand.pct_within_12mo</td><td style='text-align:right'>75.65</td><td style='text-align:right'>&gt;= 90.0</td><td><span style="color:#fff;background:#cf222e;padding:1px 7px;border-radius:10px;font-size:12px">fail</span></td></tr><tr><td>staging.overall_weighted_kappa</td><td style='text-align:right'></td><td style='text-align:right'>&gt;= 0.8</td><td><span style="color:#fff;background:#9a6700;padding:1px 7px;border-radius:10px;font-size:12px">not_measured</span></td></tr><tr><td>staging.min_bone_weighted_kappa</td><td style='text-align:right'></td><td style='text-align:right'>&gt;= 0.7</td><td><span style="color:#fff;background:#9a6700;padding:1px 7px;border-radius:10px;font-size:12px">not_measured</span></td></tr></table>
+  <h2>Provenance</h2><table><tr><td>model_version</td><td>boneage-gp-mnv3s-ft-colab-2026-07-05</td></tr><tr><td>model_file</td><td>boneage_gp.onnx</td></tr><tr><td>trained_on</td><td>RSNA full (Colab 224px)</td></tr><tr><td>locked_test_dataset</td><td>rsna-bone-age-validation-2017 (1425 held-out images)</td></tr><tr><td>locked_test_source</td><td>internal-rsna</td></tr><tr><td>locked_test_checksum</td><td>afa2cf24aa3004a893d2cb977c52c3fb67c97f310f4a2cb0b2334eceae1eaa94</td></tr><tr><td>locked_test_frozen_at</td><td>2026-07-14T17:39:25+00:00</td></tr><tr><td>n_test</td><td>1425</td></tr><tr><td>leak_guard</td><td>passed — locked test disjoint from training</td></tr></table>
+  <p class="muted"><strong>Disclaimer.</strong> Internal validation only. A passing internal test is NOT a clinical accuracy claim; external, expert-consensus, subgroup-stratified validation on the target population is required before any patient-facing accuracy statement.</p>
+</div>
