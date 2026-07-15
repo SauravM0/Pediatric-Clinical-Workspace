@@ -313,7 +313,21 @@ branch with clean commits is simpler to review. No push/PR unless you ask.
   - A5: guard test locking the single release path (gate + sign-off required; no bypass).
   - End state: **142 bone-age tests green**; orphan list cleared (only `predict_stage`
     stays unwired — correctly, it is Plan 4 and needs a trained model).
-- **Phases B–F:** not started (asset/GPU/cohort-gated per §6).
+- **Phase C — DONE (2026-07-14).** Validation spine made real; the release gate now
+  measures against a genuine held-out baseline.
+  - C1: carved the RSNA validation set (1,425 held-out images) into a checksum-locked
+    `locked_test.json`; verified against the real image files that it is disjoint from
+    all 12,611 training images (0 id/hash overlap). `carve_locked_test.py` +
+    `rsna_data.py`; leak-guard tests (planted overlap refuses; tamper detected).
+  - C2: ran the shipped ONNX over the locked test via the real inference path →
+    first held-out baseline ValidationReport. **MAE 8.99 mo** (vs 8.6 internal),
+    median 7.0, 75.7% within ±12mo, conformal coverage 89.5% vs 90% target, worst
+    subgroup **girls 15–18y at 15.9 mo**; all whole-hand engineering gates fail (as
+    expected — documents the Plan 3 target). Artifact committed under `reports/`.
+  - 146 bone-age tests green.
+- **Phases B, D, E, F:** not started (asset/GPU/cohort-gated per §6). Phase D (screening
+  retrain) now has its target: beat MAE 8.99 on this locked test, fix the girls-15–18
+  subgroup, and restore ≥90% conformal coverage.
 
 ## 8. Honest ceiling (unchanged, restated so no phase overclaims)
 
