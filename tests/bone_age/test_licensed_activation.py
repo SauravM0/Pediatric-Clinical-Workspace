@@ -20,65 +20,15 @@ from fastapi.testclient import TestClient
 
 import backend.tw3.letters_scoring as ls
 from backend.server import app
-from backend.tw3 import CARPAL_BONES, LETTER_STAGES, RUS_BONES
-
-_LETTERS = list(LETTER_STAGES)  # A..I
-_PROV = {
-    "book_title": "SYNTHETIC fixture (NOT a real TW3 book)",
-    "edition": "test-1",
-    "isbn": "",
-    "licensed_owner": "Unit Test Clinic",
-    "pages": "n/a",
-    "entered_by": "test",
-    "verified_by": "test-2",
-    "verification_date": "2026-07-13",
-}
-
-
-def _points() -> dict:
-    """letter -> points, A dropped so allowed_letters is provably DERIVED (B..I)."""
-    return {L: float(i + 1) for i, L in enumerate(_LETTERS) if L != "A"}  # B=2 .. I=9
-
-
-def _synthetic_table() -> dict:
-    girls_rus = {b: _points() for b in RUS_BONES}       # 13 bones
-    girls_carpal = {c: _points() for c in CARPAL_BONES}  # 7 bones
-    return {
-        "method": "TW3-letters",
-        "version": "SYNTHETIC-NONCLINICAL-1",
-        "source_reference": "SYNTHETIC fixture — NOT real TW3 values",
-        "provenance": _PROV,
-        "rus_stage_to_score": {"girls": girls_rus},
-        "carpal_stage_to_score": {"girls": girls_carpal},
-        # linear score->age so reference cases are exact:
-        #   all-H RUS = 13*8 = 104 -> 13.75y ; all-I RUS = 13*9 = 117 -> 15.0y
-        "rus_score_to_age": {"twiii": {"girls": [[13, 5.0], [117, 15.0]]},
-                             "twii": {"girls": [[13, 4.0], [117, 16.0]]}},
-        #   all-G carpal = 7*7 = 49 -> 11.5y ; all-I carpal = 7*9 = 63 -> 14.0y
-        "carpal_score_to_age": {"twiii": {"girls": [[7, 4.0], [63, 14.0]]},
-                                "twii": {"girls": [[7, 3.0], [63, 15.0]]}},
-        "reference_cases": [
-            {"id": "ref-1", "sex": "girls",
-             "rus_stages": {b: "H" for b in RUS_BONES},
-             "carpal_stages": {c: "G" for c in CARPAL_BONES},
-             "expected": {"rus_score": 104, "twiii_rus_age_years": 13.75,
-                          "carpal_score": 49, "twiii_carpal_age_years": 11.5},
-             "tolerance_years": 0.3},
-            {"id": "ref-2", "sex": "girls",
-             "rus_stages": {b: "I" for b in RUS_BONES},
-             "carpal_stages": {c: "I" for c in CARPAL_BONES},
-             "expected": {"rus_score": 117, "twiii_rus_age_years": 15.0,
-                          "carpal_score": 63, "twiii_carpal_age_years": 14.0},
-             "tolerance_years": 0.3},
-        ],
-    }
+from backend.tw3 import CARPAL_BONES, RUS_BONES
+from backend.tw3.dev_fixtures import synthetic_letters_table
 
 
 @pytest.fixture
 def fixture_path(tmp_path, monkeypatch):
     p = tmp_path / "letters_tables.json"
-    ls.save_letter_tables(_synthetic_table(), p)     # validates + writes checksum
-    monkeypatch.setattr(ls, "_TABLES_PATH", p)       # point the whole app at it
+    ls.save_letter_tables(synthetic_letters_table(), p)  # validates + writes checksum
+    monkeypatch.setattr(ls, "_TABLES_PATH", p)           # point the whole app at it
     return p
 
 

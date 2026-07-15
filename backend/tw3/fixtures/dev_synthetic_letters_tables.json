@@ -1,0 +1,348 @@
+{
+  "method": "TW3-letters",
+  "version": "SYNTHETIC-NONCLINICAL-1",
+  "source_reference": "SYNTHETIC fixture — NOT real TW3 values (development only)",
+  "provenance": {
+    "book_title": "SYNTHETIC fixture (NOT a real TW3 book)",
+    "edition": "dev-1",
+    "isbn": "",
+    "licensed_owner": "Development / Demo (non-clinical)",
+    "pages": "n/a",
+    "entered_by": "dev-fixture",
+    "verified_by": "dev-fixture",
+    "verification_date": "2026-07-14"
+  },
+  "rus_stage_to_score": {
+    "girls": {
+      "radius": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "ulna": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "mc1": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "mc3": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "mc5": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "pp1": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "pp3": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "pp5": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "mp3": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "mp5": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "dp1": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "dp3": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "dp5": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      }
+    }
+  },
+  "carpal_stage_to_score": {
+    "girls": {
+      "capitate": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "hamate": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "triquetral": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "lunate": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "scaphoid": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "trapezium": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      },
+      "trapezoid": {
+        "B": 2.0,
+        "C": 3.0,
+        "D": 4.0,
+        "E": 5.0,
+        "F": 6.0,
+        "G": 7.0,
+        "H": 8.0,
+        "I": 9.0
+      }
+    }
+  },
+  "rus_score_to_age": {
+    "twiii": {
+      "girls": [
+        [
+          13,
+          5.0
+        ],
+        [
+          117,
+          15.0
+        ]
+      ]
+    },
+    "twii": {
+      "girls": [
+        [
+          13,
+          4.0
+        ],
+        [
+          117,
+          16.0
+        ]
+      ]
+    }
+  },
+  "carpal_score_to_age": {
+    "twiii": {
+      "girls": [
+        [
+          7,
+          4.0
+        ],
+        [
+          63,
+          14.0
+        ]
+      ]
+    },
+    "twii": {
+      "girls": [
+        [
+          7,
+          3.0
+        ],
+        [
+          63,
+          15.0
+        ]
+      ]
+    }
+  },
+  "reference_cases": [
+    {
+      "id": "ref-1",
+      "sex": "girls",
+      "rus_stages": {
+        "radius": "H",
+        "ulna": "H",
+        "mc1": "H",
+        "mc3": "H",
+        "mc5": "H",
+        "pp1": "H",
+        "pp3": "H",
+        "pp5": "H",
+        "mp3": "H",
+        "mp5": "H",
+        "dp1": "H",
+        "dp3": "H",
+        "dp5": "H"
+      },
+      "carpal_stages": {
+        "capitate": "G",
+        "hamate": "G",
+        "triquetral": "G",
+        "lunate": "G",
+        "scaphoid": "G",
+        "trapezium": "G",
+        "trapezoid": "G"
+      },
+      "expected": {
+        "rus_score": 104,
+        "twiii_rus_age_years": 13.75,
+        "carpal_score": 49,
+        "twiii_carpal_age_years": 11.5
+      },
+      "tolerance_years": 0.3
+    },
+    {
+      "id": "ref-2",
+      "sex": "girls",
+      "rus_stages": {
+        "radius": "I",
+        "ulna": "I",
+        "mc1": "I",
+        "mc3": "I",
+        "mc5": "I",
+        "pp1": "I",
+        "pp3": "I",
+        "pp5": "I",
+        "mp3": "I",
+        "mp5": "I",
+        "dp1": "I",
+        "dp3": "I",
+        "dp5": "I"
+      },
+      "carpal_stages": {
+        "capitate": "I",
+        "hamate": "I",
+        "triquetral": "I",
+        "lunate": "I",
+        "scaphoid": "I",
+        "trapezium": "I",
+        "trapezoid": "I"
+      },
+      "expected": {
+        "rus_score": 117,
+        "twiii_rus_age_years": 15.0,
+        "carpal_score": 63,
+        "twiii_carpal_age_years": 14.0
+      },
+      "tolerance_years": 0.3
+    }
+  ],
+  "checksum": "8c66f35ba6c3b083cb9d98a6f59ac87f9418890c32988ed5faaa6bd66951353f"
+}
