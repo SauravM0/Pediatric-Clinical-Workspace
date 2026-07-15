@@ -55,9 +55,12 @@ def test_clean_split_passes():
     lg.assert_disjoint(reg, {"train": {"patient_ids": [3, 4], "image_hashes": ["z"]}})  # no raise
 
 
-def test_shipped_registry_is_empty_template():
+def test_shipped_registry_is_the_carved_rsna_locked_test():
+    # Phase C1 carved the real locked test (RSNA validation, 1,425 held-out
+    # images) into locked_test.json — it is no longer the empty template.
     reg = lg.load_registry()
-    assert reg.is_empty and reg.source == "TEMPLATE"
+    assert not reg.is_empty
+    assert reg.source == "internal-rsna" and reg.checksum_verified is True
 
 
 # ── WI-5: engineering gates ──────────────────────────────────────────────────
