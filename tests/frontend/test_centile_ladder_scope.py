@@ -1,6 +1,6 @@
 """The frontend centile-ladder inverse must stay on near-symmetric measures (M1.2).
 
-`zForValueFromCentileStats` in index.html extends the 7-centile ladder in a
+`zForValueFromCentileStats` in frontend/src/ extends the 7-centile ladder in a
 straight line beyond P3/P97. That is correct only where the distribution is
 close to symmetric.
 
@@ -26,7 +26,8 @@ import pytest
 
 from backend.growth import blend
 
-_INDEX_HTML = Path(__file__).resolve().parents[2] / "frontend" / "index.html"
+# M6: the app moved out of index.html into frontend/src/; _source locates it.
+from _frontend_source import frontend_source
 _CENTILE_Z = [
     (3, -1.8807936), (10, -1.2815516), (25, -0.6744898), (50, 0.0),
     (75, 0.6744898), (90, 1.2815516), (97, 1.8807936),
@@ -34,7 +35,7 @@ _CENTILE_Z = [
 
 
 def _src() -> str:
-    return _INDEX_HTML.read_text(encoding="utf-8")
+    return frontend_source()
 
 
 def _ladder_z(stats: dict, value: float):

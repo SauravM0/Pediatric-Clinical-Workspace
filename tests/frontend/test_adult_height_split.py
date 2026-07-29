@@ -9,18 +9,19 @@ expected to land given the parents); a prediction is a CHILD-SPECIFIC estimate
 from the child's own skeletal maturity. Conflating them defeats the point of a
 prediction, which is to detect deviation FROM the target channel.
 
-Like the other frontend guards in this folder, this parses frontend/index.html
+Like the other frontend guards in this folder, this parses frontend/src/
 as source (no browser/JS runtime needed) so a future edit that re-introduces the
 conflation fails loudly.
 """
 import re
 from pathlib import Path
 
-_INDEX_HTML = Path(__file__).resolve().parents[2] / "frontend" / "index.html"
+# M6: the app moved out of index.html into frontend/src/; _source locates it.
+from _frontend_source import frontend_source
 
 
 def _src() -> str:
-    return _INDEX_HTML.read_text(encoding="utf-8")
+    return frontend_source()
 
 
 def test_prediction_is_not_conflated_with_mid_parental_target():
@@ -30,7 +31,7 @@ def test_prediction_is_not_conflated_with_mid_parental_target():
         r"\bpah\b\s*=\s*mph\s*!==\s*null\s*\?\s*mph\s*:\s*skeletalPah", src
     )
     assert conflation is None, (
-        "frontend/index.html re-introduces the F-1 conflation: 'Predicted Adult "
+        "frontend/src/ re-introduces the F-1 conflation: 'Predicted Adult "
         "Height' is being set to the mid-parental genetic target. Keep them "
         "separate (predictedPah = the child-specific skeletal estimate only)."
     )

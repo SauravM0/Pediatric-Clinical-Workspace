@@ -24,7 +24,8 @@ from backend.cvd import qrisk3
 from backend.cvd.qrisk3 import FEMALE, MALE
 from backend.server import app
 
-_INDEX = Path(__file__).resolve().parents[2] / "frontend" / "index.html"
+# M6: the app moved out of index.html into frontend/src/.
+from _frontend_source import frontend_source
 
 _BASE = dict(sex="female", age=60, bmi=28, ethnicity=1, smoke=0, diabetes=0,
              cholesterol_ratio=4.5, systolic_bp=135)
@@ -62,7 +63,7 @@ def _flatten(M) -> list[float]:
 
 
 def _frontend_decimals(start: str, end: str) -> list[float]:
-    src = _INDEX.read_text(encoding="utf-8")
+    src = frontend_source()
     i = src.index(start)
     j = src.index(end, i)
     return sorted(float(x) for x in re.findall(r"-?\d+\.\d+", src[i:j]))

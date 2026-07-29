@@ -60,10 +60,41 @@ backend/
   local_bone_age.py  local baseline inference and synthetic self-test image
   server.py          FastAPI app, API routes, static serving
 frontend/
-  index.html         Browser UI
+  index.html         HTML shell (no application logic)
+  src/               React/JSX application source — EDIT HERE
+  app.js             built bundle, COMMITTED (generated; do not edit)
+  vendor/            React + Tailwind, vendored for offline use
+build.mjs            esbuild build for the frontend
+package.json         frontend build tooling (esbuild only)
 bone_age_server.py   backward-compatible server entrypoint
 requirements.txt     Python dependencies
 ```
+
+## Frontend Build
+
+The browser app is written in JSX under `frontend/src/` and compiled to
+`frontend/app.js` by esbuild.
+
+**Running the app needs no Node.** `frontend/app.js` is committed, so a fresh
+clone starts with the single `uvicorn` command above and works fully offline.
+Node is only needed to *change* the frontend.
+
+```bash
+npm install
+npm run build
+```
+
+Other commands: `npm run watch` rebuilds on change; `npm run check` verifies the
+committed bundle matches `frontend/src/` and is what CI enforces.
+
+**After editing anything in `frontend/src/`, run `npm run build` and commit the
+regenerated `frontend/app.js`.** The browser executes `app.js`, so a stale
+bundle means the reviewed source is not what runs.
+`tests/frontend/test_build_artefact.py` fails if the two have drifted.
+
+This replaced in-browser Babel transpilation: the app previously shipped as
+`<script type="text/babel">` alongside a 3.1 MB Babel bundle that re-compiled
+~4,000 lines of JSX on every page load.
 
 ## Run Locally
 

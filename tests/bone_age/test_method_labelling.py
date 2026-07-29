@@ -29,7 +29,8 @@ from backend.tw3 import (
     TWENTY_BONE_NOTE,
 )
 
-_INDEX_HTML = Path(__file__).resolve().parents[2] / "frontend" / "index.html"
+# M6: the app moved out of index.html into frontend/src/.
+from _frontend_source import frontend_source
 
 
 @pytest.fixture(scope="module")
@@ -138,7 +139,7 @@ def test_printed_report_states_when_no_age_was_derived():
 def test_frontend_does_not_claim_a_tw3_20_bone_age():
     """Regression guard: the header used to read 'Bone Age · TW3 (20 bones: 13
     RUS + 7 carpal)', which asserts a scoring system TW3 does not define."""
-    src = _INDEX_HTML.read_text(encoding="utf-8")
+    src = frontend_source()
     assert "TW3 (20 bones" not in src, (
         "frontend claims a TW3 20-bone method again -- TW3 scores RUS and carpal "
         "separately; a 20-bone score is TW2."
@@ -148,7 +149,7 @@ def test_frontend_does_not_claim_a_tw3_20_bone_age():
 def test_frontend_footer_does_not_cite_plain_tw3_2001():
     """The reference line used to read 'TW3 2001', implying the Tanner standard
     supplied these numbers. It did not."""
-    src = _INDEX_HTML.read_text(encoding="utf-8")
+    src = frontend_source()
     assert "· TW3 2001 ·" not in src, (
         "frontend cites 'TW3 2001' as a reference again -- the active curve is "
         "TW3-C digitized from a 2023 paper, not Tanner et al. 2001."
