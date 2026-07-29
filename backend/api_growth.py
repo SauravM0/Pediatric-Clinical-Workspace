@@ -10,13 +10,15 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.growth import blend, curve_builder, validation
+from backend.growth import blend, curve_builder, measures, reference_data, validation
 
 router = APIRouter(prefix="/api/growth", tags=["growth"])
 
-_VALID_MEASURES = ("height", "weight", "bmi")
+# Canonical registry (M0.3) -- previously re-declared here and in five other
+# modules, so a new measure could be served by the API but never validated.
+_VALID_MEASURES = measures.MEASURE_KEYS
 _VALID_SEXES = ("boys", "girls")
-_UNITS = {"height": "cm", "weight": "kg", "bmi": "kg/m2"}
+_UNITS = measures.UNITS
 
 
 def _check_measure_sex(measure: str, sex: str) -> None:
@@ -26,11 +28,28 @@ def _check_measure_sex(measure: str, sex: str) -> None:
         raise HTTPException(422, f"sex must be one of {_VALID_SEXES}")
 
 
-@lru_cache(maxsize=None)
-def _cached_series(measure: str, sex: str, age_min: float, age_max: float, render_step: float):
+@lru_cache(maxsize=256)
+def _cached_series(measure: str, sex: str, age_min: float, age_max: float,
+                   render_step: float, fingerprint: str):
     # Each build is ~2-3s (WHO lookups dominate); computed once per
     # (measure, sex, range, step) combination and reused for every request.
+    #
+    # `fingerprint` is not used in the body -- it is a CACHE KEY (M0.4). It is
+    # the digest of every reference data file plus the pinned rcpchgrowth
+    # version, so any change to the underlying reference data yields a
+    # different key and the stale curve becomes unreachable instead of being
+    # served indefinitely. Threading it through the signature makes staleness
+    # structurally impossible rather than something to remember to invalidate.
+    #
+    # maxsize is bounded (was None): the key space grows with measures x sexes x
+    # age ranges x render steps x data versions, all caller-supplied.
     return curve_builder.build_chart_series(measure, sex, age_min, age_max, render_step)
+
+
+def _series(measure: str, sex: str, age_min: float, age_max: float, render_step: float):
+    """Cached chart series, keyed on the current reference-data fingerprint."""
+    return _cached_series(measure, sex, age_min, age_max, render_step,
+                          reference_data.fingerprint())
 
 
 @router.get("/chart")
@@ -44,7 +63,7 @@ def get_chart_series(
     """Dense (age, value) series for all 7 standard centiles, ready to plot.
     Age in years, value in the measure's clinical unit (see `unit`)."""
     _check_measure_sex(measure, sex)
-    series = _cached_series(measure, sex, age_min, age_max, render_step)
+    series = _series(measure, sex, age_min, age_max, render_step)
     return {
         "measure": measure,
         "sex": sex,
@@ -124,4 +143,12 @@ def get_validation_report() -> dict[str, Any]:
     and IAP source-table reproduction. Used by CI/tests and available here
     for manual inspection during development."""
     report = validation.run_full_validation()
-    return {"all_pass": report.all_pass, "failures": report.failures, "details": report.details}
+    return {
+        "all_pass": report.all_pass,
+        "failures": report.failures,
+        # Which reference data this verdict was produced against (M0.4). A QA
+        # result is only meaningful alongside the inputs that produced it --
+        # this is what makes a pass/fail attributable to a specific data version.
+        "reference_data": reference_data.describe(),
+        "details": report.details,
+    }

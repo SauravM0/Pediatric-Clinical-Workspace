@@ -39,7 +39,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from . import blend, curve_builder, iap_reference
+from . import blend, curve_builder, iap_reference, measures
 
 SLOPE_ATOL = {"height": 0.3, "weight": 0.15, "bmi": 0.18}  # units/year, absolute floor
 SLOPE_RTOL = 0.15  # + 15% of the outside slope magnitude
@@ -48,7 +48,7 @@ CURVATURE_RTOL = 0.25  # + 25% of the true boundary curvature magnitude
 EPS_YEARS = 0.08
 MONOTONIC_SAMPLE_STEP_YEARS = 0.02  # dense scan across the blend window itself
 
-MEASURES = ("height", "weight", "bmi")
+MEASURES = measures.MEASURE_KEYS  # canonical registry (M0.3)
 SEXES = ("boys", "girls")
 
 
@@ -65,7 +65,7 @@ def _slope_at(measure: str, sex: str, age: float, z: float, eps: float = EPS_YEA
     return (v_hi - v_lo) / (2 * eps)
 
 
-MONOTONIC_MEASURES = ("height", "weight")  # BMI legitimately troughs (adiposity rebound) -- see blend.py
+MONOTONIC_MEASURES = measures.MONOTONIC_MEASURE_KEYS  # BMI legitimately troughs (adiposity rebound) -- see blend.py
 
 
 def check_no_decrease_in_blend_window() -> dict:

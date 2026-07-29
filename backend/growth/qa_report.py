@@ -21,6 +21,7 @@ from pathlib import Path
 
 from . import blend
 from . import iap_reference as iap
+from . import measures
 from . import who_reference as who
 from .curve_builder import Z_FOR_CENTILE
 
@@ -30,13 +31,10 @@ _DEFAULT_OUT = Path(__file__).resolve().parents[2] / "growth_curve_qa.html"
 # height/weight publish the full 3/10/25/50/75/90/97 spread; BMI's published
 # table only carries the lower-half centiles (see iap_reference.py) plus two
 # IOTF adult-equivalent cutoff columns that are NOT z-score percentiles and
-# are intentionally excluded here.
-_MEASURE_CENTILES = {
-    "height": (3, 10, 25, 50, 75, 90, 97),
-    "weight": (3, 10, 25, 50, 75, 90, 97),
-    "bmi": (3, 5, 10, 25, 50),
-}
-_MEASURE_FILE_PART = {"height": "height_cm", "weight": "weight_kg", "bmi": "bmi"}
+# are intentionally excluded here. Both facts now come from the canonical
+# measure registry (M0.3) rather than being restated per module.
+_MEASURE_CENTILES = {k: measures.PUBLISHED_CENTILES[k] for k in measures.IAP_TABLE_KEYS}
+_MEASURE_FILE_PART = measures.FILE_PART
 
 # curve_builder.Z_FOR_CENTILE only covers the standard 3/10/25/50/75/90/97
 # spread -- BMI's published table also has a p5 column, whose z only lives in

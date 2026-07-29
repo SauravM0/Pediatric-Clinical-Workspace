@@ -38,6 +38,7 @@ from scipy.optimize import brentq
 
 from . import hermite
 from . import iap_reference as iap
+from . import measures
 from . import who_reference as who
 
 # IAP's published table starts at 5.0 (real, non-extrapolated data, 0.5y steps
@@ -71,7 +72,10 @@ _DERIV_EPS_YEARS = 1 / 24  # half-month, for a local finite-difference derivativ
 # this app's own data -- so a further gentle decline through the 4.0-5.0y
 # transition can be the *correct*, real trend continuing, not an artifact,
 # and forcing monotonicity there would itself be the distortion.
-_REQUIRE_MONOTONIC = {"height": True, "weight": True, "bmi": False}
+#
+# Canonical per-measure flag now lives in measures.py (M0.3) so a newly
+# registered measure cannot be silently omitted from this rule.
+_REQUIRE_MONOTONIC = measures.REQUIRE_MONOTONIC
 
 
 def blend_weight(age_years: float) -> float:

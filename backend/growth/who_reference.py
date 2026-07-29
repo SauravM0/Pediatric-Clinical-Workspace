@@ -42,9 +42,16 @@ from dataclasses import dataclass
 import rcpchgrowth as rg
 
 from . import hermite
+from .measures import MEASURES, SEAM_2Y_KEYS, SEAM_5Y_KEYS
 
 _SEX_MAP = {"boys": rg.MALE, "girls": rg.FEMALE}
-_MEASURE_MAP = {"height": rg.HEIGHT, "weight": rg.WEIGHT, "bmi": rg.BMI}
+# rcpchgrowth adapter. Derived from the canonical registry (measures.py) rather
+# than re-declared, so a newly registered measure cannot silently be missing a
+# WHO binding -- test_measure_registry asserts these strings equal the real
+# rcpchgrowth constants, and that every WHO-backed measure appears here.
+_MEASURE_MAP = {
+    m.key: m.who_measurement_method for m in MEASURES.values() if m.who_backed
+}
 
 # Small nudges tried (in order) when an age lands in the WHO under-2/over-2
 # dataset's own dead zone (observed empirically around 1.999-2.0014y).
@@ -69,12 +76,17 @@ class _Seam:
 # flanking rate to still land on the right endpoint value -- confirmed on this
 # app's own data (girls height: +-0.1y dipped to ~5.4 cm/yr, +-0.3y only to
 # ~8.8 cm/yr, both well inside monotone_bridge's floor protection either way).
-_SEAM_2Y = _Seam(lo=1.7, hi=2.3, measures=frozenset({"height", "bmi"}), monotonic=True)
+_SEAM_2Y = _Seam(lo=1.7, hi=2.3, measures=SEAM_2Y_KEYS, monotonic=True)
 # WHO-2006-child/WHO-2007-child handoff (~5.08y). Applied to all three
 # measures since the scan found it on height, weight, and BMI. BMI keeps a
 # bounded (non-monotonic-safe) bridge since it can legitimately have a small
 # local slope reversal near its adiposity-trough age anyway.
-_SEAM_5Y = _Seam(lo=4.95, hi=5.2, measures=frozenset({"height", "weight", "bmi"}), monotonic=False)
+#
+# NB: `monotonic` here is a property of the SEAM (which bridge to use across
+# it), NOT of the measure -- the 5y handoff uses the bounded bridge for every
+# measure, height included. It is therefore deliberately NOT derived from
+# Measure.monotonic; only the affected-measure sets come from the registry.
+_SEAM_5Y = _Seam(lo=4.95, hi=5.2, measures=SEAM_5Y_KEYS, monotonic=False)
 
 _SEAMS = (_SEAM_2Y, _SEAM_5Y)
 

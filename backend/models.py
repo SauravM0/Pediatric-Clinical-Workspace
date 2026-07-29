@@ -258,11 +258,38 @@ class AdjudicationItem(Base):
 
 
 def ensure_schema_version(engine: Engine) -> None:
-    """Record the current schema version once."""
+    """Record the current schema version, appending a row whenever it changes.
+
+    Previously this inserted only when the table was empty, so DB_SCHEMA_VERSION
+    was written once at first init and never again -- every subsequent schema
+    change left the recorded version stale. Verified at runtime: a DB created at
+    version "3" still reported "3" after the constant was bumped and init_db()
+    re-run. That silently falsified config.py's contract ("versions are recorded
+    ... so old results stay reproducible"), because the version stamped on the
+    database no longer described the schema actually in use.
+
+    History is APPENDED, never updated in place: reproducing an approved
+    assessment requires knowing which schema was live when it was created, not
+    merely which one is live now. The latest row (highest id) is the current
+    version; earlier rows are the upgrade trail.
+    """
     from backend.db import SessionLocal  # local import to avoid cycle at import time
 
     with SessionLocal() as db:
-        existing = db.execute(select(SchemaVersion)).first()
-        if existing is None:
+        latest = db.execute(
+            select(SchemaVersion).order_by(SchemaVersion.id.desc())
+        ).scalars().first()
+        if latest is None or latest.version != DB_SCHEMA_VERSION:
             db.add(SchemaVersion(version=DB_SCHEMA_VERSION))
             db.commit()
+
+
+def current_schema_version(engine: Engine) -> str | None:
+    """The most recently recorded schema version, or None on an empty DB."""
+    from backend.db import SessionLocal
+
+    with SessionLocal() as db:
+        latest = db.execute(
+            select(SchemaVersion).order_by(SchemaVersion.id.desc())
+        ).scalars().first()
+        return None if latest is None else latest.version
