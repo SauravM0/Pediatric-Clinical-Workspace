@@ -4,6 +4,7 @@ from .constants import (
     CARPAL_BONES, CARPAL_LABELS, CARPAL_BONE_COUNT, ALL_BONE_LABELS, LETTER_STAGES,
     StageSystem, DEFAULT_STAGE_SYSTEM, SCORING_ENABLED_SYSTEMS,
     IMAGE_DOMAINS, LOW_TRUST_DOMAINS,
+    METHOD_DISPLAY_NAME, METHOD_QUALIFIER, METHOD_SOURCE_NOTE, TWENTY_BONE_NOTE,
     bones_for_system, bone_group, label_for, scoring_enabled,
 )
 from .tables import ScoringTables, load_tables, compute_checksum, TablesError
@@ -28,6 +29,7 @@ __all__ = [
     "CARPAL_BONES", "CARPAL_LABELS", "CARPAL_BONE_COUNT", "ALL_BONE_LABELS", "LETTER_STAGES",
     "StageSystem", "DEFAULT_STAGE_SYSTEM", "SCORING_ENABLED_SYSTEMS",
     "IMAGE_DOMAINS", "LOW_TRUST_DOMAINS",
+    "METHOD_DISPLAY_NAME", "METHOD_QUALIFIER", "METHOD_SOURCE_NOTE", "TWENTY_BONE_NOTE",
     "bones_for_system", "bone_group", "label_for", "scoring_enabled",
     "ScoringTables", "load_tables", "compute_checksum", "TablesError",
     "bone_age_from_stages", "rus_score", "score_to_age", "score_to_age_months",

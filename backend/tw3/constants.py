@@ -113,6 +113,42 @@ class StageSystem(str, Enum):
 
 DEFAULT_STAGE_SYSTEM: Final[str] = StageSystem.TW3C_RUS.value
 
+# ── Method labelling (M3.2) ──────────────────────────────────────────────────
+# The active deterministic path is NOT Tanner-Whitehouse TW3. Its per-stage
+# points were transcribed from Table 1 of a deep-learning conference paper
+# (AIPR 2023), and its score->age curve was DIGITIZED FROM A FIGURE in that same
+# paper -- 10-11 anchors at integer years, self-declared +/-0.5y. Two secondary
+# sources for the two numbers that entirely determine the output.
+#
+# Displaying that as "TW3" invites a clinician to read it as the Tanner standard
+# they know. It is not: on this centre's own films the TW3-C score (880) and the
+# historically-reported original-TW3 RUS (681) differ by ~0.9-1.25 years of bone
+# age. Every surface that shows a bone age must therefore carry the qualifier.
+#
+# Single source of truth so the label cannot drift between API, report and UI;
+# tests/bone_age/test_method_labelling.py asserts each surface carries it.
+METHOD_DISPLAY_NAME: Final[str] = "TW3-C (Chinese) RUS — provisional"
+METHOD_QUALIFIER: Final[str] = (
+    "Provisional research curve (±0.5y, digitized from a published figure). "
+    "Not Tanner-Whitehouse TW3."
+)
+METHOD_SOURCE_NOTE: Final[str] = (
+    "Stage points: Gu, Meng & Meng, AIPR 2023, Table 1 (grades 1–8). "
+    "Score-to-age: digitized from Figure 8 of the same paper. "
+    "Bone ages are not interchangeable with original-TW3 or Greulich–Pyle values."
+)
+
+# The 20-bone score is a TW2 construct. TW3 (Tanner et al. 2001) publishes RUS
+# (13 bones) and Carpal (7 bones) as two SEPARATE, non-additive systems and does
+# not define a 20-bone score at all -- so "TW3 20-bone bone age" is not a thing
+# that exists, and RUS and carpal points must never be summed into one number.
+# Used to keep UI copy honest about what the 20-bone staging screen is for.
+TWENTY_BONE_NOTE: Final[str] = (
+    "All 20 structures are staged for per-bone visibility. TW3 scores RUS (13) "
+    "and Carpal (7) separately and defines no combined 20-bone age; a 20-bone "
+    "score is a TW2 construct and is never derived by summing the two."
+)
+
 # Scoring is only ever derived from a stage system that has verified tables.
 SCORING_ENABLED_SYSTEMS: Final[frozenset[str]] = frozenset({StageSystem.TW3C_RUS.value})
 

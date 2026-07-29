@@ -346,9 +346,14 @@ def _score_group(stages: Mapping[str, str], bones: tuple[str, ...], sex: str,
 
     points_calibrated = all(bool(by_bone.get(b)) for b in bones)
     complete = staged == len(bones) and not missing_score
-    twii = (_interp_months(age_curves.get("twii", {}).get(sex, []), total)
+    # _interp_months returns (months, status) since M3.1 and withholds rather
+    # than clamping an out-of-domain score; the same guard applies here, so a
+    # letter total off the end of a licensed curve yields no age instead of the
+    # curve's endpoint. Status is not surfaced on GroupResult yet -- the letters
+    # path is calibration-gated and produces no ages at all today.
+    twii = (_interp_months(age_curves.get("twii", {}).get(sex, []), total)[0]
             if complete else None)
-    twiii = (_interp_months(age_curves.get("twiii", {}).get(sex, []), total)
+    twiii = (_interp_months(age_curves.get("twiii", {}).get(sex, []), total)[0]
              if complete else None)
     return GroupResult(
         group=group, total_score=total, staged_count=staged, total_bones=len(bones),
@@ -382,7 +387,7 @@ def _score_tw20(rus_stages: Mapping[str, str], carpal_stages: Mapping[str, str],
         else:
             missing_score.append(bone)
     complete = staged == len(_ALL20) and not missing_score
-    age = _interp_months(tables.tw20_age.get(sex, []), total) if complete else None
+    age = _interp_months(tables.tw20_age.get(sex, []), total)[0] if complete else None
     return Tw20Result(
         total_score=total, staged_count=staged, total_bones=len(_ALL20),
         complete=complete, points_calibrated=all(bool(by_bone.get(b)) for b in _ALL20),

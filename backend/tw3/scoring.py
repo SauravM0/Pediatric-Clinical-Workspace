@@ -21,6 +21,15 @@ from .tables import ScoringTables, load_tables
 
 CALCULATION_VERSION = "tw3-rus-scoring-1.0"
 
+# Status vocabulary for the score→age conversion (M3.1). "ok" is the only status
+# that carries an age; every other value means the age is deliberately withheld.
+# Declared here, above ScoreResult, because it is used as a field default —
+# dataclass defaults are evaluated at class-definition time.
+CURVE_OK = "ok"
+CURVE_UNCALIBRATED = "curve_uncalibrated"
+CURVE_BELOW_DOMAIN = "score_below_curve_domain"
+CURVE_ABOVE_DOMAIN = "score_above_curve_domain"
+
 
 class ScoringError(ValueError):
     """Raised by strict scoring when inputs are invalid or incomplete."""
@@ -51,29 +60,65 @@ class ScoreResult:
     missing_stage: tuple[str, ...] = ()
     missing_score: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
+    # Why the score→age conversion did or did not produce an age (CURVE_*), and
+    # the score range the curve is actually defined over. Exposed so the UI can
+    # say "score 120 is below this curve's minimum of 150" instead of showing a
+    # bare blank — or, as before M3.1, a clamped age indistinguishable from a
+    # real one.
+    curve_status: str = CURVE_UNCALIBRATED
+    curve_domain: Optional[tuple[float, float]] = None
 
     @property
     def bone_age_years(self) -> Optional[float]:
         return None if self.bone_age_months is None else round(self.bone_age_months / 12, 2)
 
+    @property
+    def out_of_curve_domain(self) -> bool:
+        return self.curve_status in (CURVE_BELOW_DOMAIN, CURVE_ABOVE_DOMAIN)
 
-def _interp_months(anchors: list[list[float]], score: float) -> Optional[int]:
-    """Piecewise-linear score→age(years) over ascending [score, ageYears] anchors,
-    returned in whole months. Clamps to the endpoints (terminal-stage behaviour)."""
+
+def curve_domain(anchors: list[list[float]]) -> Optional[tuple[float, float]]:
+    """(min_score, max_score) the curve is actually defined over, or None if it
+    has too few anchors to interpolate."""
+    pts = sorted((p[0] for p in anchors if len(p) == 2))
+    return (pts[0], pts[-1]) if len(pts) >= 2 else None
+
+
+def _interp_months(anchors: list[list[float]], score: float) -> tuple[Optional[int], str]:
+    """Piecewise-linear score→age(years) over ascending [score, ageYears]
+    anchors, returned as (whole months, status).
+
+    Out-of-domain scores return (None, reason) — they are NOT clamped to the
+    endpoint. The previous clamp was silent and actively misleading at the low
+    end: the TW3-C curve starts at score 150 (boys) / 270 (girls), so scores of
+    50, 100 and 150 all returned exactly 6.00y with nothing in the output
+    marking it a clamp rather than a computation. A clinician reading "bone age
+    6.0y" could not tell it apart from a real result, and the product was least
+    reliable exactly where it looked most confident.
+
+    Withholding matches the engine's established contract everywhere else
+    (§"nothing is ever guessed"): callers already branch on a None bone age, so
+    this needs no signature change downstream.
+
+    Boundary handling: a score exactly equal to either endpoint is IN domain
+    (`<` / `>`, not `<=` / `>=`). This matters — a maximum-grade assessment
+    legitimately totals exactly 1000, which is the curve's last anchor, and must
+    not be rejected as out of range.
+    """
     pts = sorted(([p[0], p[1]] for p in anchors if len(p) == 2), key=lambda p: p[0])
     if len(pts) < 2:
-        return None
-    if score <= pts[0][0]:
-        years = pts[0][1]
-    elif score >= pts[-1][0]:
-        years = pts[-1][1]
-    else:
-        years = pts[-1][1]
-        for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
-            if x0 <= score <= x1:
-                years = y0 + (score - x0) / (x1 - x0) * (y1 - y0)
-                break
-    return round(years * 12)
+        return None, CURVE_UNCALIBRATED
+    if score < pts[0][0]:
+        return None, CURVE_BELOW_DOMAIN
+    if score > pts[-1][0]:
+        return None, CURVE_ABOVE_DOMAIN
+
+    years = pts[-1][1]
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        if x0 <= score <= x1:
+            years = y0 + (score - x0) / (x1 - x0) * (y1 - y0)
+            break
+    return round(years * 12), CURVE_OK
 
 
 def _validate_sex(sex: str) -> None:
@@ -82,6 +127,19 @@ def _validate_sex(sex: str) -> None:
 
 
 def score_to_age_months(score: float, sex: str, tables: ScoringTables) -> Optional[int]:
+    """Bone age in months, or None when the curve cannot answer (uncalibrated, or
+    the score falls outside the anchors). Use :func:`score_to_age_with_status`
+    when the caller needs to explain *why* to a clinician."""
+    _validate_sex(sex)
+    months, _ = _interp_months(tables.score_to_age.get(sex, []), score)
+    return months
+
+
+def score_to_age_with_status(score: float, sex: str,
+                             tables: ScoringTables) -> tuple[Optional[int], str]:
+    """As :func:`score_to_age_months`, but also returns the CURVE_* status so the
+    UI/report can distinguish 'this centre has not entered the tables' from
+    'this score is off the end of the curve' — two very different messages."""
     _validate_sex(sex)
     return _interp_months(tables.score_to_age.get(sex, []), score)
 
@@ -129,9 +187,12 @@ def compute(stages: Mapping[str, str], sex: str,
             raise ScoringError(f"unknown bone code {bone!r}")
 
     complete = staged == RUS_BONE_COUNT and not missing_score
-    bone_age_months = (
-        score_to_age_months(total, sex, tables) if complete and calibrated else None
-    )
+    anchors = tables.score_to_age.get(sex, [])
+    domain = curve_domain(anchors)
+    bone_age_months: Optional[int] = None
+    curve_status = CURVE_UNCALIBRATED
+    if complete and calibrated:
+        bone_age_months, curve_status = _interp_months(anchors, total)
 
     if not calibrated:
         status = "stage_to_score / score_to_age not calibrated for this sex"
@@ -139,8 +200,19 @@ def compute(stages: Mapping[str, str], sex: str,
         status = f"bones not staged: {', '.join(missing_stage)}"
     elif missing_score:
         status = f"no score for staged bones: {', '.join(missing_score)}"
-    elif bone_age_months is None:
+    elif curve_status == CURVE_UNCALIBRATED:
         status = "score_to_age curve needs ≥2 anchor points for this sex"
+    elif curve_status in (CURVE_BELOW_DOMAIN, CURVE_ABOVE_DOMAIN):
+        # Explain the withholding rather than clamping to an endpoint (M3.1).
+        # The bound is named so the clinician can see how far outside they are.
+        side = "below" if curve_status == CURVE_BELOW_DOMAIN else "above"
+        bound = domain[0] if curve_status == CURVE_BELOW_DOMAIN else domain[1]
+        status = (
+            f"RUS score {total:g} is {side} the score-to-age curve's range "
+            f"({domain[0]:g}-{domain[1]:g}); no bone age can be derived. "
+            "The previous behaviour silently reported the curve's endpoint age."
+        )
+        warnings.append(f"{curve_status}: score {total:g}, curve bound {bound:g}")
     else:
         status = "ok"
 
@@ -159,6 +231,8 @@ def compute(stages: Mapping[str, str], sex: str,
         missing_stage=tuple(missing_stage),
         missing_score=tuple(missing_score),
         warnings=tuple(warnings),
+        curve_status=curve_status,
+        curve_domain=domain,
     )
 
 
@@ -259,7 +333,9 @@ def calculate_strict(stages: Mapping[str, str], sex: str,
     if result.missing_score:
         raise ScoringError(f"no score for: {', '.join(result.missing_score)}")
     if result.bone_age_months is None:
-        raise ScoringError("could not convert RUS score to bone age")
+        # Carry the real reason (out-of-domain vs uncalibrated curve) instead of
+        # a generic failure -- this message reaches the clinician via the API.
+        raise ScoringError(result.status)
     return result
 
 

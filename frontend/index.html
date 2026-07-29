@@ -2228,7 +2228,7 @@
               <h1>Pediatric Clinical Summary</h1>
               <div class="sub">${idLine}</div>
               <table><thead><tr><th>Module</th><th>Result</th><th>Interpretation</th></tr></thead><tbody>${rows}</tbody></table>
-              <div class="foot">Decision support only — not a diagnostic device. A clinician must verify every value. A "—" interpretation means that module had insufficient input. References: Khadilkar 2015 · TW3 2001 · QRISK3-2017 · CKD-EPI 2021 · Bedside Schwartz 2009 · FRAX India Asian · FIB-4 (Sterling et al.).</div>
+              <div class="foot">Decision support only — not a diagnostic device. A clinician must verify every value. A "—" interpretation means that module had insufficient input. References: Khadilkar 2015 · TW3-C (Chinese) RUS — provisional research curve (±0.5y, digitized from a published figure); NOT Tanner–Whitehouse TW3 · QRISK3-2017 · CKD-EPI 2021 · Bedside Schwartz 2009 · FRAX India Asian · FIB-4 (Sterling et al.).</div>
               </body></html>`);
             win.document.close();
             win.focus();
@@ -2672,8 +2672,8 @@
                     {activeTab === 'boneage' && (
                       <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
                         <SectionHeader
-                          title="Bone Age · TW3 (20 bones: 13 RUS + 7 carpal)"
-                          subtitle="Original Tanner–Whitehouse letters A–I — RUS + carpal, doctor-graded · Indian (Khadilkar) adult-height context"
+                          title="Bone Age · 20-bone staging (13 RUS + 7 carpal)"
+                          subtitle="TW3 scores RUS and carpal SEPARATELY and defines no combined 20-bone age (that is a TW2 construct) — all 20 are staged for per-bone visibility · letters A–I, doctor-graded · Indian (Khadilkar) adult-height context"
                           badge={boneMetrics && boneMetrics.hasBone ? "TW3 bone age set" : "Grade the film"}
                           badgeVariant="info"
                         />

@@ -14,7 +14,13 @@ from typing import Optional
 
 from backend.config import APP_VERSION, REPORT_TEMPLATE_VERSION
 from backend.models import Radiograph, TW3Assessment
-from backend.tw3 import BONE_LABELS, RUS_BONES
+from backend.tw3 import (
+    BONE_LABELS,
+    METHOD_DISPLAY_NAME,
+    METHOD_QUALIFIER,
+    METHOD_SOURCE_NOTE,
+    RUS_BONES,
+)
 
 CLINIC_NAME = "Local clinic (configure name)"
 
@@ -63,11 +69,19 @@ def render_report_html(a: TW3Assessment, data: dict,
     study_date = radiograph.study_date.date().isoformat() if (radiograph and radiograph.study_date) else "—"
 
     ba_years = data.get("bone_age_years")
+    # This document goes into a patient file, so the qualifier travels with the
+    # number (M3.2). Without it "TW3-C RUS bone age" reads to most clinicians as
+    # the Tanner-Whitehouse standard, which this is not -- see METHOD_QUALIFIER.
     conclusion = (
         f"TW3-C RUS bone age: {_e(_fmt_num(ba_years))} years "
         f"({_months_to_ym(data.get('bone_age_months'))}).<br>"
         "The assessment was calculated from the confirmed maturity grades of the 13 "
-        "TW3-C RUS bones and reviewed by the treating clinician."
+        "TW3-C RUS bones and reviewed by the treating clinician.<br>"
+        f"<b>{_e(METHOD_QUALIFIER)}</b> {_e(METHOD_SOURCE_NOTE)}"
+    ) if ba_years is not None else (
+        "<b>No bone age was derived.</b> "
+        f"{_e(data.get('status') or 'The scoring engine withheld a result.')}<br>"
+        f"{_e(METHOD_QUALIFIER)}"
     )
 
     return f"""<!DOCTYPE html>
@@ -108,8 +122,8 @@ def render_report_html(a: TW3Assessment, data: dict,
 
 <h2>Result</h2>
 <div class="kv">
-  <div><b>Method</b>{_e(data.get('assessment_method'))}</div>
-  <div><b>Estimated bone age</b>{_e(_fmt_num(ba_years))} years ({_months_to_ym(data.get('bone_age_months'))})</div>
+  <div><b>Method</b>{_e(METHOD_DISPLAY_NAME)} <span style="color:#b45309">({_e(METHOD_QUALIFIER)})</span></div>
+  <div><b>Estimated bone age</b>{(_e(_fmt_num(ba_years)) + " years (" + _months_to_ym(data.get('bone_age_months')) + ")") if ba_years is not None else "— not derived"}</div>
   <div><b>Bone age − chronological</b>{_diff_text(data.get('bone_age_difference_months'))}</div>
 </div>
 

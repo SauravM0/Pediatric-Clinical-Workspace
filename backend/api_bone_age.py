@@ -34,8 +34,12 @@ from backend.tw3 import (
     IMAGE_DOMAINS,
     LETTER_STAGES,
     LOW_TRUST_DOMAINS,
+    METHOD_DISPLAY_NAME,
+    METHOD_QUALIFIER,
+    METHOD_SOURCE_NOTE,
     RUS_BONES,
     SEXES,
+    TWENTY_BONE_NOTE,
     ScoringError,
     StageSystem,
     bone_group,
@@ -157,6 +161,13 @@ def config() -> dict:
 
     return {
         "method": t.method,
+        # Truth-in-labelling (M3.2): `method` is the machine code ("TW3-C-RUS");
+        # these are what a human must be shown next to any bone age, so the
+        # provisional, non-Tanner nature of this curve is never implicit.
+        "method_display_name": METHOD_DISPLAY_NAME,
+        "method_qualifier": METHOD_QUALIFIER,
+        "method_source_note": METHOD_SOURCE_NOTE,
+        "twenty_bone_note": TWENTY_BONE_NOTE,
         "version": t.version,
         "source_reference": t.source_reference,
         "notes": t.raw.get("notes", ""),
@@ -341,6 +352,8 @@ def score(req: ScoreRequest) -> dict:
 
     return {
         "method": r.method,
+        "method_display_name": METHOD_DISPLAY_NAME,
+        "method_qualifier": METHOD_QUALIFIER,
         "table_version": r.table_version,
         "calculation_version": r.calculation_version,
         "provisional_curve": _provisional_curve(t),
@@ -348,6 +361,11 @@ def score(req: ScoreRequest) -> dict:
         "total_rus_score": r.total_rus_score,
         "bone_age_months": r.bone_age_months,
         "bone_age_years": r.bone_age_years,
+        # Why an age was or was not produced, and the range the curve covers
+        # (M3.1) -- so a withheld age can be explained instead of showing a blank.
+        "curve_status": r.curve_status,
+        "curve_domain": list(r.curve_domain) if r.curve_domain else None,
+        "out_of_curve_domain": r.out_of_curve_domain,
         "status": r.status,
         "complete": r.complete,
         "calibrated": r.calibrated,
