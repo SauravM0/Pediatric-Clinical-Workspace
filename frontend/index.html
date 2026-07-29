@@ -455,6 +455,18 @@
         // This mirrors what /api/growth/point does continuously, from the already
         // fetched 7-point distribution (no extra request). See tests/growth/
         // test_adult_height_zscore.py for the parity check against the backend.
+        //
+        // SCOPE LIMIT (M1.2): beyond P3/P97 this extends the centile ladder in a
+        // STRAIGHT LINE, which is only correct where the distribution is close to
+        // symmetric. Its one caller is adult height at 19y, where WHO's L is ~1 --
+        // measured error at +/-3 SD there is 0.000, so it is right for that use.
+        // It would NOT be right for weight or BMI, which are strongly right-skewed:
+        // the equivalent backend path was mis-scoring their tails by up to 0.81 SD
+        // until it was switched to an LMS-shaped tail (iap_reference._lms_tail_z).
+        // The backend cannot be mirrored here because L,M,S are not sent to the
+        // client. So: do NOT reuse this for a skewed measure -- call
+        // /api/growth/point, which is exact for every measure. Guarded by
+        // tests/frontend/test_centile_ladder_scope.py.
         const CENTILE_Z = [[3,-1.8807936],[10,-1.2815516],[25,-0.6744898],[50,0.0],[75,0.6744898],[90,1.2815516],[97,1.8807936]];
         function zForValueFromCentileStats(stats, value) {
           if (!stats || !stats.available || !(value > 0)) return null;

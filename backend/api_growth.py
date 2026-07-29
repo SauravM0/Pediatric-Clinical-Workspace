@@ -10,7 +10,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.growth import blend, curve_builder, measures, reference_data, validation
+from backend.growth import blend, curve_builder, lms_core, measures, reference_data, validation
 
 router = APIRouter(prefix="/api/growth", tags=["growth"])
 
@@ -94,7 +94,14 @@ def get_point_metrics(
 
     from scipy.stats import norm
 
-    pct = float(min(99.9, max(0.1, norm.cdf(z) * 100)))
+    # Reporting bound (M1.2). The engine returns the mathematically exact z for
+    # any positive value, but far outside the reference the number stops being a
+    # clinical statement -- a 40cm height for a 6-year-old scores z = -12.9,
+    # which reads as a precise finding rather than a data-entry error. Clamp for
+    # display and flag it, so the UI can say "outside reference range" instead.
+    z_reported, out_of_range = lms_core.clamp_reportable_z(z)
+
+    pct = float(min(99.9, max(0.1, norm.cdf(z_reported) * 100)))
     unit = _UNITS[measure]
     return {
         "available": True,
@@ -103,8 +110,12 @@ def get_point_metrics(
         "age": age,
         "value": value,
         "unit": unit,
-        "z": round(z, 4),
+        "z": round(z_reported, 4),
         "percentile": round(pct, 1),
+        # True when the measurement fell outside the reportable range and `z`
+        # was clamped: treat it as "outside reference range", not as a result.
+        "out_of_reference_range": out_of_range,
+        "z_reportable_range": [lms_core.Z_REPORTABLE_MIN, lms_core.Z_REPORTABLE_MAX],
         "median_for_age": round(median, 3) if median is not None else None,
         "label": f"{value:.1f} {unit} @ {age:.1f} y",
     }

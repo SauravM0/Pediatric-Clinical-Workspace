@@ -250,6 +250,37 @@ def iap_value_at_z(measure: str, sex: str, age_years: float, z: float) -> float 
 _STANDARD_Z: tuple[float, ...] = tuple(sorted(_Z_HEIGHT_WEIGHT.values()))
 
 
+def _lms_tail_z(measure: str, sex: str, age_years: float, value: float,
+                anchor_value: float, anchor_z: float) -> float | None:
+    """z beyond the outermost drawn centile, using the LMS distribution's own
+    shape instead of extending the centile ladder in a straight line (M1.2).
+
+    The ladder is linear in VALUE, which is only correct where the distribution
+    is near-symmetric. Weight and BMI are strongly right-skewed (Cole's L is far
+    from 1), so a straight-line extension compresses the lower tail toward the
+    mean and stretches the upper one. Measured on this app's own data before the
+    fix: a weight sitting exactly at a true -3.0 SD scored -2.64, and one at
+    +3.0 SD scored +3.54. The lower-tail direction is the dangerous one -- WHO's
+    severe-underweight threshold is -3 SD, so children who genuinely met it were
+    reported just above it, i.e. false reassurance.
+
+    The LMS result is SHIFTED so the tail passes exactly through the drawn
+    anchor (`value == anchor_value` returns `anchor_z` exactly). Without that
+    shift there would be a small step at P3/P97, because the drawn centile comes
+    from the published table while the LMS fit only approximates it -- and a
+    discontinuity right at the outermost drawn centile is precisely the
+    display-vs-scoring mismatch that _z_from_display_anchors exists to prevent
+    (audit GC-3/GC-4). So the tail keeps the LMS *shape* while staying pinned to
+    what the chart actually draws.
+    """
+    l, m, s = _SERIES[(sex, measure)].lms_at(age_years)
+    z_value = lms_z_score(value, l, m, s)
+    z_anchor = lms_z_score(anchor_value, l, m, s)
+    if z_value is None or z_anchor is None:
+        return None
+    return anchor_z + (z_value - z_anchor)
+
+
 def _z_from_display_anchors(measure: str, sex: str, age_years: float, value: float) -> float | None:
     """Invert a value against the SAME centile curves the chart draws.
 
@@ -257,10 +288,13 @@ def _z_from_display_anchors(measure: str, sex: str, age_years: float, value: flo
     centile: for published centiles the anchor is the exact table value, for
     BMI's model-only upper centiles it is the LMS value -- exactly matching what
     is rendered. So a patient value on a drawn centile returns exactly that
-    centile; between two drawn centiles z is interpolated monotonically; outside
-    P3/P97 it is linearly extrapolated from the outermost segment. This is the
-    backend twin of the frontend's zForValueFromCentileStats (audit F-2) and
-    resolves the display-vs-scoring model mismatch (audit GC-3/GC-4).
+    centile, and between two drawn centiles z is interpolated monotonically.
+    This is the backend twin of the frontend's zForValueFromCentileStats
+    (audit F-2) and resolves the display-vs-scoring model mismatch (GC-3/GC-4).
+
+    Outside P3/P97 the ladder is no longer extended linearly -- it hands off to
+    the LMS tail (see _lms_tail_z, M1.2), which is continuous with it at the
+    anchor but follows the distribution's real skew.
     """
     pairs: list[tuple[float, float]] = []
     for z in _STANDARD_Z:
@@ -274,12 +308,11 @@ def _z_from_display_anchors(measure: str, sex: str, age_years: float, value: flo
     def _lerp(x0: float, z0: float, x1: float, z1: float) -> float:
         return z0 if x1 == x0 else z0 + (value - x0) / (x1 - x0) * (z1 - z0)
 
-    n = len(pairs)
     if value <= pairs[0][0]:
-        return _lerp(pairs[0][0], pairs[0][1], pairs[1][0], pairs[1][1])
+        return _lms_tail_z(measure, sex, age_years, value, pairs[0][0], pairs[0][1])
     if value >= pairs[-1][0]:
-        return _lerp(pairs[n - 2][0], pairs[n - 2][1], pairs[-1][0], pairs[-1][1])
-    for i in range(n - 1):
+        return _lms_tail_z(measure, sex, age_years, value, pairs[-1][0], pairs[-1][1])
+    for i in range(len(pairs) - 1):
         if pairs[i][0] <= value <= pairs[i + 1][0]:
             return _lerp(pairs[i][0], pairs[i][1], pairs[i + 1][0], pairs[i + 1][1])
     return None
