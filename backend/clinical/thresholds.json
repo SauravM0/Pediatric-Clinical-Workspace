@@ -1,0 +1,112 @@
+{
+  "_about": "Clinical thresholds as reviewable DATA, not numbers buried in code. Every entry must carry a `source`; tests/clinical/test_thresholds.py fails otherwise. Changing a number here is a reviewed, diffable event -- the same discipline backend/ai/validation/gates.json already uses. Where a threshold is a widely-taught rule of thumb rather than a guideline figure, `source` says so plainly instead of dressing it up as evidence.",
+  "version": "clinical-thresholds-1.0",
+
+  "short_stature_sds": {
+    "value": -2.0,
+    "source": "Pediatric Endocrine Society, Child with Suspected Short Stature: height below -2 SD (roughly the 3rd centile) defines short stature.",
+    "confidence": "high"
+  },
+  "severe_short_stature_sds": {
+    "value": -3.0,
+    "source": "Pediatric Endocrine Society: below -3 SD is severe short stature with a high likelihood of a pathological cause; refer.",
+    "confidence": "high"
+  },
+  "tall_stature_sds": {
+    "value": 3.0,
+    "source": "Conventional cut-off for evaluation of tall stature (>+3 SD).",
+    "confidence": "moderate"
+  },
+
+  "sds_fall_one_channel": {
+    "value": -0.67,
+    "source": "One centile channel is 0.67 SD wide. A sustained fall of more than one channel after age 3 is the standard description of downward centile crossing (PES referral guidance: 'decreasing growth velocity - crossing percentiles down after the age of 3').",
+    "confidence": "moderate"
+  },
+  "centile_crossing_min_interval_years": {
+    "value": 1.0,
+    "source": "PES referral guidance describes crossing sustained over time; one year is the shortest interval over which a real change can be separated from measurement error.",
+    "confidence": "moderate"
+  },
+
+  "low_height_velocity_cm_per_year": {
+    "value": 4.0,
+    "source": "RULE OF THUMB, not a centile. A pre-pubertal child growing under about 4-5 cm/year warrants evaluation. The correct test is height velocity below the 25th centile for age, which needs the published Indian velocity reference (Khadilkar et al., Indian Pediatr 2019) that this project does NOT yet hold -- see INTENDED-USE.md. Treat as a coarse screen.",
+    "confidence": "low"
+  },
+  "velocity_rule_min_age_years": {
+    "value": 3.0,
+    "source": "Infant growth deceleration is physiological as a child settles onto their genetic centile; the flat-velocity screen applies from age 3.",
+    "confidence": "moderate"
+  },
+
+  "below_target_height_sds": {
+    "value": -2.0,
+    "source": "PES referral guidance: height significantly below genetic potential. Expressed here as SD below the mid-parental target using the target-range half-width below.",
+    "confidence": "moderate"
+  },
+  "target_range_half_width_cm": {
+    "value": 8.5,
+    "source": "Tanner mid-parental target height corridor, commonly quoted as +/-8.5 cm (approximately +/-2 SD of the sex-specific adult height distribution).",
+    "confidence": "moderate"
+  },
+  "mid_parental_sex_offset_cm": {
+    "value": 13.0,
+    "source": "Tanner mid-parental height: (father + mother + 13)/2 for boys, (father + mother - 13)/2 for girls.",
+    "confidence": "high"
+  },
+
+  "sga_catch_up_age_years": {
+    "value": 2.0,
+    "source": "PES referral guidance: a history of IUGR/SGA without catch-up growth by age 2 is a referral criterion.",
+    "confidence": "high"
+  },
+  "sga_birth_weight_g": {
+    "value": 2500.0,
+    "source": "WHO low-birth-weight definition (<2500 g). A coarse proxy for SGA when birth-weight centile is not recorded.",
+    "confidence": "low"
+  },
+
+  "bone_age_discrepancy_years": {
+    "value": 2.0,
+    "source": "A bone age more than 2 years from chronological age in either direction is conventionally considered significant. NOTE: the active TW3-C curve is provisional (+/-0.5y, digitized) -- see INTENDED-USE.md -- so this rule is reported at reduced confidence.",
+    "confidence": "low"
+  },
+
+  "delayed_puberty_age_girls": {
+    "value": 13.0,
+    "source": "No breast development (Tanner B1) by age 13 in girls defines delayed puberty; refer to endocrinology.",
+    "confidence": "high"
+  },
+  "delayed_puberty_age_boys": {
+    "value": 14.0,
+    "source": "No testicular enlargement (<4 mL) by age 14 in boys defines delayed puberty; refer to endocrinology.",
+    "confidence": "high"
+  },
+  "precocious_puberty_age_girls": {
+    "value": 8.0,
+    "source": "Breast development before age 8 in girls defines precocious puberty.",
+    "confidence": "high"
+  },
+  "precocious_puberty_age_boys": {
+    "value": 9.0,
+    "source": "Testicular enlargement before age 9 in boys defines precocious puberty.",
+    "confidence": "high"
+  },
+  "testicular_volume_pubertal_ml": {
+    "value": 4.0,
+    "source": "Testicular volume >=4 mL marks the onset of puberty in boys.",
+    "confidence": "high"
+  },
+  "early_menarche_age_years": {
+    "value": 8.0,
+    "source": "Menarche before age 8 requires endocrine evaluation.",
+    "confidence": "high"
+  },
+
+  "arm_span_height_difference_cm": {
+    "value": 5.0,
+    "source": "RULE OF THUMB. An arm span exceeding height by more than about 5 cm raises Marfanoid habitus; a span well below height suggests short limbs. The proper test is an age- and sex-specific reference (Indian data exist: Khadilkar sitting-height/segment-ratio studies) which this project does NOT yet hold. Low confidence, screening only.",
+    "confidence": "low"
+  }
+}
