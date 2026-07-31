@@ -44,6 +44,20 @@ _ADDED_COLUMNS: dict[str, dict[str, str]] = {
         "bone_group": "VARCHAR(8) NOT NULL DEFAULT 'rus'",
         "rater_id": "VARCHAR(120)",                 # schema v3 (Plan 2 WI-1)
     },
+    "patient": {
+        # schema v5 (M2): clinical context recorded once and reused each visit.
+        # All nullable -- SQLite cannot ADD a NOT NULL column without a DEFAULT
+        # to a populated table (asserted by tests/test_schema_integrity.py).
+        "mother_height_cm": "FLOAT",
+        "father_height_cm": "FLOAT",
+        "parental_height_source": "VARCHAR(16)",
+        "gestational_age_weeks": "FLOAT",
+        "birth_weight_g": "FLOAT",
+        "birth_length_cm": "FLOAT",
+        "ethnicity": "VARCHAR(64)",
+        "conditions_json": "TEXT",
+        "medications_json": "TEXT",
+    },
     "radiograph": {
         "source_domain": "VARCHAR(24)",
         "consent_status": "VARCHAR(24)",            # schema v3 (Plan 2 WI-9)

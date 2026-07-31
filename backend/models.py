@@ -13,6 +13,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -56,10 +57,113 @@ class Patient(Base):
     )
     sex_at_birth: Mapped[str] = mapped_column(String(8), nullable=False)  # boys | girls
     date_of_birth: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # ── Clinical context (M2) ────────────────────────────────────────────────
+    # Needed once and reused at every visit. Previously the clinician retyped
+    # parental heights each time, or simply went without them.
+    mother_height_cm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    father_height_cm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # measured | reported. Parental heights are very often self-reported and
+    # biased upward; mid-parental target height is only as good as its inputs,
+    # and presenting a reported-derived target as if measured overstates it.
+    parental_height_source: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    gestational_age_weeks: Mapped[float | None] = mapped_column(Float, nullable=True)
+    birth_weight_g: Mapped[float | None] = mapped_column(Float, nullable=True)
+    birth_length_cm: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ethnicity: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    conditions_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    medications_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
 
     assessments: Mapped[list["TW3Assessment"]] = relationship(back_populates="patient")
+
+
+class Encounter(Base):
+    """One visit. Groups the observations and assessments made on a day (M2).
+
+    Thin on purpose: it exists so "what happened at the March visit" is
+    answerable, not to model scheduling or billing.
+    """
+
+    __tablename__ = "encounter"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patient.id"), nullable=False, index=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    seen_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"), nullable=True)
+    reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class Observation(Base):
+    """A single measurement of one thing, at one moment (M2).
+
+    THE gap this closes: before it, no growth measurement was stored anywhere.
+    /api/growth/point took age and value as query parameters, returned a
+    z-score, and discarded both. A single height is nearly uninformative -- a
+    child who has always been on the 3rd centile is probably a short child, one
+    who has fallen from the 50th to the 3rd is an urgent endocrine work-up, and
+    the product could not tell those apart. The trajectory is the diagnosis.
+
+    Append-only with soft correction: a mistyped height is a typo rather than a
+    superseded clinical judgement, so full revisioning (as TW3Assessment uses)
+    would be over-engineered -- but silently mutating a clinical value in place
+    would lose the audit trail. So a correction inserts a new row and marks the
+    old one `corrected`, which mirrors `supersedes_id` without the lifecycle.
+    """
+
+    __tablename__ = "observation"
+    __table_args__ = (
+        Index("ix_observation_patient_type_time", "patient_id", "obs_type", "observed_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patient.id"), nullable=False, index=True)
+    encounter_id: Mapped[int | None] = mapped_column(ForeignKey("encounter.id"), nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    # Derived from observed_at - date_of_birth and CACHED for query speed. It is
+    # a cache, not the truth: correcting a date of birth must recompute every
+    # one of these (growth_service.recompute_ages), or every historical z-score
+    # silently becomes wrong.
+    age_months: Mapped[float | None] = mapped_column(Float, nullable=True)
+    obs_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    value: Mapped[float] = mapped_column(Float, nullable=False)
+    unit: Mapped[str] = mapped_column(String(12), nullable=False)
+    method: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    measured_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # active | corrected | erroneous
+    status: Mapped[str] = mapped_column(String(12), default="active", nullable=False)
+    corrected_by_id: Mapped[int | None] = mapped_column(ForeignKey("observation.id"), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class PubertyAssessment(Base):
+    """Tanner staging (M2).
+
+    The missing variable that makes velocity, bone age and height prediction
+    interpretable: the same height velocity is reassuring in a child mid-puberty
+    and alarming in one who has not started.
+    """
+
+    __tablename__ = "puberty_assessment"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patient.id"), nullable=False, index=True)
+    encounter_id: Mapped[int | None] = mapped_column(ForeignKey("encounter.id"), nullable=True)
+    assessed_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    # Tanner 1-5. Breast (girls) / genital (boys) staged separately from pubic
+    # hair because adrenarche and gonadarche can dissociate -- collapsing them
+    # into one "Tanner stage" hides precocious adrenarche.
+    breast_stage: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    genital_stage: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    pubic_hair_stage: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    testicular_volume_ml: Mapped[float | None] = mapped_column(Float, nullable=True)
+    menarche_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    assessed_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
 class Radiograph(Base):

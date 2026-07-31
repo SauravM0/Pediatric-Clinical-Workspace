@@ -28,6 +28,7 @@ from backend.api_assessments import router as assessments_router
 from backend.api_cvd import router as cvd_router
 from backend.api_growth import router as growth_router
 from backend.api_growth_report import router as growth_report_router
+from backend.api_observations import router as observations_router
 from backend.api_privacy import router as privacy_router
 from backend.config import APP_VERSION
 from backend.db import init_db
@@ -92,6 +93,7 @@ app.include_router(assessments_router)
 app.include_router(cvd_router)
 app.include_router(growth_router)
 app.include_router(growth_report_router)
+app.include_router(observations_router)
 app.include_router(privacy_router)
 
 
