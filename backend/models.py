@@ -23,6 +23,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from backend.config import DB_SCHEMA_VERSION
+from backend.security.crypto import EncryptedString
 
 
 def _utcnow() -> datetime:
@@ -43,8 +44,16 @@ class SchemaVersion(Base):
 class Patient(Base):
     __tablename__ = "patient"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # patient_code is the clinic's own MRN. Left in clear on purpose: it is the
+    # join key an operator types to find a record, and encrypting it would make
+    # lookup impossible without decrypting every row. It is a pseudonym -- the
+    # thing that turns it into an identity is `name`, which is encrypted below.
     patient_code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
-    name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # Encrypted at rest (C.2). Storage grows (~2.5x, base64 + nonce + tag), hence
+    # the wider column; service code still reads and writes a plain string.
+    name: Mapped[str | None] = mapped_column(
+        EncryptedString(600, context="patient.name"), nullable=True
+    )
     sex_at_birth: Mapped[str] = mapped_column(String(8), nullable=False)  # boys | girls
     date_of_birth: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
@@ -255,6 +264,128 @@ class AdjudicationItem(Base):
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
+class User(Base):
+    """A named human operator (security phase, C.1).
+
+    Before this the app had no notion of who was using it: every audit row said
+    "local-user", `reader_id` was free text, and any request reached any
+    endpoint. That was tolerable only while the product was stateless for growth
+    and single-user for bone age. A clinical record needs attributable actions.
+
+    Passwords are stored only as scrypt hashes (see security/passwords.py).
+    """
+
+    __tablename__ = "app_user"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    full_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    # admin | doctor | assistant -- see security.roles
+    role: Mapped[str] = mapped_column(String(16), nullable=False, default="assistant")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Forces a change at next login (used for admin-reset passwords).
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    failed_login_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, onupdate=_utcnow)
+
+
+class UserSession(Base):
+    """A logged-in browser session.
+
+    Only the SHA-256 of the session token is stored, never the token itself --
+    same reasoning as passwords: a leaked database must not yield usable
+    credentials. Sessions carry both an absolute expiry and an idle timeout, so
+    an unattended clinic workstation stops being logged in.
+    """
+
+    __tablename__ = "user_session"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id"), nullable=False, index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    client_host: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
+class ConsentRecord(Base):
+    """Consent captured per patient per purpose (DPDP Act 2023, C.3).
+
+    India's DPDP Act requires consent to be free, specific, informed and
+    unconditional, and to be as easy to withdraw as to give. Consent is
+    therefore recorded PER PURPOSE rather than as one blanket flag: agreeing to
+    clinical care is not agreeing to have your child's radiograph used for model
+    training. Withdrawal is a new row, never an edit, so the history of what was
+    agreed and when survives.
+    """
+
+    __tablename__ = "consent_record"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patient.id"), nullable=False, index=True)
+    # clinical_care | model_training | research | quality_audit
+    purpose: Mapped[str] = mapped_column(String(32), nullable=False)
+    granted: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    # Who consented: the patient (adult) or a parent/guardian for a minor.
+    given_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    relationship: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # Free-text record of exactly what the person was told.
+    notice_version: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    recorded_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"), nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ErasureRequest(Base):
+    """A data-principal erasure request and what was done about it (C.3).
+
+    Erasure cannot be a silent hard DELETE: some records must be retained for
+    medical-legal reasons, and a regulator may ask what was removed and what was
+    kept. This records the request, the decision, and the outcome.
+    """
+
+    __tablename__ = "erasure_request"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patient.id"), nullable=False, index=True)
+    requested_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    requested_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    # pending | completed | refused
+    status: Mapped[str] = mapped_column(String(16), default="pending", nullable=False)
+    decided_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"), nullable=True)
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    outcome_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class SecurityEvent(Base):
+    """Security-relevant events, including the breach log (C.3).
+
+    Kept separate from AuditEvent: that table records clinical actions on an
+    assessment, this one records authentication, authorisation failures, data
+    export, erasure and suspected breaches. Mixing them makes both harder to
+    review, and a breach notification has a statutory clock attached to it.
+    """
+
+    __tablename__ = "security_event"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    # login_success | login_failure | lockout | logout | authz_denied |
+    # data_export | erasure | breach_suspected | breach_notified
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    severity: Mapped[str] = mapped_column(String(8), default="info", nullable=False)  # info|warn|critical
+    username: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("app_user.id"), nullable=True)
+    patient_id: Mapped[int | None] = mapped_column(ForeignKey("patient.id"), nullable=True)
+    client_host: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow, index=True)
+    application_version: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
 
 def ensure_schema_version(engine: Engine) -> None:

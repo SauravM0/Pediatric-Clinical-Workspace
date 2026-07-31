@@ -22,11 +22,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from backend.api_auth import router as auth_router
 from backend.api_bone_age import router as bone_age_router
 from backend.api_assessments import router as assessments_router
 from backend.api_cvd import router as cvd_router
 from backend.api_growth import router as growth_router
 from backend.api_growth_report import router as growth_report_router
+from backend.api_privacy import router as privacy_router
 from backend.config import APP_VERSION
 from backend.db import init_db
 
@@ -70,7 +72,7 @@ app.add_middleware(
         "http://127.0.0.1:8000",
         "null",
     ],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -84,20 +86,44 @@ if FRONTEND_DIR.exists():
         app.mount("/vendor", StaticFiles(directory=vendor_dir), name="vendor")
 
 
+app.include_router(auth_router)
 app.include_router(bone_age_router)
 app.include_router(assessments_router)
 app.include_router(cvd_router)
 app.include_router(growth_router)
 app.include_router(growth_report_router)
+app.include_router(privacy_router)
 
 
 @app.get("/api/health")
 def health() -> dict[str, Any]:
+    """Unauthenticated on purpose: a liveness probe must work before login, and
+    this returns no patient data. It DOES disclose the security posture --
+    an instance running with auth or encryption off should be visibly so, not
+    quietly so (security phase, C.1/C.2)."""
+    from backend.security.crypto import encryption_available
+    from backend.security.deps import auth_disabled
+
+    auth_on = not auth_disabled()
+    encryption_on = encryption_available()
     return {
         "status": "ok",
         "frontend_available": INDEX_HTML.exists(),
         "external_calls": False,
         "clinical_use": False,
+        "auth_enabled": auth_on,
+        "encryption_at_rest": encryption_on,
+        "safe_for_patient_data": auth_on and encryption_on,
+        "warnings": [
+            w for w in (
+                None if auth_on else
+                "AUTHENTICATION DISABLED (PCW_AUTH_DISABLED) - every endpoint is open. "
+                "Development only; never expose this instance or store real patient data.",
+                None if encryption_on else
+                "IDENTIFIERS NOT ENCRYPTED AT REST (PCW_ENCRYPTION_KEY unset) - patient "
+                "names are stored in clear in the database file.",
+            ) if w
+        ],
     }
 
 

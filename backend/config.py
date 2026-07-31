@@ -10,8 +10,10 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-APP_VERSION = "1.4.0"
-DB_SCHEMA_VERSION = "3"
+APP_VERSION = "1.5.0"
+# 4: security phase -- app_user, user_session, consent_record,
+#    erasure_request, security_event; Patient.name encrypted at rest.
+DB_SCHEMA_VERSION = "4"
 REPORT_TEMPLATE_VERSION = "1.0"
 
 APP_ROOT = Path(__file__).resolve().parents[1]

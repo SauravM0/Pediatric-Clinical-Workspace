@@ -8,11 +8,16 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import Depends, APIRouter, HTTPException, Query
 
 from backend.growth import blend, curve_builder, lms_core, measures, reference_data, validation
 
-router = APIRouter(prefix="/api/growth", tags=["growth"])
+from backend.security.deps import clinical_access
+
+# Every route in this router requires an authenticated user with at least
+# read access; mutating methods require write access (security phase, C.1).
+# Applied at the router so a route added later is protected by construction.
+router = APIRouter(prefix="/api/growth", tags=["growth"], dependencies=[Depends(clinical_access)])
 
 # Canonical registry (M0.3) -- previously re-declared here and in five other
 # modules, so a new measure could be served by the API but never validated.

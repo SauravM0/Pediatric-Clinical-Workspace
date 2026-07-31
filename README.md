@@ -3,6 +3,39 @@
 Local FastAPI + static browser workspace for growth calculations and bone-age
 image uploads.
 
+## Security Setup (required before any real patient data)
+
+Authentication is **on by default** and there is no seeded default account —
+create one at a terminal:
+
+```bash
+python -m backend.security.bootstrap --username drpawal --role doctor
+```
+
+Roles are `admin`, `doctor`, `assistant`. An **admin manages accounts but cannot
+approve clinical results** — that is deliberate, not an oversight (see
+`backend/security/roles.py`).
+
+Generate an encryption key for identifiers at rest and put it in `.env`:
+
+```bash
+python -m backend.security.crypto
+```
+
+Then confirm the posture — **`safe_for_patient_data` must be `true`** before real
+data is entered:
+
+```bash
+curl -s http://127.0.0.1:8077/api/health
+```
+
+`PCW_AUTH_DISABLED=1` turns authentication off for local development. It is
+reported by `/api/health`, and an instance running with it must never hold real
+patient data or be exposed to a network.
+
+See [INTENDED-USE.md](INTENDED-USE.md) for the full intended-use and limitations
+statement, including known-unsafe configurations.
+
 ## Important Medical Boundary
 
 Decision support only — not a diagnostic device. A clinician must verify all
@@ -109,27 +142,26 @@ Open http://127.0.0.1:8077/.
 
 No API key is required. Images are processed locally by the backend.
 
-## Deploy Free On Render
+## Deployment
 
-1. Push this folder to a GitHub repository.
-2. In Render, choose **New +** then **Blueprint** and select the repository.
-3. Render will read `render.yaml` automatically.
-4. After deploy, open:
+**This application is local-first and is not currently supported on a public
+host.** `render.yaml` remains from earlier development; it predates the security
+work and must not be used with real patient data.
 
-```text
-https://your-render-app.onrender.com/api/health
-https://your-render-app.onrender.com/api/self-test
-```
+The blockers are specific rather than theoretical:
 
-If you create a plain Web Service instead of a Blueprint, use:
+- the server binds `127.0.0.1` by design and has no TLS of its own;
+- session cookies are only marked `Secure` when the request is not plain
+  localhost, so a public deployment must terminate TLS in front of the app;
+- the encryption key would sit on the same host as the database, which protects
+  a copied database but not a compromised host;
+- a public instance is exposed to credential stuffing, and the lockout here is
+  per-account rather than per-IP.
 
-```text
-Build Command: pip install -r requirements.txt
-Start Command: uvicorn backend.server:app --host 0.0.0.0 --port $PORT
-```
-
-Render free services may sleep when idle. Do not upload identifiable patient
-X-rays to a public/free host.
+For a single clinic, run it on the clinic machine. If a networked deployment is
+ever needed, it requires TLS, a reverse proxy with rate limiting, key management
+separate from the database, and a fresh review against
+[INTENDED-USE.md](INTENDED-USE.md) §7.
 
 ## API
 

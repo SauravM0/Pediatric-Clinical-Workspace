@@ -49,7 +49,12 @@ from backend.tw3 import (
 )
 from backend.tw3.tables import TablesError
 
-router = APIRouter(prefix="/api/bone-age", tags=["bone-age"])
+from backend.security.deps import clinical_access
+
+# Every route in this router requires an authenticated user with at least
+# read access; mutating methods require write access (security phase, C.1).
+# Applied at the router so a route added later is protected by construction.
+router = APIRouter(prefix="/api/bone-age", tags=["bone-age"], dependencies=[Depends(clinical_access)])
 
 
 def _curve_declared_provisional(tables) -> bool:

@@ -1,4 +1,8 @@
 fastapi>=0.115.0
+# AES-256-GCM for encrypting identifiers at rest (security phase C.2).
+# There is no AEAD in the standard library and hand-rolling one for a security
+# control is not acceptable, so this dependency is deliberate.
+cryptography>=43.0
 numpy>=1.26
 onnxruntime>=1.17
 pillow>=10.4.0

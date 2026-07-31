@@ -24,10 +24,15 @@ from __future__ import annotations
 
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import Depends, APIRouter, HTTPException, Query, Request
 from fastapi.responses import Response
 
-router = APIRouter(prefix="/api/growth", tags=["growth-report"])
+from backend.security.deps import clinical_access
+
+# Every route in this router requires an authenticated user with at least
+# read access; mutating methods require write access (security phase, C.1).
+# Applied at the router so a route added later is protected by construction.
+router = APIRouter(prefix="/api/growth", tags=["growth-report"], dependencies=[Depends(clinical_access)])
 
 _VALID_SEXES = ("boys", "girls")
 

@@ -5,12 +5,17 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import Depends, APIRouter
 from pydantic import BaseModel, Field
 
 from backend.cvd import qrisk3
 
-router = APIRouter(prefix="/api/cvd", tags=["cvd"])
+from backend.security.deps import clinical_access
+
+# Every route in this router requires an authenticated user with at least
+# read access; mutating methods require write access (security phase, C.1).
+# Applied at the router so a route added later is protected by construction.
+router = APIRouter(prefix="/api/cvd", tags=["cvd"], dependencies=[Depends(clinical_access)])
 
 
 class QRisk3Request(BaseModel):

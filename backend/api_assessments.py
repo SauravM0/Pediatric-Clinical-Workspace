@@ -20,7 +20,14 @@ from backend import radiograph_service as rgsvc
 from backend.db import get_db
 from backend.imaging import ImagingError
 
-router = APIRouter(prefix="/api/bone-age", tags=["assessments"])
+from backend.models import User
+from backend.security import roles
+from backend.security.deps import clinical_access, require
+
+# Every route in this router requires an authenticated user with at least
+# read access; mutating methods require write access (security phase, C.1).
+# Applied at the router so a route added later is protected by construction.
+router = APIRouter(prefix="/api/bone-age", tags=["assessments"], dependencies=[Depends(clinical_access)])
 
 
 def _handle(exc: svc.AssessmentError) -> HTTPException:
@@ -131,20 +138,27 @@ def calculate(assessment_id: int, db: Session = Depends(get_db)) -> dict:
 
 
 @router.post("/assessments/{assessment_id}/approve")
-def approve(assessment_id: int, req: ApproveReq, db: Session = Depends(get_db)) -> dict:
+def approve(assessment_id: int, req: ApproveReq, db: Session = Depends(get_db),
+            actor: User = Depends(require(roles.APPROVE_CLINICAL))) -> dict:
+    """Approving turns a draft into the patient's clinical record, so it needs
+    APPROVE_CLINICAL -- which only a doctor has. An assistant can enter and edit
+    everything here but cannot sign it off, and neither can an admin."""
     try:
-        a = svc.approve(db, assessment_id, approved_by=req.approved_by)
+        # Attribution comes from the authenticated session, not the request
+        # body: a self-declared approver name is not an attributable signature.
+        a = svc.approve(db, assessment_id, approved_by=actor.username)
         return svc.assessment_to_dict(db, a)
     except svc.AssessmentError as exc:
         raise _handle(exc) from exc
 
 
 @router.post("/assessments/{assessment_id}/reject")
-def reject(assessment_id: int, req: ReasonReq, db: Session = Depends(get_db)) -> dict:
+def reject(assessment_id: int, req: ReasonReq, db: Session = Depends(get_db),
+           actor: User = Depends(require(roles.APPROVE_CLINICAL))) -> dict:
     if not req.reason:
         raise HTTPException(status_code=422, detail="a reason is required to reject")
     try:
-        a = svc.reject(db, assessment_id, actor=req.actor, reason=req.reason)
+        a = svc.reject(db, assessment_id, actor=actor.username, reason=req.reason)
         return svc.assessment_to_dict(db, a)
     except svc.AssessmentError as exc:
         raise _handle(exc) from exc
