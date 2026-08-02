@@ -4,8 +4,7 @@
  * and frontend/src/ have drifted, so an edit here would be reverted anyway.
  */
 (() => {
-  // frontend/src/app.jsx
-  var { useState, useMemo, useEffect, useRef } = React;
+  // frontend/src/domain.js
   var TW3_CONFIG = {
     pctAdultHeight: { boys: [], girls: [] }
   };
@@ -57,6 +56,8 @@
     if (diff < -1) return "retarded";
     return "average";
   }
+
+  // frontend/src/qrisk3.js
   var QRISK3_FEMALE = {
     survivor: 0.988876402378082,
     Iethrisk: [
@@ -284,6 +285,8 @@
     const p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
     return z >= 0 ? 1 - p : p;
   }
+
+  // frontend/src/growthMath.js
   var IQR_TO_SD = 1.3489795;
   var CENTILE_Z = [[3, -1.8807936], [10, -1.2815516], [25, -0.6744898], [50, 0], [75, 0.6744898], [90, 1.2815516], [97, 1.8807936]];
   function zForValueFromCentileStats(stats, value) {
@@ -340,6 +343,8 @@
   function probToPercent(p, max) {
     return Math.min(Math.max(p / max * 100, 1), 99);
   }
+
+  // frontend/src/charts.jsx
   function SDSBar({ z }) {
     const left = sdsToPercent(z);
     return /* @__PURE__ */ React.createElement("div", { style: { paddingTop: "8px", paddingBottom: "4px" } }, /* @__PURE__ */ React.createElement("div", { className: "sds-track" }, /* @__PURE__ */ React.createElement("div", { className: "sds-marker", style: { left: `${left}%` } })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginTop: "6px", fontSize: "9px", fontWeight: "700", color: "#94a3b8", letterSpacing: "0.05em", textTransform: "uppercase" } }, /* @__PURE__ */ React.createElement("span", null, "\u22124"), /* @__PURE__ */ React.createElement("span", null, "\u22122"), /* @__PURE__ */ React.createElement("span", null, "0"), /* @__PURE__ */ React.createElement("span", null, "+2"), /* @__PURE__ */ React.createElement("span", null, "+4")));
@@ -513,6 +518,8 @@
     };
     return /* @__PURE__ */ React.createElement("svg", { viewBox: `0 0 ${width} ${height}`, width: "100%", style: { maxWidth: `${width}px`, display: "block" }, xmlns: "http://www.w3.org/2000/svg" }, /* @__PURE__ */ React.createElement("rect", { x: "0", y: "0", width, height, fill: theme.page }), /* @__PURE__ */ React.createElement("rect", { x: "14", y: "14", width: width - 28, height: "40", fill: "#ffffff", rx: "4" }), /* @__PURE__ */ React.createElement("text", { x: width / 2, y: "40", textAnchor: "middle", fontSize: "16.5", fontWeight: "800", fill: "#1e293b" }, "WHO 2006 & IAP 2015 combined ", theme.name, " Chart \u2014 Height & Weight, 0\u201318 Years"), /* @__PURE__ */ React.createElement("rect", { x: m.l, y: m.t, width: plotR - m.l, height: plotB - m.t, fill: IAP_PAPER, stroke: IAP_GRID_MAJOR, strokeWidth: "1.2" }), yminors.map((v, i) => /* @__PURE__ */ React.createElement("line", { key: "ym" + i, x1: m.l, y1: sy(v), x2: plotR, y2: sy(v), stroke: IAP_GRID_MINOR, strokeWidth: "0.5" })), xminors.map((a, i) => /* @__PURE__ */ React.createElement("line", { key: "xmi" + i, x1: sx(a), y1: m.t, x2: sx(a), y2: plotB, stroke: IAP_GRID_MINOR, strokeWidth: "0.5" })), yticks.map((v) => /* @__PURE__ */ React.createElement("g", { key: "y" + v }, /* @__PURE__ */ React.createElement("line", { x1: m.l, y1: sy(v), x2: plotR, y2: sy(v), stroke: IAP_GRID_MAJOR, strokeWidth: "1" }), /* @__PURE__ */ React.createElement("text", { x: m.l - 8, y: sy(v) + 3, textAnchor: "end", fontSize: "10", fill: "#57534e" }, v))), xticks.map((a) => /* @__PURE__ */ React.createElement("g", { key: "x" + a }, /* @__PURE__ */ React.createElement("line", { x1: sx(a), y1: m.t, x2: sx(a), y2: plotB, stroke: IAP_GRID_MAJOR, strokeWidth: "1" }), /* @__PURE__ */ React.createElement("text", { x: sx(a), y: plotB + 16, textAnchor: "middle", fontSize: "10", fill: "#57534e" }, a))), /* @__PURE__ */ React.createElement("text", { x: (m.l + plotR) / 2, y: height - 46, textAnchor: "middle", fontSize: "12", fontWeight: "700", fill: "#334155" }, "Age in Years"), /* @__PURE__ */ React.createElement("text", { x: 24, y: (m.t + plotB) / 2, textAnchor: "middle", fontSize: "12", fontWeight: "700", fill: "#334155", transform: `rotate(-90 24 ${(m.t + plotB) / 2})` }, "Height in CM and Weight in KG"), renderCurveGroup(heightCurves, "height"), renderCurveGroup(weightCurves, "weight"), weightSerial.length > 1 && /* @__PURE__ */ React.createElement("polyline", { fill: "none", stroke: theme.point, strokeWidth: "1.6", strokeDasharray: "5,3", points: weightSerial.map((p) => `${sx(p.age).toFixed(1)},${sy(p.value).toFixed(1)}`).join(" ") }), weightSerial.map((p, i) => /* @__PURE__ */ React.createElement("circle", { key: "ws" + i, cx: sx(p.age), cy: sy(p.value), r: "3", fill: "#ffffff", stroke: theme.point, strokeWidth: "1.5" })), heightSerial.length > 1 && /* @__PURE__ */ React.createElement("polyline", { fill: "none", stroke: theme.point, strokeWidth: "1.6", strokeDasharray: "5,3", points: heightSerial.map((p) => `${sx(p.age).toFixed(1)},${sy(p.value).toFixed(1)}`).join(" ") }), heightSerial.map((p, i) => /* @__PURE__ */ React.createElement("circle", { key: "hs" + i, cx: sx(p.age), cy: sy(p.value), r: "3", fill: "#ffffff", stroke: theme.point, strokeWidth: "1.5" })), ageYears >= a0 && ageYears <= a1 && (heightValue > 0 || weightValue > 0) && /* @__PURE__ */ React.createElement("line", { x1: sx(ageYears), y1: m.t, x2: sx(ageYears), y2: plotB, stroke: theme.point, strokeWidth: "1", strokeDasharray: "2,3", opacity: "0.55" }), heightValue > 0 && !heightOutOfRange && ageYears >= a0 && ageYears <= a1 && labelBadge(heightValue, ageYears, "cm"), weightValue > 0 && !weightOutOfRange && ageYears >= a0 && ageYears <= a1 && labelBadge(weightValue, ageYears, "kg"), outOfRange && /* @__PURE__ */ React.createElement("g", null, /* @__PURE__ */ React.createElement("rect", { x: "14", y: "58", width: width - 28, height: "24", fill: "#fef2f2", stroke: "#fecaca", strokeWidth: "1", rx: "4" }), /* @__PURE__ */ React.createElement("text", { x: width / 2, y: "74", textAnchor: "middle", fontSize: "11", fontWeight: "800", fill: "#b91c1c" }, "\u26A0 Patient value is outside standard chart range.", heightOutOfRange ? ` Height ${heightValue}cm` : "", heightOutOfRange && weightOutOfRange ? " and" : "", weightOutOfRange ? ` Weight ${weightValue}kg` : "", " ", "not plotted \u2014 axis is fixed to the standard 0\u2013", ymax, " reference range.")), /* @__PURE__ */ React.createElement("text", { x: m.l, y: height - 26, fontSize: "8.5", fill: "#6b7280" }, heightData.reference), /* @__PURE__ */ React.createElement("text", { x: m.l, y: height - 14, fontSize: "8.5", fill: "#6b7280" }, 'Decision support only \u2014 not diagnostic; a clinician must verify all results. Red line = 3rd height percentile ("short below this line").'));
   }
+
+  // frontend/src/ui.jsx
   function ProbBar({ prob, maxProb, threshold, label }) {
     const left = probToPercent(prob, maxProb);
     const threshLeft = probToPercent(threshold, maxProb);
@@ -589,6 +596,9 @@
     const decimal = (now - b) / (365.25 * 24 * 3600 * 1e3);
     return { years, months, days, decimal };
   }
+
+  // frontend/src/app.jsx
+  var { useState, useMemo, useEffect, useRef } = React;
   function App() {
     const [activeTab, setActiveTab] = useState("overview");
     const [growthChartMeasure, setGrowthChartMeasure] = useState("combined");

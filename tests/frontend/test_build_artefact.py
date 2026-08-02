@@ -102,3 +102,65 @@ def test_bundle_matches_source():
         "frontend/app.js is stale -- the committed source is NOT what the browser "
         f"executes.\n{result.stdout}\n{result.stderr}\nRun: npm run build"
     )
+
+
+# ── module structure (M6 component extraction) ──────────────────────────────
+
+_EXPECTED_MODULES = {
+    "domain.js": ("TW3_CONFIG", "maturationCategory"),
+    "qrisk3.js": ("QRISK3_FEMALE", "QRISK3_MALE", "function qrisk3"),
+    "growthMath.js": ("zForValueFromCentileStats", "CENTILE_Z"),
+    "charts.jsx": ("GrowthChart", "COMBINED_CHART_YMAX"),
+    "ui.jsx": ("SectionHeader", "MetricRow"),
+    "app.jsx": ("function App()", "ReactDOM.createRoot"),
+}
+
+
+def test_stateless_layers_are_separate_modules():
+    """M6's second half: the parts with no dependency on App's state now live in
+    their own files, so they can be read, diffed and reasoned about without
+    scrolling through the application."""
+    for name, needles in _EXPECTED_MODULES.items():
+        path = SRC_DIR / name
+        assert path.exists(), f"expected module {name} is missing"
+        body = path.read_text(encoding="utf-8")
+        for needle in needles:
+            assert needle in body, f"{name} does not contain {needle!r}"
+
+
+def test_extracted_code_is_no_longer_duplicated_in_app():
+    """A split that copies rather than moves is worse than no split: two
+    definitions drift, and the bundler would silently pick one."""
+    app = (SRC_DIR / "app.jsx").read_text(encoding="utf-8")
+    for moved in ("const QRISK3_FEMALE", "function GrowthChartCombined",
+                  "function SectionHeader", "const CENTILE_Z",
+                  "function maturationCategory"):
+        assert moved not in app, (
+            f"{moved!r} is still defined in app.jsx as well as its new module — "
+            "the extraction copied instead of moving"
+        )
+
+
+def test_app_imports_what_it_uses():
+    app = (SRC_DIR / "app.jsx").read_text(encoding="utf-8")
+    for module in ("./domain.js", "./qrisk3.js", "./growthMath.js",
+                   "./charts.jsx", "./ui.jsx"):
+        assert f'from "{module}"' in app, f"app.jsx does not import {module}"
+
+
+def test_qrisk3_module_is_self_contained():
+    """tests/cvd/test_qrisk3.py compares these coefficients against the backend
+    character for character. Keeping them in one small file makes that a file
+    diff rather than a search through three thousand lines."""
+    body = (SRC_DIR / "qrisk3.js").read_text(encoding="utf-8")
+    assert "import" not in body.split("export")[0], (
+        "qrisk3.js gained a dependency; it should stay standalone"
+    )
+    assert "normalCDF" in body
+
+
+def test_app_is_smaller_than_before_the_split():
+    """Not a vanity metric: the file was 3,857 lines and every panel edit meant
+    opening all of it."""
+    lines = len((SRC_DIR / "app.jsx").read_text(encoding="utf-8").splitlines())
+    assert lines < 3200, f"app.jsx is {lines} lines; the extraction did not land"
