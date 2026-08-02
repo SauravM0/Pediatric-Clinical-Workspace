@@ -1,0 +1,11 @@
+# TEMPLATE -- copy to indian_height_velocity.csv and fill from the published
+# values. See VELOCITY-REFERENCE-REQUEST.md. Do NOT invent values: the engine
+# gates on whether the table peaks where Khadilkar 2019 reports, so fabricated
+# numbers fail the gate rather than silently becoming the reference.
+#
+# One row per (sex, age). Ages 5.0-17.5, ideally at 0.5y steps.
+#   sex   : boy | girl
+#   L,M,S : Cole's parameters for VELOCITY in cm/year at that age.
+#           M is the median velocity -- it must show the pubertal peak
+#           (boys ~6.8 cm/yr at 13.5y, girls ~6.6 at 10.5y).
+sex,age_years,L,M,S

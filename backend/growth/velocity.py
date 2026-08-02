@@ -16,15 +16,17 @@ Why the interval rules are not arbitrary:
   number is real but hides what a clinician is looking for. Reported with a
   flag rather than withheld.
 
-**Velocity SDS is deliberately not computed here.** It needs a published
-velocity reference (Khadilkar et al., Indian Pediatr 2019 -- item B6/M1.3),
-which this project does not yet hold. Inventing one, or reusing a distance-chart
-SD, would produce a plausible number with no basis. The reference slots in
-without touching this module.
+**Velocity SDS** comes from ``velocity_reference`` (M1.3) when a published
+reference is installed, and is withheld with a reason when it is not. It is
+scored at the interval MIDPOINT, and only for intervals close to the one the
+reference was built on -- see that module for why annualising a short interval
+does not land on the same distribution.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+from . import velocity_reference
 
 MIN_INTERVAL_YEARS = 0.5
 LONG_INTERVAL_YEARS = 2.0
@@ -44,14 +46,19 @@ class VelocityResult:
     unit: str
     status: str
     flags: tuple[str, ...] = ()
-    # Always None until a velocity reference is bundled -- see module docstring.
     velocity_sds: float | None = None
     sds_status: str = "no_velocity_reference_available"
 
 
 def velocity(a1: float, v1: float, a2: float, v2: float, *,
-             unit: str = "cm", monotonic: bool = True) -> VelocityResult:
-    """Velocity between two measurements, or an explanation of why not."""
+             unit: str = "cm", monotonic: bool = True,
+             sex: str | None = None, score: bool = False) -> VelocityResult:
+    """Velocity between two measurements, or an explanation of why not.
+
+    ``score=True`` with a ``sex`` also returns the velocity SDS when a published
+    reference is installed (M1.3). Kept opt-in so the pure rate calculation has
+    no dependency on reference data being present.
+    """
     if a2 < a1:
         a1, a2, v1, v2 = a2, a1, v2, v1
 
@@ -80,12 +87,20 @@ def velocity(a1: float, v1: float, a2: float, v2: float, *,
             "implausible_decrease" if loss > PLAUSIBLE_HEIGHT_LOSS_CM else "small_decrease"
         )
 
+    sds, sds_status = None, "not_requested"
+    if score and sex is not None:
+        # Scored at the interval MIDPOINT: that is the age the rate describes.
+        sds, sds_status = velocity_reference.velocity_sds(
+            sex, (a1 + a2) / 2.0, rate, interval)
+
     return VelocityResult(True, round(rate, 3), round(interval, 4), a1, a2,
-                          f"{unit}/yr", "ok", tuple(flags))
+                          f"{unit}/yr", "ok", tuple(flags),
+                          None if sds is None else round(sds, 3), sds_status)
 
 
 def series_velocities(points: list[tuple[float, float]], *, unit: str = "cm",
-                      monotonic: bool = True) -> list[VelocityResult]:
+                      monotonic: bool = True, sex: str | None = None,
+                      score: bool = False) -> list[VelocityResult]:
     """Velocity for each consecutive pair in an ascending (age, value) series.
 
     Consecutive pairs only -- not every combination. A clinician reads the
@@ -94,6 +109,6 @@ def series_velocities(points: list[tuple[float, float]], *, unit: str = "cm",
     """
     ordered = sorted(points)
     return [
-        velocity(a1, v1, a2, v2, unit=unit, monotonic=monotonic)
+        velocity(a1, v1, a2, v2, unit=unit, monotonic=monotonic, sex=sex, score=score)
         for (a1, v1), (a2, v2) in zip(ordered, ordered[1:])
     ]

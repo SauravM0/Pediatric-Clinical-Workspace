@@ -153,12 +153,40 @@ def _crossing(s: PatientSnapshot) -> Optional[Finding]:
     )
 
 
-@rule("LOW_HEIGHT_VELOCITY", ("height_velocities",), "Height velocity below a coarse floor")
+@rule("LOW_HEIGHT_VELOCITY", ("height_velocities",), "Height velocity below the expected range")
 def _velocity(s: PatientSnapshot) -> Optional[Finding]:
+    """Prefers a real centile; falls back to a coarse floor.
+
+    The correct test is velocity below the 25th centile for age, because the
+    same 4.5 cm/year is unremarkable at 7 and alarming mid-puberty. That needs
+    the published Indian velocity reference (M1.3). Until it is installed the
+    rule uses a flat 4 cm/year floor and says so, at low confidence.
+    """
     usable = [v for v in s.height_velocities if v[0] >= T("velocity_rule_min_age_years")]
     if not usable:
         return None
     from_age, to_age, rate = usable[-1]
+
+    if s.latest_velocity_sds is not None:
+        # Real centile available. -0.674 SD is the 25th centile.
+        if s.latest_velocity_sds > T("low_velocity_sds"):
+            return None
+        severe = s.latest_velocity_sds <= T("severe_low_velocity_sds")
+        return Finding(
+            "LOW_HEIGHT_VELOCITY", URGENT if severe else ATTENTION,
+            "Low height velocity",
+            f"Height velocity was {rate:.1f} cm/year between ages {from_age:.1f} and "
+            f"{to_age:.1f} — {s.latest_velocity_sds:+.2f} SD against the Indian "
+            "velocity reference"
+            f"{', below the 3rd centile' if severe else ', below the 25th centile'}.",
+            {"velocity_cm_per_year": round(rate, 2),
+             "velocity_sds": round(s.latest_velocity_sds, 2),
+             "from_age_years": round(from_age, 2), "to_age_years": round(to_age, 2),
+             "threshold_sds": T("low_velocity_sds")},
+            SRC("low_velocity_sds"), CONF("low_velocity_sds"),
+            suggests_specialty=("paediatric endocrinology",),
+        )
+
     if rate >= T("low_height_velocity_cm_per_year"):
         return None
     return Finding(

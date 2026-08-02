@@ -57,11 +57,15 @@ def build_snapshot(db: Session, patient_id: int) -> PatientSnapshot:
         Measurement(age, value, _sds("height", sex, age, value)) for age, value in heights
     )
 
+    raw_velocities = growth_service.velocities_for(db, patient_id, "height")
     velocities = tuple(
         (v["from_age_years"], v["to_age_years"], v["velocity_per_year"])
-        for v in growth_service.velocities_for(db, patient_id, "height")
+        for v in raw_velocities
         if v["available"] and v["velocity_per_year"] is not None
     )
+    # SDS for the most recent interval that could actually be scored (M1.3).
+    scored = [v for v in raw_velocities if v.get("velocity_sds") is not None]
+    latest_velocity_sds = scored[-1]["velocity_sds"] if scored else None
 
     # Current age: the most recent measurement's age is the honest "as of", since
     # a snapshot describes the last time the child was actually seen.
@@ -97,6 +101,7 @@ def build_snapshot(db: Session, patient_id: int) -> PatientSnapshot:
         bmi=measure("bmi", bmis),
         height_history=height_history,
         height_velocities=velocities,
+        latest_velocity_sds=latest_velocity_sds,
         mother_height_cm=patient.mother_height_cm,
         father_height_cm=patient.father_height_cm,
         parental_height_source=patient.parental_height_source,

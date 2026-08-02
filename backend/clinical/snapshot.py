@@ -55,6 +55,10 @@ class PatientSnapshot:
     height_history: tuple[Measurement, ...] = ()
     # cm/year for each consecutive usable interval, most recent last.
     height_velocities: tuple[tuple[float, float, float], ...] = ()  # (from_age, to_age, cm_per_year)
+    # Velocity SDS for the most recent scorable interval, when a published
+    # velocity reference is installed (M1.3). None means no reference, or an
+    # interval outside the band it can score -- never 'normal'.
+    latest_velocity_sds: Optional[float] = None
 
     mother_height_cm: Optional[float] = None
     father_height_cm: Optional[float] = None

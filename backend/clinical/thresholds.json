@@ -1,7 +1,6 @@
 {
   "_about": "Clinical thresholds as reviewable DATA, not numbers buried in code. Every entry must carry a `source`; tests/clinical/test_thresholds.py fails otherwise. Changing a number here is a reviewed, diffable event -- the same discipline backend/ai/validation/gates.json already uses. Where a threshold is a widely-taught rule of thumb rather than a guideline figure, `source` says so plainly instead of dressing it up as evidence.",
   "version": "clinical-thresholds-1.0",
-
   "short_stature_sds": {
     "value": -2.0,
     "source": "Pediatric Endocrine Society, Child with Suspected Short Stature: height below -2 SD (roughly the 3rd centile) defines short stature.",
@@ -17,7 +16,6 @@
     "source": "Conventional cut-off for evaluation of tall stature (>+3 SD).",
     "confidence": "moderate"
   },
-
   "sds_fall_one_channel": {
     "value": -0.67,
     "source": "One centile channel is 0.67 SD wide. A sustained fall of more than one channel after age 3 is the standard description of downward centile crossing (PES referral guidance: 'decreasing growth velocity - crossing percentiles down after the age of 3').",
@@ -28,7 +26,6 @@
     "source": "PES referral guidance describes crossing sustained over time; one year is the shortest interval over which a real change can be separated from measurement error.",
     "confidence": "moderate"
   },
-
   "low_height_velocity_cm_per_year": {
     "value": 4.0,
     "source": "RULE OF THUMB, not a centile. A pre-pubertal child growing under about 4-5 cm/year warrants evaluation. The correct test is height velocity below the 25th centile for age, which needs the published Indian velocity reference (Khadilkar et al., Indian Pediatr 2019) that this project does NOT yet hold -- see INTENDED-USE.md. Treat as a coarse screen.",
@@ -39,7 +36,6 @@
     "source": "Infant growth deceleration is physiological as a child settles onto their genetic centile; the flat-velocity screen applies from age 3.",
     "confidence": "moderate"
   },
-
   "below_target_height_sds": {
     "value": -2.0,
     "source": "PES referral guidance: height significantly below genetic potential. Expressed here as SD below the mid-parental target using the target-range half-width below.",
@@ -55,7 +51,6 @@
     "source": "Tanner mid-parental height: (father + mother + 13)/2 for boys, (father + mother - 13)/2 for girls.",
     "confidence": "high"
   },
-
   "sga_catch_up_age_years": {
     "value": 2.0,
     "source": "PES referral guidance: a history of IUGR/SGA without catch-up growth by age 2 is a referral criterion.",
@@ -66,13 +61,11 @@
     "source": "WHO low-birth-weight definition (<2500 g). A coarse proxy for SGA when birth-weight centile is not recorded.",
     "confidence": "low"
   },
-
   "bone_age_discrepancy_years": {
     "value": 2.0,
     "source": "A bone age more than 2 years from chronological age in either direction is conventionally considered significant. NOTE: the active TW3-C curve is provisional (+/-0.5y, digitized) -- see INTENDED-USE.md -- so this rule is reported at reduced confidence.",
     "confidence": "low"
   },
-
   "delayed_puberty_age_girls": {
     "value": 13.0,
     "source": "No breast development (Tanner B1) by age 13 in girls defines delayed puberty; refer to endocrinology.",
@@ -103,10 +96,19 @@
     "source": "Menarche before age 8 requires endocrine evaluation.",
     "confidence": "high"
   },
-
   "arm_span_height_difference_cm": {
     "value": 5.0,
     "source": "RULE OF THUMB. An arm span exceeding height by more than about 5 cm raises Marfanoid habitus; a span well below height suggests short limbs. The proper test is an age- and sex-specific reference (Indian data exist: Khadilkar sitting-height/segment-ratio studies) which this project does NOT yet hold. Low confidence, screening only.",
     "confidence": "low"
+  },
+  "low_velocity_sds": {
+    "value": -0.674,
+    "source": "Height velocity below the 25th centile for age is the standard referral test (PES / Children's Mercy growth-failure guidance). -0.674 SD is the 25th centile. Applied against the published Indian velocity reference (Khadilkar et al., Indian Pediatr 2019) when installed.",
+    "confidence": "high"
+  },
+  "severe_low_velocity_sds": {
+    "value": -1.881,
+    "source": "Velocity below the 3rd centile (-1.881 SD) is severe growth deceleration and warrants prompt specialist assessment rather than routine review.",
+    "confidence": "high"
   }
 }

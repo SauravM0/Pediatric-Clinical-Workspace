@@ -229,7 +229,12 @@ def velocities_for(db: Session, patient_id: int, obs_type: str) -> list[dict[str
         usable.append(row)
 
     points = [(r.age_months / MONTHS_PER_YEAR, r.value) for r in usable]
-    results = vel.series_velocities(points, unit=obs.unit, monotonic=obs.monotonic)
+    patient = _require_patient(db, patient_id)
+    # Score against the published velocity reference when one is installed
+    # (M1.3); it withholds with a reason otherwise.
+    results = vel.series_velocities(
+        points, unit=obs.unit, monotonic=obs.monotonic,
+        sex=patient.sex_at_birth, score=(obs_type == "height"))
     return [
         {"available": r.available, "velocity_per_year": r.velocity_per_year,
          "unit": r.unit, "interval_years": r.interval_years,

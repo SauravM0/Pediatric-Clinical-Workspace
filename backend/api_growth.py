@@ -12,7 +12,7 @@ from fastapi import Depends, APIRouter, HTTPException, Query
 
 from backend.growth import (
     blend, curve_builder, iap_lms_reference, lms_core, measures,
-    reference_data, validation,
+    reference_data, validation, velocity_reference,
 )
 
 from backend.security.deps import clinical_access
@@ -174,5 +174,8 @@ def get_validation_report() -> dict[str, Any]:
         # reviewer needs, and the answer is currently "a fit, not the paper's
         # own parameters".
         "iap_lms": iap_lms_reference.lms_status(),
+        # Whether the published Indian velocity reference is live (M1.3). Until
+        # it is, M5's low-velocity rule runs on a coarse floor at low confidence.
+        "velocity_reference": velocity_reference.reference_status(),
         "details": report.details,
     }
