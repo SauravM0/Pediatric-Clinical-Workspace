@@ -10,7 +10,10 @@ from typing import Any
 
 from fastapi import Depends, APIRouter, HTTPException, Query
 
-from backend.growth import blend, curve_builder, lms_core, measures, reference_data, validation
+from backend.growth import (
+    blend, curve_builder, iap_lms_reference, lms_core, measures,
+    reference_data, validation,
+)
 
 from backend.security.deps import clinical_access
 
@@ -166,5 +169,10 @@ def get_validation_report() -> dict[str, Any]:
         # result is only meaningful alongside the inputs that produced it --
         # this is what makes a pass/fail attributable to a specific data version.
         "reference_data": reference_data.describe(),
+        # Whether the published IAP L,M,S path is live, and if not, why (M1.1).
+        # Surfaced because "which reference produced this" is the first thing a
+        # reviewer needs, and the answer is currently "a fit, not the paper's
+        # own parameters".
+        "iap_lms": iap_lms_reference.lms_status(),
         "details": report.details,
     }

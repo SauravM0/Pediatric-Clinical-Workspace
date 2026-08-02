@@ -1,0 +1,12 @@
+# TEMPLATE -- copy to iap_2015_lms.csv and fill from the authors' values.
+# See IAP-LMS-REQUEST.md. Do NOT invent values: the engine gates on whether
+# these reproduce the published percentile table, so fabricated numbers fail
+# the gate rather than silently becoming the reference.
+#
+# One row per (sex, measure, age). Required grid: ages 5.0 to 18.0 at 0.5y
+# steps (27 rows) x 3 measures x 2 sexes = 162 rows.
+#   sex     : boy | girl
+#   measure : height | weight | bmi
+#   L,M,S   : Cole's parameters. >=4 decimal places on L and S -- rounding to 2
+#             visibly changes the tails, which is the part this file is for.
+sex,measure,age_years,L,M,S
