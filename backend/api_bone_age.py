@@ -184,6 +184,9 @@ def config() -> dict:
         "calibrated": {sex: t.is_calibrated(sex) for sex in SEXES},
         "ai_estimate_available": boneage.model_available(),
         "ai_model": boneage.model_metadata(),
+        # Which pipeline is active, which models exist, and whether each
+        # model's calibrated intervals are still valid under it (M4.1).
+        "inference_platform": __import__("backend.ai.registry", fromlist=["x"]).describe(),
         "bones": [
             {"code": code, "label": BONE_LABELS[code], "stages": list(t.stages_for(code))}
             for code in RUS_BONES

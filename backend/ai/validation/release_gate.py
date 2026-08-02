@@ -23,6 +23,23 @@ from backend.ai.validation import gates as _gates
 from backend.ai.validation import leak_guard as _leak
 
 
+# How a candidate may be compared with the incumbent (M4.4).
+#
+# The existing gate assumes like-for-like: same method, same dataset, so "beat
+# the incumbent's MAE" is meaningful. Adopting digiBONE breaks that assumption --
+# it is a different METHOD (segmental Greulich-Pyle) whose value proposition is
+# accuracy on INDIAN children, evaluated against an incumbent measured on RSNA.
+# Requiring it to beat the incumbent on RSNA would either block a better model or
+# force someone to weaken the gate, and a loosened gate is a permanent loss of a
+# safety property.
+#
+# So cross-method adoption gets its own basis: it is held to ABSOLUTE thresholds
+# plus a written rationale and human sign-off, instead of a delta.
+SAME_METHOD_SAME_DATASET = "same-method-same-dataset"
+CROSS_METHOD_ADOPTION = "cross-method-adoption"
+COMPARISON_BASES = (SAME_METHOD_SAME_DATASET, CROSS_METHOD_ADOPTION)
+
+
 @dataclass(frozen=True)
 class Verdict:
     passed: bool
@@ -63,6 +80,8 @@ def evaluate_candidate(
     gates: Optional[dict] = None,
     min_improvement_months: float = 0.0,
     subgroup_regression_tol_months: float = 0.0,
+    comparison_basis: str = SAME_METHOD_SAME_DATASET,
+    adoption_rationale: Optional[str] = None,
 ) -> Verdict:
     """Decide whether ``candidate_preds`` may replace ``incumbent_preds``.
 
@@ -71,6 +90,16 @@ def evaluate_candidate(
     ``test_registry`` + ``other_sets`` to enforce the leak guard first.
     """
     reasons: list[str] = []
+
+    if comparison_basis not in COMPARISON_BASES:
+        return Verdict(False, (f"unknown comparison_basis {comparison_basis!r}; "
+                               f"expected one of {COMPARISON_BASES}",), {})
+    cross_method = comparison_basis == CROSS_METHOD_ADOPTION
+    if cross_method and not (adoption_rationale or "").strip():
+        return Verdict(False, ("cross-method adoption requires a written "
+                               "adoption_rationale: the beat-incumbent check does "
+                               "not apply, so the reason for adopting must be "
+                               "recorded for sign-off",), {})
 
     # 1. Leak guard — refuse before computing anything if the test set leaked.
     if test_registry is not None and other_sets is not None:
@@ -84,9 +113,23 @@ def evaluate_candidate(
                         target_coverage=target_coverage)
     report: dict = {"candidate": cand}
 
-    # 3. Beat incumbent.
+    # 3. Beat incumbent -- only meaningful for a like-for-like comparison.
     beat = True
-    if incumbent_preds is not None:
+    if cross_method:
+        if incumbent_preds is not None:
+            inc = evaluate_age(incumbent_preds, targets)
+            report["incumbent"] = inc
+            report["incumbent_comparison_is_informational"] = True
+            reasons.append(
+                f"INFO cross-method: candidate MAE {cand['mae_months']} vs incumbent "
+                f"{inc['mae_months']} on this dataset -- reported, NOT gated. The "
+                "candidate uses a different method and its claim rests on a "
+                "different population."
+            )
+        reasons.append("SKIP beat-incumbent: cross-method adoption is gated on "
+                       "absolute thresholds plus written rationale and sign-off")
+        report["adoption_rationale"] = adoption_rationale
+    elif incumbent_preds is not None:
         inc = evaluate_age(incumbent_preds, targets)
         report["incumbent"] = inc
         beat = cand["mae_months"] <= inc["mae_months"] - min_improvement_months
@@ -98,7 +141,8 @@ def evaluate_candidate(
     else:
         reasons.append("SKIP beat-incumbent: no incumbent supplied")
 
-    # 4. No subgroup regression.
+    # 4. No subgroup regression. Also delta-based, so it is informational under
+    # cross-method adoption -- the absolute per-subgroup gate still applies below.
     no_regression = True
     worst_subgroup_mae = None
     if groups is not None:
@@ -106,7 +150,7 @@ def evaluate_candidate(
             _subgroup_regressions(list(targets), list(candidate_preds),
                                   list(incumbent_preds), list(groups),
                                   subgroup_regression_tol_months)
-            if incumbent_preds is not None else []
+            if incumbent_preds is not None and not cross_method else []
         )
         report["subgroup_regressions"] = regressions
         no_regression = not regressions
@@ -142,5 +186,10 @@ def evaluate_candidate(
     )
 
     passed = beat and no_regression and calibration_ok and gate_report["passed"]
+    report["comparison_basis"] = comparison_basis
+    if cross_method:
+        reasons.append("REQUIRES human sign-off: cross-method adoption is never "
+                       "auto-deployed (see release.py)")
+        report["requires_human_signoff"] = True
     report["passed"] = passed
     return Verdict(passed=passed, reasons=tuple(reasons), report=report)

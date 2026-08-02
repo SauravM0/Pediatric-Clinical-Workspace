@@ -66,7 +66,18 @@ def predict_months(image: Image.Image | bytes, is_male: bool) -> Optional[dict]:
         return None
     sess = _session()
     meta = model_metadata() or {}
-    x = preprocess(image, int(meta.get("input_size", IMG_SIZE)))
+    # Run the pipeline the MODEL declares, not whatever is globally current
+    # (M4.1/M4.2). A model is only valid with the preprocessing it was trained
+    # under, so the model chooses -- the registry then decides whether its
+    # calibrated intervals are still usable.
+    from . import preprocess as _prep
+    from . import registry as _registry
+
+    spec = _registry.load_spec()
+    size = int(meta.get("input_size", IMG_SIZE))
+    version = spec.preprocessing_version if spec else _prep.PREPROCESSING_V1
+    x = _prep.run(image, size, version).tensor
+    policy = _registry.resolve_interval_policy(spec)
     sex = np.array([[1.0 if is_male else 0.0]], dtype=np.float32)
     inputs = {i.name: v for i, v in zip(sess.get_inputs(), (x, sex))}
     months = float(sess.run(None, inputs)[0].reshape(-1)[0])
@@ -85,6 +96,11 @@ def predict_months(image: Image.Image | bytes, is_male: bool) -> Optional[dict]:
     # (directive S-BA-5 / Plan 3 WI-3). Pure selection -- see conformal.select_interval.
     sel = _conformal.select_interval(meta, is_male, months)
     interval_kind, half, coverage = sel["kind"], sel["half"], sel["coverage"]
+    if not policy.conformal_allowed and interval_kind.startswith("conformal"):
+        # Preprocessing changed since calibration: the quantile no longer
+        # delivers its nominal coverage, so the interval is withdrawn rather
+        # than served with a coverage claim it cannot honour (M4.1).
+        interval_kind, half, coverage = "withheld_pipeline_mismatch", None, None
     ci_low_months, ci_high_months = _conformal.interval(months, half)
 
     return {
@@ -106,4 +122,7 @@ def predict_months(image: Image.Image | bytes, is_male: bool) -> Optional[dict]:
             "children (more in boys). Treat as a screening suggestion; confirm with TW3."
         ),
         "trained_on": meta.get("trained_on"),
+        "preprocessing_version": version,
+        "conformal_allowed": policy.conformal_allowed,
+        "conformal_status": policy.reason,
     }

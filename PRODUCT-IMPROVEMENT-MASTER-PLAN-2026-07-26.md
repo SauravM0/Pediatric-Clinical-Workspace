@@ -220,7 +220,7 @@ Split deliberately into *stop overstating* (days) and *get more accurate* (weeks
 | WI | Work item | Days | Fixes |
 |---|---|---|---|
 | 2.4 | **Adopt digiBONE** (MIT, `github.com/goellab/digiBONE`) — Indian-trained on 2,430 HCJMRI Pune films, 4.75/4.93 mo. Run against your existing locked RSNA test first for an apples-to-apples number vs your 8.99 mo | 4 | C5 |
-| 2.5 | **Preprocessing pipeline**: CLAHE, hand segmentation + background masking, rotation normalisation. This alone typically buys 1–2 months of MAE and costs nothing | 3 | C13 |
+| 2.5 | **Preprocessing pipeline**: CLAHE, hand segmentation + background masking, rotation normalisation. ~~Buys 1–2 months of MAE~~ — **measured: only with retraining; retro-fitting it to the incumbent made MAE 3.7× worse.** Built and versioned in M4, inactive pending a model that declares it | 3 | C13 |
 | 2.6 | Raise analysis resolution: keep a 2048px derivative for per-bone crops; 224px whole-hand is fine for screening but not for staging | 1 | C14 |
 | 2.7 | Integrate **BoNet** (`BCV-Uniandes/Bonet`) for per-bone ROI localisation → feeds the per-bone UI you already built | 4 | C7 |
 | 2.8 | Re-calibrate conformal intervals on the new model; keep the release gate and human sign-off | 1 | C5 |
@@ -387,10 +387,28 @@ a digitized figure.
 | Step | Expected MAE | Cost |
 |---|---|---|
 | Today (MobileNetV3-S, 224px, RSNA) | 8.99 mo | — |
-| + preprocessing: CLAHE, segmentation, masking (2.5) | ~7–7.5 mo | free, 3 days |
+| + preprocessing: CLAHE, segmentation, masking (2.5) | ~~~7–7.5 mo~~ **corrected — see below** | free, 3 days |
 | + digiBONE, Indian-trained (2.4) | **~4.8 mo** | free, 4 days |
 | + fine-tune on your own Indian films (2.13) | ~4–4.5 mo | needs the cohort |
 | + ensemble digiBONE ⊕ Deeplasia | ~3.8–4.2 mo | free, more compute |
+
+> **CORRECTION (measured during M4).** The 7–7.5 mo estimate was wrong. Applying
+> the new preprocessing to the *existing* model, measured on 200 images of the
+> locked RSNA test set (seed 42):
+>
+> | pipeline | MAE | within 12 mo |
+> |---|---|---|
+> | `prep-1.0-minmax` (incumbent) | **8.92 mo** | 75.5% |
+> | `prep-2.0-clahe-seg` | **33.34 mo** | 18.0% |
+>
+> A 3.7× degradation, not a 1–2 month gain. The estimate implicitly assumed a
+> model *trained* under the new pipeline. The incumbent learned its features
+> under global min/max on unsegmented, unrotated images, so CLAHE + segmentation
+> + rotation is a large distribution shift at inference time. **Preprocessing
+> gains are real but arrive with retraining, or with a model that declares the
+> pipeline — they cannot be bolted onto an already-trained model.** The pipeline
+> is built, versioned and tested; the active version stays v1 and a test fails if
+> that changes.
 
 **The MAE number is the wrong one to optimise alone.** Your current limits of agreement are
 −23.8 to +22.1 months: for an individual child this model can be two years wrong. Track
