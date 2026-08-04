@@ -644,6 +644,98 @@
     const s = useClinicalState();
     return { metrics: s.fraxMetrics, hasManual: s.hasManualFrax };
   }
+  function useOverview() {
+    const s = useClinicalState();
+    return {
+      moduleStatus: s.moduleStatus,
+      setActiveTab: s.setActiveTab
+    };
+  }
+  function useGrowth() {
+    const s = useClinicalState();
+    return {
+      age: s.age,
+      evalAge: s.evalAge,
+      evalGender: s.evalGender,
+      evalHeight: s.evalHeight,
+      evalWeight: s.evalWeight,
+      examDate: s.examDate,
+      exportGrowthReportPdf: s.exportGrowthReportPdf,
+      gender: s.gender,
+      growthChartMeasure: s.growthChartMeasure,
+      growthMetrics: s.growthMetrics,
+      growthSeries: s.growthSeries,
+      hasManualGrowth: s.hasManualGrowth,
+      height: s.height,
+      moduleStatus: s.moduleStatus,
+      patientMrn: s.patientMrn,
+      patientName: s.patientName,
+      printGrowthReport: s.printGrowthReport,
+      setGrowthChartMeasure: s.setGrowthChartMeasure,
+      setShowChart: s.setShowChart,
+      showChart: s.showChart,
+      timeline: s.timeline,
+      weight: s.weight
+    };
+  }
+  function useQrisk() {
+    const s = useClinicalState();
+    return {
+      age: s.age,
+      cholRatio: s.cholRatio,
+      diabetes: s.diabetes,
+      ethnicity: s.ethnicity,
+      evalGender: s.evalGender,
+      height: s.height,
+      qAF: s.qAF,
+      qAtypAntipsy: s.qAtypAntipsy,
+      qCKD: s.qCKD,
+      qCortico: s.qCortico,
+      qED: s.qED,
+      qFhCvd: s.qFhCvd,
+      qMigraine: s.qMigraine,
+      qRA: s.qRA,
+      qSLE: s.qSLE,
+      qSMI: s.qSMI,
+      qTreatedHtn: s.qTreatedHtn,
+      qriskMetrics: s.qriskMetrics,
+      sbpSD: s.sbpSD,
+      setCholRatio: s.setCholRatio,
+      setDiabetes: s.setDiabetes,
+      setEthnicity: s.setEthnicity,
+      setQAF: s.setQAF,
+      setQAtypAntipsy: s.setQAtypAntipsy,
+      setQCKD: s.setQCKD,
+      setQCortico: s.setQCortico,
+      setQED: s.setQED,
+      setQFhCvd: s.setQFhCvd,
+      setQMigraine: s.setQMigraine,
+      setQRA: s.setQRA,
+      setQSLE: s.setQSLE,
+      setQSMI: s.setQSMI,
+      setQTreatedHtn: s.setQTreatedHtn,
+      setSbpSD: s.setSbpSD,
+      setSmokeCat: s.setSmokeCat,
+      smokeCat: s.smokeCat,
+      systolic: s.systolic,
+      weight: s.weight
+    };
+  }
+  function useLedger() {
+    const s = useClinicalState();
+    return {
+      age: s.age,
+      albuminuria: s.albuminuria,
+      assessment: s.assessment,
+      chronicityStatus: s.chronicityStatus,
+      creatinine: s.creatinine,
+      height: s.height,
+      logCurrentData: s.logCurrentData,
+      setTimeline: s.setTimeline,
+      timeline: s.timeline,
+      weight: s.weight
+    };
+  }
 
   // frontend/src/panels/RenalPanel.jsx
   function RenalPanel() {
@@ -718,6 +810,147 @@
         hint: "FRAX estimates 10-year fracture risk from demographics plus the risk factors on the left. No probability is shown until the core measurements are entered."
       }
     ) : /* @__PURE__ */ React.createElement(React.Fragment, null, evalAge < 40 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", padding: "12px 14px", fontSize: "12px", color: "#92400e", lineHeight: "1.6" } }, "\u26A0 FRAX is calibrated for ages 40\u201390. Current age adjusted to the age-40 baseline model."), /* @__PURE__ */ React.createElement("div", { style: { ...heroTone(fraxMetrics.isHighMof ? "high" : "low"), borderRadius: "16px", padding: "22px", marginTop: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" } }, "Major Osteoporotic Fracture"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { className: "hero-value", style: { fontSize: "44px", fontWeight: "900", color: fraxMetrics.isHighMof ? "#dc2626" : "#16a34a", lineHeight: 1 } }, fraxMetrics.mofProb.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "18px", fontWeight: "700", color: "#64748b" } }, "%")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "3px" } }, "10-yr probability \u2014 spine, hip, forearm, shoulder")), /* @__PURE__ */ React.createElement(StatusBadge, { text: fraxMetrics.isHighMof ? "High Risk \u2265 20%" : "Low Risk < 20%", variant: fraxMetrics.isHighMof ? "high" : "low" })), /* @__PURE__ */ React.createElement(ProbBar, { prob: fraxMetrics.mofProb, maxProb: 40, threshold: 20 })), /* @__PURE__ */ React.createElement("div", { style: { ...heroTone(fraxMetrics.isHighHf ? "high" : "low"), borderRadius: "16px", padding: "22px", marginTop: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" } }, "Hip Fracture"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { className: "hero-value", style: { fontSize: "44px", fontWeight: "900", color: fraxMetrics.isHighHf ? "#dc2626" : "#16a34a", lineHeight: 1 } }, fraxMetrics.hfProb.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "18px", fontWeight: "700", color: "#64748b" } }, "%")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "3px" } }, "10-yr probability of hip fracture")), /* @__PURE__ */ React.createElement(StatusBadge, { text: fraxMetrics.isHighHf ? "High Risk \u2265 3%" : "Low Risk < 3%", variant: fraxMetrics.isHighHf ? "high" : "low" })), /* @__PURE__ */ React.createElement(ProbBar, { prob: fraxMetrics.hfProb, maxProb: 15, threshold: 3 }))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "auto", paddingTop: "20px", borderTop: "1px solid #f1f5f9", fontSize: "11px", color: "#94a3b8", lineHeight: "1.7" } }, "Sheffield thresholds: Treatment recommended when MOF \u2265 20% or Hip Fracture \u2265 3% (10-year absolute risk)."));
+  }
+
+  // frontend/src/panels/OverviewPanel.jsx
+  function OverviewPanel() {
+    const { moduleStatus, setActiveTab } = useOverview();
+    return /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement(
+      SectionHeader,
+      {
+        title: "Patient Overview",
+        subtitle: "Every module's headline at a glance \u2014 click any card to open its full workspace."
+      }
+    ), /* @__PURE__ */ React.createElement("div", { className: "overview-grid", style: { marginTop: "16px" } }, ["growth", "boneage", "renal", "liver", "frax", "qrisk"].map((key) => {
+      const m = moduleStatus[key];
+      const accent = m.state === "high" ? "#dc2626" : m.state === "borderline" ? "#d97706" : m.state === "normal" ? "#16a34a" : "#94a3b8";
+      return /* @__PURE__ */ React.createElement("button", { key, className: "overview-card", onClick: () => setActiveTab(key) }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b" } }, m.title), /* @__PURE__ */ React.createElement("span", { className: `status-dot status-dot-${m.state}`, style: { marginLeft: 0 } })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "6px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "30px", fontWeight: "900", color: accent, lineHeight: 1 } }, m.value), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "600", color: "#94a3b8" } }, m.unit)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#64748b", marginTop: "6px", lineHeight: "1.5" } }, m.label));
+    })), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: "10px", padding: "12px 14px", fontSize: "12px", color: "#4338ca", lineHeight: "1.7" } }, "Enter patient data in the left panel \u2014 every module recalculates automatically. A grey dot means that module still needs input; green / amber / red reflect the result. Decision support only \u2014 a clinician must verify every value."));
+  }
+
+  // frontend/src/panels/GrowthPanel.jsx
+  function GrowthPanel() {
+    const { age, evalAge, evalGender, evalHeight, evalWeight, examDate, exportGrowthReportPdf, gender, growthChartMeasure, growthMetrics, growthSeries, hasManualGrowth, height, moduleStatus, patientMrn, patientName, printGrowthReport, setGrowthChartMeasure, setShowChart, showChart, timeline, weight } = useGrowth();
+    const gm = growthMetrics;
+    const heightSeries = timeline.map((t) => ({ age: t.age, value: t.height })).filter((p) => p.value > 0);
+    const weightSeries = timeline.map((t) => ({ age: t.age, value: t.weight })).filter((p) => p.value > 0);
+    const bmiSeries = timeline.map((t) => ({ age: t.age, value: t.height > 0 ? t.weight / Math.pow(t.height / 100, 2) : 0 })).filter((p) => p.value > 0);
+    const pctTxt = (p) => p === null || p === void 0 ? "\u2014" : p.toFixed(1) + "th";
+    const zTxt = (z) => z === null || z === void 0 ? "\u2014" : (z >= 0 ? "+" : "") + z.toFixed(2);
+    const inRange = evalAge >= 0 && evalAge <= 19;
+    return /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { className: "report-only", style: { fontSize: "13px", fontWeight: "700", color: "#334155", borderBottom: "1px solid #e5e7eb", paddingBottom: "8px" } }, patientName || "Unnamed patient", " \xB7 MRN ", patientMrn || "\u2014", " \xB7 ", age !== "" ? `${age} yr` : "\u2014 yr", " \xB7 ", gender === "boys" ? "Male" : gender === "girls" ? "Female" : "\u2014", " \xB7 Exam ", examDate), /* @__PURE__ */ React.createElement(
+      SectionHeader,
+      {
+        title: "Pediatric Growth Chart \xB7 WHO (<5y) + IAP 2015 India (5\u201318y)",
+        subtitle: "Real L,M,S percentiles \xB7 height, weight & BMI \xB7 WHO under 5y, IAP 2015 India 5\u201318y (fit from the paper's published tables).",
+        badge: moduleStatus.growth.state !== "none" ? moduleStatus.growth.label : null,
+        badgeVariant: moduleStatus.growth.state === "high" ? "high" : moduleStatus.growth.state === "borderline" ? "mid" : "low"
+      }
+    ), !hasManualGrowth ? /* @__PURE__ */ React.createElement(
+      EmptyState,
+      {
+        title: "Enter patient measurements",
+        hint: "Age, biological sex, height and weight are required to plot the growth chart. Values recalculate automatically as you type."
+      }
+    ) : !inRange ? /* @__PURE__ */ React.createElement(
+      EmptyState,
+      {
+        title: "Pediatric workspace inactive",
+        hint: "The growth reference covers ages 0\u201319 years. Enter an age in that range to use the growth engine."
+      }
+    ) : /* @__PURE__ */ React.createElement("div", { style: { marginTop: "4px" } }, /* @__PURE__ */ React.createElement("div", { className: "no-print", style: { display: "flex", justifyContent: "flex-end", marginTop: "12px", marginBottom: "8px" } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: exportGrowthReportPdf,
+        style: { display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#4f46e5", color: "white", border: "none", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }
+      },
+      /* @__PURE__ */ React.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("polyline", { points: "6 9 6 2 18 2 18 9" }), /* @__PURE__ */ React.createElement("path", { d: "M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" }), /* @__PURE__ */ React.createElement("rect", { x: "6", y: "14", width: "12", height: "8" })),
+      "Export PDF"
+    )), /* @__PURE__ */ React.createElement("div", { className: "summary-grid", style: { marginBottom: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { background: gm.stuntingVariant === "low" ? "#f0fdf4" : gm.stuntingVariant === "mid" ? "#fffbeb" : "#fff1f2", borderRadius: "12px", padding: "14px 16px", border: `1px solid ${gm.stuntingVariant === "low" ? "#bbf7d0" : gm.stuntingVariant === "mid" ? "#fde68a" : "#fecaca"}` } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.06em", color: "#94a3b8", marginBottom: "4px" } }, "Height Status"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "15px", fontWeight: "900", color: gm.stuntingVariant === "low" ? "#16a34a" : gm.stuntingVariant === "mid" ? "#d97706" : "#dc2626" } }, gm.stuntingClass), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "2px" } }, pctTxt(gm.heightPct), " percentile")), /* @__PURE__ */ React.createElement("div", { style: { background: gm.underweightVariant === "low" ? "#f0fdf4" : gm.underweightVariant === "mid" ? "#fffbeb" : "#fff1f2", borderRadius: "12px", padding: "14px 16px", border: `1px solid ${gm.underweightVariant === "low" ? "#bbf7d0" : gm.underweightVariant === "mid" ? "#fde68a" : "#fecaca"}` } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.06em", color: "#94a3b8", marginBottom: "4px" } }, "Weight / BMI Status"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "15px", fontWeight: "900", color: gm.underweightVariant === "low" ? "#16a34a" : gm.underweightVariant === "mid" ? "#d97706" : "#dc2626" } }, gm.underweightClass), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "2px" } }, "BMI ", pctTxt(gm.bmiPct), " percentile"))), /* @__PURE__ */ React.createElement(MetricRow, { label: "Chronological Age", value: evalAge.toFixed(1), unit: "yrs" }), /* @__PURE__ */ React.createElement(MetricRow, { label: "BMI", value: gm.bmiVal.toFixed(1), unit: "kg/m\xB2", sub: `z ${zTxt(gm.bmiZ)} \xB7 ${pctTxt(gm.bmiPct)} pct` }), /* @__PURE__ */ React.createElement(MetricRow, { label: "Median Weight for Age", value: gm.ref.wtMean !== null ? gm.ref.wtMean.toFixed(1) : "N/A", unit: "kg", sub: `Actual: ${evalWeight} kg` }), /* @__PURE__ */ React.createElement(MetricRow, { label: "Median Height for Age", value: gm.ref.htMean !== null ? gm.ref.htMean.toFixed(1) : "N/A", unit: "cm", sub: `Actual: ${evalHeight} cm` }), /* @__PURE__ */ React.createElement(MetricRow, { label: "Height Age (HA)", value: gm.heightAge.decimal ? gm.heightAge.decimal.toFixed(1) : "N/A", unit: "yrs equiv." }), /* @__PURE__ */ React.createElement(MetricRow, { label: "Weight Age (WA)", value: gm.weightAge.decimal ? gm.weightAge.decimal.toFixed(1) : "N/A", unit: "yrs equiv." }), /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 0", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700", letterSpacing: "0.05em", textTransform: "uppercase", color: "#64748b" } }, "Height SDS (", evalAge * 12 >= 60 ? "IAP" : "WHO", ")"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "32px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, zTxt(gm.heightZ)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", color: "#94a3b8", marginLeft: "6px" } }, "SD"))), gm.heightZ !== null ? /* @__PURE__ */ React.createElement(SDSBar, { z: gm.heightZ }) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8" } }, "Out of reference range.")), /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700", letterSpacing: "0.05em", textTransform: "uppercase", color: "#64748b" } }, "BMI SDS (WHO)"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "32px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, zTxt(gm.bmiZ)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", color: "#94a3b8", marginLeft: "6px" } }, "SD"))), gm.bmiZ !== null ? /* @__PURE__ */ React.createElement(SDSBar, { z: gm.bmiZ }) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8" } }, "Out of reference range.")), /* @__PURE__ */ React.createElement("div", { className: "no-print", style: { marginTop: "18px", borderTop: "1px solid #f1f5f9", paddingTop: "14px" } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => setShowChart((s) => !s),
+        style: { width: "100%", display: "flex", alignItems: "center", gap: "10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "11px 14px", cursor: "pointer", textAlign: "left" }
+      },
+      /* @__PURE__ */ React.createElement("span", { style: { color: "#4f46e5", fontWeight: "800", fontSize: "13px", transform: showChart ? "rotate(90deg)" : "none", transition: "transform 0.15s", display: "inline-block" } }, "\u25B8"),
+      /* @__PURE__ */ React.createElement("span", { style: { fontSize: "13px", fontWeight: "800", color: "#334155" } }, showChart ? "Hide growth chart" : "Show growth chart"),
+      /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", fontSize: "11px", color: "#94a3b8", fontWeight: "600" } }, "Optional visualisation \u2014 the numbers above are the primary read")
+    )), /* @__PURE__ */ React.createElement("div", { style: { display: showChart ? "block" : "none", marginTop: "12px" } }, /* @__PURE__ */ React.createElement("div", { className: "no-print", style: { display: "flex", gap: "4px", background: "#f1f5f9", padding: "4px", borderRadius: "10px", marginBottom: "10px", width: "fit-content" } }, [{ key: "combined", label: "Growth Chart (H+W)" }, { key: "bmi", label: "BMI" }].map(({ key: mkey, label }) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: mkey,
+        onClick: () => setGrowthChartMeasure(mkey),
+        className: "toggle-btn",
+        style: { background: growthChartMeasure === mkey ? "white" : "transparent", color: growthChartMeasure === mkey ? "#1e293b" : "#64748b", boxShadow: growthChartMeasure === mkey ? "0 1px 3px rgba(0,0,0,0.12)" : "none" }
+      },
+      label
+    ))), /* @__PURE__ */ React.createElement("div", { id: "growth-chart-print", style: { border: "1px solid #eef2f7", borderRadius: "12px", padding: "8px", marginBottom: "16px", background: "white", overflowX: "auto" } }, growthChartMeasure === "combined" ? /* @__PURE__ */ React.createElement(
+      GrowthChartCombined,
+      {
+        sex: evalGender,
+        ageYears: evalAge,
+        heightValue: evalHeight,
+        weightValue: evalWeight,
+        heightData: growthSeries[evalGender].height,
+        weightData: growthSeries[evalGender].weight,
+        heightSeries,
+        weightSeries
+      }
+    ) : /* @__PURE__ */ React.createElement(GrowthChart, { measure: "bmi", sex: evalGender, ageYears: evalAge, value: gm.bmiVal, series: bmiSeries, chartData: growthSeries[evalGender].bmi })), growthChartMeasure === "combined" && !gm.weightAvailable && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#d97706", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "8px 12px", marginBottom: "12px" } }, "Weight-for-age has no reference data at this age. Use BMI-for-age for weight status instead."))));
+  }
+
+  // frontend/src/panels/QriskPanel.jsx
+  function QriskPanel() {
+    const { age, cholRatio, diabetes, ethnicity, evalGender, height, qAF, qAtypAntipsy, qCKD, qCortico, qED, qFhCvd, qMigraine, qRA, qSLE, qSMI, qTreatedHtn, qriskMetrics, sbpSD, setCholRatio, setDiabetes, setEthnicity, setQAF, setQAtypAntipsy, setQCKD, setQCortico, setQED, setQFhCvd, setQMigraine, setQRA, setQSLE, setQSMI, setQTreatedHtn, setSbpSD, setSmokeCat, smokeCat, systolic, weight } = useQrisk();
+    return /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ React.createElement(
+      SectionHeader,
+      {
+        title: "QRISK3 \xB7 10-Year Cardiovascular Risk",
+        subtitle: "Hippisley-Cox 2017 (ClinRisk open source) \xB7 South-Asian ethnicity aware",
+        badge: qriskMetrics.risk !== null ? qriskMetrics.band : "Age 25\u201384",
+        badgeVariant: qriskMetrics.risk !== null ? qriskMetrics.variant : "neutral"
+      }
+    ), !qriskMetrics.inAgeRange && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", padding: "12px 14px", fontSize: "12px", color: "#92400e", lineHeight: "1.6" } }, "\u26A0 QRISK3 is validated for ages 25\u201384. Set the patient's age in that range (Demographics) to compute risk."), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", display: "flex", flexDirection: "column", gap: "12px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Ethnicity"), /* @__PURE__ */ React.createElement("select", { value: ethnicity, onChange: (e) => setEthnicity(parseInt(e.target.value)), className: "input-field", style: { width: "100%" } }, /* @__PURE__ */ React.createElement("option", { value: 1 }, "White / not stated"), /* @__PURE__ */ React.createElement("option", { value: 2 }, "Indian"), /* @__PURE__ */ React.createElement("option", { value: 3 }, "Pakistani"), /* @__PURE__ */ React.createElement("option", { value: 4 }, "Bangladeshi"), /* @__PURE__ */ React.createElement("option", { value: 5 }, "Other Asian"), /* @__PURE__ */ React.createElement("option", { value: 6 }, "Black Caribbean"), /* @__PURE__ */ React.createElement("option", { value: 7 }, "Black African"), /* @__PURE__ */ React.createElement("option", { value: 8 }, "Chinese"), /* @__PURE__ */ React.createElement("option", { value: 9 }, "Other"))), /* @__PURE__ */ React.createElement("div", { className: "split-grid" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Smoking"), /* @__PURE__ */ React.createElement("select", { value: smokeCat, onChange: (e) => setSmokeCat(parseInt(e.target.value)), className: "input-field", style: { width: "100%" } }, /* @__PURE__ */ React.createElement("option", { value: 0 }, "Non-smoker"), /* @__PURE__ */ React.createElement("option", { value: 1 }, "Ex-smoker"), /* @__PURE__ */ React.createElement("option", { value: 2 }, "Light (< 10/day)"), /* @__PURE__ */ React.createElement("option", { value: 3 }, "Moderate (10\u201319/day)"), /* @__PURE__ */ React.createElement("option", { value: 4 }, "Heavy (20+/day)"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Diabetes"), /* @__PURE__ */ React.createElement("select", { value: diabetes, onChange: (e) => setDiabetes(parseInt(e.target.value)), className: "input-field", style: { width: "100%" } }, /* @__PURE__ */ React.createElement("option", { value: 0 }, "None"), /* @__PURE__ */ React.createElement("option", { value: 1 }, "Type 1"), /* @__PURE__ */ React.createElement("option", { value: 2 }, "Type 2")))), /* @__PURE__ */ React.createElement("div", { className: "split-grid" }, /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Total : HDL Cholesterol ratio", value: cholRatio, onChange: (e) => setCholRatio(e.target.value), placeholder: "e.g. 4.0", step: "0.1", unit: "ratio" }), /* @__PURE__ */ React.createElement(InputWithUnit, { label: "SBP variability (SD, optional)", value: sbpSD, onChange: (e) => setSbpSD(e.target.value), placeholder: "mmHg SD", step: "0.1", unit: "SD" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "Uses BMI (from height/weight) and systolic BP from the left panel. Blank cholesterol ratio / SBP-SD contribute neutrally (QRISK3 convention). Townsend deprivation is set to 0 (UK-only index)."), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "6px 14px" } }, /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Atrial fibrillation", value: qAF, setter: setQAF }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "On BP treatment", value: qTreatedHtn, setter: setQTreatedHtn }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "CKD stage 3\u20135", value: qCKD, setter: setQCKD }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Rheumatoid arthritis", value: qRA, setter: setQRA }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Migraine", value: qMigraine, setter: setQMigraine }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "SLE (lupus)", value: qSLE, setter: setQSLE }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Severe mental illness", value: qSMI, setter: setQSMI }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Atypical antipsychotics", value: qAtypAntipsy, setter: setQAtypAntipsy }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Regular corticosteroids", value: qCortico, setter: setQCortico }), evalGender === "boys" && /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Erectile dysfunction", value: qED, setter: setQED }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Family history of CVD", value: qFhCvd, setter: setQFhCvd }))), qriskMetrics.risk !== null && /* @__PURE__ */ React.createElement("div", { style: { ...heroTone(qriskMetrics.variant), borderRadius: "16px", padding: "22px", marginTop: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" } }, "10-Year CVD Risk"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { className: "hero-value", style: { fontSize: "44px", fontWeight: "900", color: qriskMetrics.variant === "high" ? "#dc2626" : qriskMetrics.variant === "mid" ? "#d97706" : "#16a34a", lineHeight: 1 } }, qriskMetrics.risk.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "18px", fontWeight: "700", color: "#64748b" } }, "%")), qriskMetrics.typical !== null && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "3px" } }, "Healthy baseline (same age/sex/ethnicity): ", qriskMetrics.typical.toFixed(1), "%")), /* @__PURE__ */ React.createElement(StatusBadge, { text: qriskMetrics.band, variant: qriskMetrics.variant })), /* @__PURE__ */ React.createElement(ProbBar, { prob: qriskMetrics.risk, maxProb: 40, threshold: 10 })), qriskMetrics.risk !== null && (() => {
+      const imp = [];
+      if (qriskMetrics.missingRatio) imp.push("cholesterol ratio");
+      if (systolic === "") imp.push("systolic BP");
+      if (sbpSD === "") imp.push("SBP variability (SD)");
+      return imp.length ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "10.5px", color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "7px 10px", lineHeight: "1.5" } }, "\u26A0 Estimated with defaulted inputs: ", /* @__PURE__ */ React.createElement("strong", null, imp.join(", ")), ". Enter these for a patient-specific score.") : null;
+    })(), qriskMetrics.risk === null && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#fef2f2", border: "1.5px solid #fecaca", borderRadius: "12px", padding: "14px 16px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", fontWeight: "800", color: "#991b1b" } }, "QRISK3 not applicable"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#b91c1c", marginTop: "4px", lineHeight: "1.5" } }, !qriskMetrics.inAgeRange ? "QRISK3 is validated only for adults aged 25\u201384. This patient is outside that range \u2014 no score is shown." : "Enter height and weight (BMI) to compute the score.")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: "10px", padding: "12px 14px", fontSize: "11px", color: "#4338ca", lineHeight: "1.7" } }, /* @__PURE__ */ React.createElement("strong", null, "India note:"), " QRISK3 is derived on a UK cohort. Its Indian/South-Asian ethnicity term raises risk relative to White, but studies suggest it may still under-estimate true risk in Indians. Treat \u2265 10% as the usual statin-consideration threshold, and interpret alongside the ", /* @__PURE__ */ React.createElement("strong", null, "Lipid Association of India"), " risk stratification and ICMR guidance. QRISK3 does not apply to established CVD, familial hypercholesterolaemia, or type-appropriate secondary prevention."), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "auto", paddingTop: "18px", borderTop: "1px solid #f1f5f9", fontSize: "11px", color: "#94a3b8", lineHeight: "1.7" } }, "QRISK3-2017 \xB7 Hippisley-Cox J et al., BMJ 2017;357:j2099 \xB7 ClinRisk open-source coefficients (GNU LGPL), verified against the CRAN QRISK3 reference. Clinician must verify \u2014 decision support only, not a diagnostic device."));
+  }
+
+  // frontend/src/panels/LedgerPanel.jsx
+  function LedgerPanel() {
+    const { age, albuminuria, assessment, chronicityStatus, creatinine, height, logCurrentData, setTimeline, timeline, weight } = useLedger();
+    return /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", gap: "16px" } }, /* @__PURE__ */ React.createElement("div", { className: "timeline-header" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", { style: { fontSize: "13px", fontWeight: "800", color: "#334155" } }, "CKD Progression Ledger"), /* @__PURE__ */ React.createElement("p", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "3px" } }, "Session snapshots \u2014 chronicity assessment over \u2265 90 days")), /* @__PURE__ */ React.createElement("div", { className: "timeline-actions" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: logCurrentData,
+        style: { padding: "7px 16px", background: "#4f46e5", color: "white", border: "none", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", boxShadow: "0 1px 4px rgba(79,70,229,0.3)", transition: "background 0.15s" },
+        onMouseEnter: (e) => e.target.style.background = "#4338ca",
+        onMouseLeave: (e) => e.target.style.background = "#4f46e5"
+      },
+      "+ Log Snapshot"
+    ), timeline.length > 0 && /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => {
+          if (window.confirm("Clear all logged snapshots from the ledger?")) setTimeline([]);
+        },
+        style: { padding: "7px 14px", background: "white", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: "9px", fontSize: "12px", fontWeight: "600", cursor: "pointer", transition: "all 0.15s" },
+        onMouseEnter: (e) => e.target.style.background = "#f8fafc",
+        onMouseLeave: (e) => e.target.style.background = "white"
+      },
+      "Reset"
+    ))), /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 16px", borderRadius: "12px", fontSize: "12px", lineHeight: "1.6" }, className: chronicityStatus.bgClass }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: "800", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: "3px" } }, "Chronicity Assessment"), chronicityStatus.status), timeline.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "10px" } }, "eGFR Timeline"), /* @__PURE__ */ React.createElement("svg", { width: "100%", height: "100", viewBox: "0 0 500 100", preserveAspectRatio: "none", style: { borderRadius: "8px", background: "white", border: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("line", { x1: "0", y1: "22", x2: "500", y2: "22", stroke: "#f1f5f9", strokeWidth: "1.5" }), /* @__PURE__ */ React.createElement("line", { x1: "0", y1: "50", x2: "500", y2: "50", stroke: "#f1f5f9", strokeWidth: "1.5" }), /* @__PURE__ */ React.createElement("line", { x1: "0", y1: "78", x2: "500", y2: "78", stroke: "#f1f5f9", strokeWidth: "1.5" }), (() => {
+      const sorted = [...timeline].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const pts = sorted.map((e, i) => ({
+        x: sorted.length > 1 ? i / (sorted.length - 1) * 440 + 30 : 250,
+        y: 90 - Math.min(e.egfr, 150) / 150 * 70,
+        e
+      }));
+      return /* @__PURE__ */ React.createElement("g", null, pts.length > 1 && /* @__PURE__ */ React.createElement("polyline", { fill: "none", stroke: "#4f46e5", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", points: pts.map((p) => `${p.x},${p.y}`).join(" ") }), pts.map((p, i) => /* @__PURE__ */ React.createElement("g", { key: p.e.id }, /* @__PURE__ */ React.createElement("circle", { cx: p.x, cy: p.y, r: "4", fill: "#4f46e5" }), /* @__PURE__ */ React.createElement("text", { x: p.x, y: p.y - 9, textAnchor: "middle", fill: "#4338ca", fontSize: "9", fontWeight: "bold" }, p.e.egfr), /* @__PURE__ */ React.createElement("text", { x: p.x, y: "96", textAnchor: "middle", fill: "#94a3b8", fontSize: "8" }, p.e.date.slice(5)))));
+    })())), timeline.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: "12px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "52px", height: "52px", borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "none", stroke: "#94a3b8", strokeWidth: "2", strokeLinecap: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M12 5v14M5 12l7 7 7-7" }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "700", color: "#64748b" } }, "No snapshots logged yet"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8" } }, 'Enter patient data and click "Log Snapshot" to begin tracking.')) : /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto", borderRadius: "12px", border: "1px solid #e2e8f0" }, className: "custom-scrollbar" }, /* @__PURE__ */ React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", minWidth: "580px", fontSize: "12px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { background: "#f8fafc", borderBottom: "1px solid #e2e8f0" } }, ["Date", "Age", "Ht / Wt", "SCr", "eGFR", "ACR", "FIB-4"].map((h) => /* @__PURE__ */ React.createElement("th", { key: h, style: { padding: "10px 12px", textAlign: "left", fontWeight: "800", color: "#64748b", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" } }, h)))), /* @__PURE__ */ React.createElement("tbody", null, timeline.map((item, idx) => /* @__PURE__ */ React.createElement("tr", { key: item.id, style: { borderBottom: "1px solid #f1f5f9", background: idx % 2 === 0 ? "white" : "#fafbfc" } }, /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "700", color: "#1e293b" } }, item.date), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", color: "#475569" } }, item.age.toFixed(1), " y"), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", color: "#64748b" } }, item.height, " / ", item.weight), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "700", color: "#475569" } }, item.creatinine), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "800", color: "#4f46e5" } }, item.egfr), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("span", { style: { padding: "2px 8px", borderRadius: "99px", fontSize: "10px", fontWeight: "700", background: "#eef2ff", color: "#4338ca", border: "1px solid #c7d2fe" } }, item.albuminuria)), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "700", color: "#059669" } }, item.fib4 !== null ? item.fib4 : "\u2014")))))));
   }
 
   // frontend/src/app.jsx
@@ -2233,7 +2466,59 @@
       creatinine,
       monitoring,
       fraxMetrics,
-      hasManualFrax
+      hasManualFrax,
+      albuminuria,
+      assessment,
+      cholRatio,
+      chronicityStatus,
+      diabetes,
+      ethnicity,
+      evalGender,
+      exportGrowthReportPdf,
+      growthChartMeasure,
+      growthMetrics,
+      growthSeries,
+      hasManualGrowth,
+      logCurrentData,
+      moduleStatus,
+      printGrowthReport,
+      qAF,
+      qAtypAntipsy,
+      qCKD,
+      qCortico,
+      qED,
+      qFhCvd,
+      qMigraine,
+      qRA,
+      qSLE,
+      qSMI,
+      qTreatedHtn,
+      qriskMetrics,
+      sbpSD,
+      setActiveTab,
+      setCholRatio,
+      setDiabetes,
+      setEthnicity,
+      setGrowthChartMeasure,
+      setQAF,
+      setQAtypAntipsy,
+      setQCKD,
+      setQCortico,
+      setQED,
+      setQFhCvd,
+      setQMigraine,
+      setQRA,
+      setQSLE,
+      setQSMI,
+      setQTreatedHtn,
+      setSbpSD,
+      setShowChart,
+      setSmokeCat,
+      setTimeline,
+      showChart,
+      smokeCat,
+      systolic,
+      timeline
     }), [
       age,
       dob,
@@ -2254,7 +2539,59 @@
       creatinine,
       monitoring,
       fraxMetrics,
-      hasManualFrax
+      hasManualFrax,
+      albuminuria,
+      assessment,
+      cholRatio,
+      chronicityStatus,
+      diabetes,
+      ethnicity,
+      evalGender,
+      exportGrowthReportPdf,
+      growthChartMeasure,
+      growthMetrics,
+      growthSeries,
+      hasManualGrowth,
+      logCurrentData,
+      moduleStatus,
+      printGrowthReport,
+      qAF,
+      qAtypAntipsy,
+      qCKD,
+      qCortico,
+      qED,
+      qFhCvd,
+      qMigraine,
+      qRA,
+      qSLE,
+      qSMI,
+      qTreatedHtn,
+      qriskMetrics,
+      sbpSD,
+      setActiveTab,
+      setCholRatio,
+      setDiabetes,
+      setEthnicity,
+      setGrowthChartMeasure,
+      setQAF,
+      setQAtypAntipsy,
+      setQCKD,
+      setQCortico,
+      setQED,
+      setQFhCvd,
+      setQMigraine,
+      setQRA,
+      setQSLE,
+      setQSMI,
+      setQTreatedHtn,
+      setSbpSD,
+      setShowChart,
+      setSmokeCat,
+      setTimeline,
+      showChart,
+      smokeCat,
+      systolic,
+      timeline
     ]);
     return /* @__PURE__ */ React.createElement(ClinicalStateProvider, { value: clinicalState }, /* @__PURE__ */ React.createElement("div", { className: "app-shell" }, /* @__PURE__ */ React.createElement("header", { style: { background: "white", borderBottom: "1px solid #e8ecf0", position: "sticky", top: 0, zIndex: 50, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" } }, /* @__PURE__ */ React.createElement("div", { className: "app-header-inner" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "36px", height: "36px", borderRadius: "10px", background: "linear-gradient(135deg,#4f46e5,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, /* @__PURE__ */ React.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M22 12h-4l-3 9L9 3l-3 9H2" }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "app-title", style: { fontSize: "15px", fontWeight: "900", color: "#0f172a", lineHeight: 1.2 } }, "Pediatric Clinical Workspace"), /* @__PURE__ */ React.createElement("div", { className: "app-subtitle", style: { fontSize: "10px", fontWeight: "700", color: "#94a3b8", letterSpacing: "0.06em", textTransform: "uppercase" } }, "Growth \xB7 TW3 Bone Age \xB7 QRISK3 \xB7 Renal \xB7 FRAX \xB7 FIB-4"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 } }, /* @__PURE__ */ React.createElement(
       "button",
@@ -2345,84 +2682,7 @@
         }
       ),
       tab.id === "timeline" && timeline.length > 0 && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "6px", background: "#4f46e5", color: "white", fontSize: "9px", fontWeight: "800", padding: "1px 6px", borderRadius: "99px" } }, timeline.length)
-    )))), /* @__PURE__ */ React.createElement("div", { className: "card-lg result-panel" }, activeTab === "overview" && /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement(
-      SectionHeader,
-      {
-        title: "Patient Overview",
-        subtitle: "Every module's headline at a glance \u2014 click any card to open its full workspace."
-      }
-    ), /* @__PURE__ */ React.createElement("div", { className: "overview-grid", style: { marginTop: "16px" } }, ["growth", "boneage", "renal", "liver", "frax", "qrisk"].map((key) => {
-      const m = moduleStatus[key];
-      const accent = m.state === "high" ? "#dc2626" : m.state === "borderline" ? "#d97706" : m.state === "normal" ? "#16a34a" : "#94a3b8";
-      return /* @__PURE__ */ React.createElement("button", { key, className: "overview-card", onClick: () => setActiveTab(key) }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b" } }, m.title), /* @__PURE__ */ React.createElement("span", { className: `status-dot status-dot-${m.state}`, style: { marginLeft: 0 } })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "6px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "30px", fontWeight: "900", color: accent, lineHeight: 1 } }, m.value), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "600", color: "#94a3b8" } }, m.unit)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#64748b", marginTop: "6px", lineHeight: "1.5" } }, m.label));
-    })), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: "10px", padding: "12px 14px", fontSize: "12px", color: "#4338ca", lineHeight: "1.7" } }, "Enter patient data in the left panel \u2014 every module recalculates automatically. A grey dot means that module still needs input; green / amber / red reflect the result. Decision support only \u2014 a clinician must verify every value.")), activeTab === "growth" && (() => {
-      const gm = growthMetrics;
-      const heightSeries = timeline.map((t) => ({ age: t.age, value: t.height })).filter((p) => p.value > 0);
-      const weightSeries = timeline.map((t) => ({ age: t.age, value: t.weight })).filter((p) => p.value > 0);
-      const bmiSeries = timeline.map((t) => ({ age: t.age, value: t.height > 0 ? t.weight / Math.pow(t.height / 100, 2) : 0 })).filter((p) => p.value > 0);
-      const pctTxt = (p) => p === null || p === void 0 ? "\u2014" : p.toFixed(1) + "th";
-      const zTxt = (z) => z === null || z === void 0 ? "\u2014" : (z >= 0 ? "+" : "") + z.toFixed(2);
-      const inRange = evalAge >= 0 && evalAge <= 19;
-      return /* @__PURE__ */ React.createElement("div", { style: { flex: 1 } }, /* @__PURE__ */ React.createElement("div", { className: "report-only", style: { fontSize: "13px", fontWeight: "700", color: "#334155", borderBottom: "1px solid #e5e7eb", paddingBottom: "8px" } }, patientName || "Unnamed patient", " \xB7 MRN ", patientMrn || "\u2014", " \xB7 ", age !== "" ? `${age} yr` : "\u2014 yr", " \xB7 ", gender === "boys" ? "Male" : gender === "girls" ? "Female" : "\u2014", " \xB7 Exam ", examDate), /* @__PURE__ */ React.createElement(
-        SectionHeader,
-        {
-          title: "Pediatric Growth Chart \xB7 WHO (<5y) + IAP 2015 India (5\u201318y)",
-          subtitle: "Real L,M,S percentiles \xB7 height, weight & BMI \xB7 WHO under 5y, IAP 2015 India 5\u201318y (fit from the paper's published tables).",
-          badge: moduleStatus.growth.state !== "none" ? moduleStatus.growth.label : null,
-          badgeVariant: moduleStatus.growth.state === "high" ? "high" : moduleStatus.growth.state === "borderline" ? "mid" : "low"
-        }
-      ), !hasManualGrowth ? /* @__PURE__ */ React.createElement(
-        EmptyState,
-        {
-          title: "Enter patient measurements",
-          hint: "Age, biological sex, height and weight are required to plot the growth chart. Values recalculate automatically as you type."
-        }
-      ) : !inRange ? /* @__PURE__ */ React.createElement(
-        EmptyState,
-        {
-          title: "Pediatric workspace inactive",
-          hint: "The growth reference covers ages 0\u201319 years. Enter an age in that range to use the growth engine."
-        }
-      ) : /* @__PURE__ */ React.createElement("div", { style: { marginTop: "4px" } }, /* @__PURE__ */ React.createElement("div", { className: "no-print", style: { display: "flex", justifyContent: "flex-end", marginTop: "12px", marginBottom: "8px" } }, /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: exportGrowthReportPdf,
-          style: { display: "flex", alignItems: "center", gap: "6px", padding: "8px 14px", background: "#4f46e5", color: "white", border: "none", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer" }
-        },
-        /* @__PURE__ */ React.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("polyline", { points: "6 9 6 2 18 2 18 9" }), /* @__PURE__ */ React.createElement("path", { d: "M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" }), /* @__PURE__ */ React.createElement("rect", { x: "6", y: "14", width: "12", height: "8" })),
-        "Export PDF"
-      )), /* @__PURE__ */ React.createElement("div", { className: "summary-grid", style: { marginBottom: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { background: gm.stuntingVariant === "low" ? "#f0fdf4" : gm.stuntingVariant === "mid" ? "#fffbeb" : "#fff1f2", borderRadius: "12px", padding: "14px 16px", border: `1px solid ${gm.stuntingVariant === "low" ? "#bbf7d0" : gm.stuntingVariant === "mid" ? "#fde68a" : "#fecaca"}` } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.06em", color: "#94a3b8", marginBottom: "4px" } }, "Height Status"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "15px", fontWeight: "900", color: gm.stuntingVariant === "low" ? "#16a34a" : gm.stuntingVariant === "mid" ? "#d97706" : "#dc2626" } }, gm.stuntingClass), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "2px" } }, pctTxt(gm.heightPct), " percentile")), /* @__PURE__ */ React.createElement("div", { style: { background: gm.underweightVariant === "low" ? "#f0fdf4" : gm.underweightVariant === "mid" ? "#fffbeb" : "#fff1f2", borderRadius: "12px", padding: "14px 16px", border: `1px solid ${gm.underweightVariant === "low" ? "#bbf7d0" : gm.underweightVariant === "mid" ? "#fde68a" : "#fecaca"}` } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.06em", color: "#94a3b8", marginBottom: "4px" } }, "Weight / BMI Status"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "15px", fontWeight: "900", color: gm.underweightVariant === "low" ? "#16a34a" : gm.underweightVariant === "mid" ? "#d97706" : "#dc2626" } }, gm.underweightClass), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "2px" } }, "BMI ", pctTxt(gm.bmiPct), " percentile"))), /* @__PURE__ */ React.createElement(MetricRow, { label: "Chronological Age", value: evalAge.toFixed(1), unit: "yrs" }), /* @__PURE__ */ React.createElement(MetricRow, { label: "BMI", value: gm.bmiVal.toFixed(1), unit: "kg/m\xB2", sub: `z ${zTxt(gm.bmiZ)} \xB7 ${pctTxt(gm.bmiPct)} pct` }), /* @__PURE__ */ React.createElement(MetricRow, { label: "Median Weight for Age", value: gm.ref.wtMean !== null ? gm.ref.wtMean.toFixed(1) : "N/A", unit: "kg", sub: `Actual: ${evalWeight} kg` }), /* @__PURE__ */ React.createElement(MetricRow, { label: "Median Height for Age", value: gm.ref.htMean !== null ? gm.ref.htMean.toFixed(1) : "N/A", unit: "cm", sub: `Actual: ${evalHeight} cm` }), /* @__PURE__ */ React.createElement(MetricRow, { label: "Height Age (HA)", value: gm.heightAge.decimal ? gm.heightAge.decimal.toFixed(1) : "N/A", unit: "yrs equiv." }), /* @__PURE__ */ React.createElement(MetricRow, { label: "Weight Age (WA)", value: gm.weightAge.decimal ? gm.weightAge.decimal.toFixed(1) : "N/A", unit: "yrs equiv." }), /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 0", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700", letterSpacing: "0.05em", textTransform: "uppercase", color: "#64748b" } }, "Height SDS (", evalAge * 12 >= 60 ? "IAP" : "WHO", ")"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "32px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, zTxt(gm.heightZ)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", color: "#94a3b8", marginLeft: "6px" } }, "SD"))), gm.heightZ !== null ? /* @__PURE__ */ React.createElement(SDSBar, { z: gm.heightZ }) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8" } }, "Out of reference range.")), /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 0" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700", letterSpacing: "0.05em", textTransform: "uppercase", color: "#64748b" } }, "BMI SDS (WHO)"), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "32px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, zTxt(gm.bmiZ)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", color: "#94a3b8", marginLeft: "6px" } }, "SD"))), gm.bmiZ !== null ? /* @__PURE__ */ React.createElement(SDSBar, { z: gm.bmiZ }) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8" } }, "Out of reference range.")), /* @__PURE__ */ React.createElement("div", { className: "no-print", style: { marginTop: "18px", borderTop: "1px solid #f1f5f9", paddingTop: "14px" } }, /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          onClick: () => setShowChart((s) => !s),
-          style: { width: "100%", display: "flex", alignItems: "center", gap: "10px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "11px 14px", cursor: "pointer", textAlign: "left" }
-        },
-        /* @__PURE__ */ React.createElement("span", { style: { color: "#4f46e5", fontWeight: "800", fontSize: "13px", transform: showChart ? "rotate(90deg)" : "none", transition: "transform 0.15s", display: "inline-block" } }, "\u25B8"),
-        /* @__PURE__ */ React.createElement("span", { style: { fontSize: "13px", fontWeight: "800", color: "#334155" } }, showChart ? "Hide growth chart" : "Show growth chart"),
-        /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", fontSize: "11px", color: "#94a3b8", fontWeight: "600" } }, "Optional visualisation \u2014 the numbers above are the primary read")
-      )), /* @__PURE__ */ React.createElement("div", { style: { display: showChart ? "block" : "none", marginTop: "12px" } }, /* @__PURE__ */ React.createElement("div", { className: "no-print", style: { display: "flex", gap: "4px", background: "#f1f5f9", padding: "4px", borderRadius: "10px", marginBottom: "10px", width: "fit-content" } }, [{ key: "combined", label: "Growth Chart (H+W)" }, { key: "bmi", label: "BMI" }].map(({ key: mkey, label }) => /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: mkey,
-          onClick: () => setGrowthChartMeasure(mkey),
-          className: "toggle-btn",
-          style: { background: growthChartMeasure === mkey ? "white" : "transparent", color: growthChartMeasure === mkey ? "#1e293b" : "#64748b", boxShadow: growthChartMeasure === mkey ? "0 1px 3px rgba(0,0,0,0.12)" : "none" }
-        },
-        label
-      ))), /* @__PURE__ */ React.createElement("div", { id: "growth-chart-print", style: { border: "1px solid #eef2f7", borderRadius: "12px", padding: "8px", marginBottom: "16px", background: "white", overflowX: "auto" } }, growthChartMeasure === "combined" ? /* @__PURE__ */ React.createElement(
-        GrowthChartCombined,
-        {
-          sex: evalGender,
-          ageYears: evalAge,
-          heightValue: evalHeight,
-          weightValue: evalWeight,
-          heightData: growthSeries[evalGender].height,
-          weightData: growthSeries[evalGender].weight,
-          heightSeries,
-          weightSeries
-        }
-      ) : /* @__PURE__ */ React.createElement(GrowthChart, { measure: "bmi", sex: evalGender, ageYears: evalAge, value: gm.bmiVal, series: bmiSeries, chartData: growthSeries[evalGender].bmi })), growthChartMeasure === "combined" && !gm.weightAvailable && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#d97706", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "8px 12px", marginBottom: "12px" } }, "Weight-for-age has no reference data at this age. Use BMI-for-age for weight status instead."))));
-    })(), activeTab === "boneage" && /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ React.createElement(
+    )))), /* @__PURE__ */ React.createElement("div", { className: "card-lg result-panel" }, activeTab === "overview" && /* @__PURE__ */ React.createElement(OverviewPanel, null), activeTab === "growth" && /* @__PURE__ */ React.createElement(GrowthPanel, null), activeTab === "boneage" && /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ React.createElement(
       SectionHeader,
       {
         title: "Bone Age \xB7 20-bone staging (13 RUS + 7 carpal)",
@@ -2764,49 +3024,7 @@
       const marker = boneMetrics.predictedPah !== null ? boneMetrics.predictedPah : boneMetrics.mph;
       const pos = Math.min(Math.max((marker - lo) / span * 100, 1), 99);
       return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "14px", background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e2e8f0" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "relative", height: "10px", borderRadius: "99px", background: "#e9d5ff" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: "-3px", left: `${pos}%`, width: "16px", height: "16px", borderRadius: "50%", background: "white", border: "3px solid #7c3aed", transform: "translateX(-50%)", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" } })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "10px", fontWeight: "700", color: "#94a3b8" } }, /* @__PURE__ */ React.createElement("span", null, lo.toFixed(0), " cm"), /* @__PURE__ */ React.createElement("span", { style: { color: "#7c3aed" } }, "target range \xB18.5 cm", boneMetrics.predictedPah !== null ? " \xB7 marker = skeletal prediction" : ""), /* @__PURE__ */ React.createElement("span", null, hi.toFixed(0), " cm")));
-    })(), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? "#f8fafc" : "#fffbeb", border: boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? "1px solid #e2e8f0" : "1px solid #fde68a", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700", letterSpacing: "0.05em", textTransform: "uppercase", color: "#64748b" } }, "Predicted Adult Height \xB7 TW3 skeletal"), boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "24px", fontWeight: "900", color: "#1e293b" } }, boneMetrics.predictedPah.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", color: "#94a3b8", marginLeft: "5px" } }, "cm"))), boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.predPct !== null ? `${boneMetrics.predPct.toFixed(1)}th centile \xB7 ` : "", boneMetrics.pct.toFixed(1), "% of adult height attained at bone age ", boneMetrics.ba.toFixed(1), " yr", boneMetrics.remaining !== null ? ` \xB7 ${boneMetrics.remaining.toFixed(1)} cm left to grow` : ""), boneMetrics.predVsTarget !== null && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "700", marginTop: "8px", color: boneMetrics.withinTarget ? "#059669" : "#d97706" } }, boneMetrics.predVsTarget >= 0 ? "+" : "", boneMetrics.predVsTarget.toFixed(1), " cm vs genetic target \xB7 ", boneMetrics.withinTarget ? "within" : "outside", " mid-parental channel")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#92400e", lineHeight: "1.7", marginTop: "4px" } }, /* @__PURE__ */ React.createElement("strong", null, "Calibration required \u2014 no value shown by design."), " A skeletal prediction needs the licensed TW3 \u201C% of adult height attained by bone age\u201D reference (or another validated method) in ", /* @__PURE__ */ React.createElement("code", null, "TW3_CONFIG.pctAdultHeight"), ". The mid-parental target above is a ", /* @__PURE__ */ React.createElement("em", null, "genetic target"), ", not a prediction, and is never substituted here.")), /* @__PURE__ */ React.createElement("div", { className: "secondary-grid", style: { marginTop: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Bone Age vs Chronological"), boneMetrics.hasBone ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "26px", fontWeight: "900", color: Math.abs(boneMetrics.diff) > 2 ? "#d97706" : "#1e293b", lineHeight: 1 } }, boneMetrics.diff >= 0 ? "+" : "", boneMetrics.diff.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "yr")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.diff > 1 ? "Advanced maturation" : boneMetrics.diff < -1 ? "Delayed maturation" : "Concordant with age")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8" } }, "No bone age set")), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Genetic Target on Khadilkar"), boneMetrics.mph !== null && boneMetrics.mphZ !== null ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "26px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, boneMetrics.mphZ >= 0 ? "+" : "", boneMetrics.mphZ.toFixed(2)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "SDS")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.mphPct.toFixed(1), "th percentile \xB7 target vs ", evalGender === "boys" ? "male" : "female", " adult (", boneMetrics.adult[0], " cm)")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8" } }, "Add parents' heights for target SDS"))), /* @__PURE__ */ React.createElement(MetricRow, { label: "Current Height", value: evalHeight.toFixed(1), unit: "cm", sub: `Chronological age ${evalAge.toFixed(1)} yr` })), /* @__PURE__ */ React.createElement("details", { className: "clinical-notes" }, /* @__PURE__ */ React.createElement("summary", null, "Clinical notes \xB7 TW3 workflow & Indian-population context"), /* @__PURE__ */ React.createElement("div", { className: "clinical-notes-body" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#4338ca", lineHeight: "1.7", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("strong", null, "TW3 workflow:"), " use a ", /* @__PURE__ */ React.createElement("strong", null, "left"), " hand\u2013wrist PA radiograph. Stage all ", /* @__PURE__ */ React.createElement("strong", null, "20 bones"), " \u2014 13 RUS (radius, ulna, metacarpals 1\xB73\xB75, proximal/middle/distal phalanges 1\xB73\xB75) and 7 carpals \u2014 with the original TW3 letters A\u2192I. RUS and carpal maturity scores convert to ", /* @__PURE__ */ React.createElement("strong", null, "separate"), " bone ages (never averaged). Two independent reads within \xB10.5 yr is acceptable. Bayley\u2013Pinneau and Greulich\u2013Pyle are ", /* @__PURE__ */ React.createElement("strong", null, "not"), " used."), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#92400e", lineHeight: "1.7" } }, /* @__PURE__ */ React.createElement("strong", null, "Indian-population note:"), " No India-specific TW3 reference exists. In validation on Indian children, ", /* @__PURE__ */ React.createElement("strong", null, "TW3 was the most accurate"), " of the common methods (Shah et al., 2021, 851 children), which is why it is used here. However, skeletal maturation in Indian children differs from Western standards: boys run roughly ", /* @__PURE__ */ React.createElement("strong", null, "~6 months behind"), " and girls vary (delayed pre-puberty, sometimes advanced in early puberty) (Patel 2012; Khadilkar 2022). Scoring uses ", /* @__PURE__ */ React.createElement("strong", null, "TW3-C (Chinese)"), " tables as the closest freely-available reference \u2014 ", /* @__PURE__ */ React.createElement("strong", null, "no numeric correction is applied automatically"), ". Interpret borderline results, and ", /* @__PURE__ */ React.createElement("strong", null, "pubertal boys especially"), ", with clinical correlation."))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "auto", paddingTop: "18px", borderTop: "1px solid #f1f5f9", fontSize: "11px", color: "#94a3b8", lineHeight: "1.7" } }, "TW3: Tanner, Healy, Goldstein & Cameron (2001) \u2014 licensed reference values required for scoring & skeletal height prediction. Mid-parental target: Tanner (open). Adult-height SDS/centile vs Khadilkar (WHO\u2013IAP) 18-yr reference. Clinician must verify \u2014 not a diagnostic device."))), activeTab === "renal" && /* @__PURE__ */ React.createElement(RenalPanel, null), activeTab === "liver" && /* @__PURE__ */ React.createElement(LiverPanel, null), activeTab === "frax" && /* @__PURE__ */ React.createElement(FraxPanel, null), activeTab === "qrisk" && /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ React.createElement(
-      SectionHeader,
-      {
-        title: "QRISK3 \xB7 10-Year Cardiovascular Risk",
-        subtitle: "Hippisley-Cox 2017 (ClinRisk open source) \xB7 South-Asian ethnicity aware",
-        badge: qriskMetrics.risk !== null ? qriskMetrics.band : "Age 25\u201384",
-        badgeVariant: qriskMetrics.risk !== null ? qriskMetrics.variant : "neutral"
-      }
-    ), !qriskMetrics.inAgeRange && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "10px", padding: "12px 14px", fontSize: "12px", color: "#92400e", lineHeight: "1.6" } }, "\u26A0 QRISK3 is validated for ages 25\u201384. Set the patient's age in that range (Demographics) to compute risk."), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", display: "flex", flexDirection: "column", gap: "12px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Ethnicity"), /* @__PURE__ */ React.createElement("select", { value: ethnicity, onChange: (e) => setEthnicity(parseInt(e.target.value)), className: "input-field", style: { width: "100%" } }, /* @__PURE__ */ React.createElement("option", { value: 1 }, "White / not stated"), /* @__PURE__ */ React.createElement("option", { value: 2 }, "Indian"), /* @__PURE__ */ React.createElement("option", { value: 3 }, "Pakistani"), /* @__PURE__ */ React.createElement("option", { value: 4 }, "Bangladeshi"), /* @__PURE__ */ React.createElement("option", { value: 5 }, "Other Asian"), /* @__PURE__ */ React.createElement("option", { value: 6 }, "Black Caribbean"), /* @__PURE__ */ React.createElement("option", { value: 7 }, "Black African"), /* @__PURE__ */ React.createElement("option", { value: 8 }, "Chinese"), /* @__PURE__ */ React.createElement("option", { value: 9 }, "Other"))), /* @__PURE__ */ React.createElement("div", { className: "split-grid" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Smoking"), /* @__PURE__ */ React.createElement("select", { value: smokeCat, onChange: (e) => setSmokeCat(parseInt(e.target.value)), className: "input-field", style: { width: "100%" } }, /* @__PURE__ */ React.createElement("option", { value: 0 }, "Non-smoker"), /* @__PURE__ */ React.createElement("option", { value: 1 }, "Ex-smoker"), /* @__PURE__ */ React.createElement("option", { value: 2 }, "Light (< 10/day)"), /* @__PURE__ */ React.createElement("option", { value: 3 }, "Moderate (10\u201319/day)"), /* @__PURE__ */ React.createElement("option", { value: 4 }, "Heavy (20+/day)"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Diabetes"), /* @__PURE__ */ React.createElement("select", { value: diabetes, onChange: (e) => setDiabetes(parseInt(e.target.value)), className: "input-field", style: { width: "100%" } }, /* @__PURE__ */ React.createElement("option", { value: 0 }, "None"), /* @__PURE__ */ React.createElement("option", { value: 1 }, "Type 1"), /* @__PURE__ */ React.createElement("option", { value: 2 }, "Type 2")))), /* @__PURE__ */ React.createElement("div", { className: "split-grid" }, /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Total : HDL Cholesterol ratio", value: cholRatio, onChange: (e) => setCholRatio(e.target.value), placeholder: "e.g. 4.0", step: "0.1", unit: "ratio" }), /* @__PURE__ */ React.createElement(InputWithUnit, { label: "SBP variability (SD, optional)", value: sbpSD, onChange: (e) => setSbpSD(e.target.value), placeholder: "mmHg SD", step: "0.1", unit: "SD" })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "Uses BMI (from height/weight) and systolic BP from the left panel. Blank cholesterol ratio / SBP-SD contribute neutrally (QRISK3 convention). Townsend deprivation is set to 0 (UK-only index)."), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "6px 14px" } }, /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Atrial fibrillation", value: qAF, setter: setQAF }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "On BP treatment", value: qTreatedHtn, setter: setQTreatedHtn }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "CKD stage 3\u20135", value: qCKD, setter: setQCKD }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Rheumatoid arthritis", value: qRA, setter: setQRA }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Migraine", value: qMigraine, setter: setQMigraine }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "SLE (lupus)", value: qSLE, setter: setQSLE }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Severe mental illness", value: qSMI, setter: setQSMI }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Atypical antipsychotics", value: qAtypAntipsy, setter: setQAtypAntipsy }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Regular corticosteroids", value: qCortico, setter: setQCortico }), evalGender === "boys" && /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Erectile dysfunction", value: qED, setter: setQED }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Family history of CVD", value: qFhCvd, setter: setQFhCvd }))), qriskMetrics.risk !== null && /* @__PURE__ */ React.createElement("div", { style: { ...heroTone(qriskMetrics.variant), borderRadius: "16px", padding: "22px", marginTop: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "16px", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "6px" } }, "10-Year CVD Risk"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { className: "hero-value", style: { fontSize: "44px", fontWeight: "900", color: qriskMetrics.variant === "high" ? "#dc2626" : qriskMetrics.variant === "mid" ? "#d97706" : "#16a34a", lineHeight: 1 } }, qriskMetrics.risk.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "18px", fontWeight: "700", color: "#64748b" } }, "%")), qriskMetrics.typical !== null && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "3px" } }, "Healthy baseline (same age/sex/ethnicity): ", qriskMetrics.typical.toFixed(1), "%")), /* @__PURE__ */ React.createElement(StatusBadge, { text: qriskMetrics.band, variant: qriskMetrics.variant })), /* @__PURE__ */ React.createElement(ProbBar, { prob: qriskMetrics.risk, maxProb: 40, threshold: 10 })), qriskMetrics.risk !== null && (() => {
-      const imp = [];
-      if (qriskMetrics.missingRatio) imp.push("cholesterol ratio");
-      if (systolic === "") imp.push("systolic BP");
-      if (sbpSD === "") imp.push("SBP variability (SD)");
-      return imp.length ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "10.5px", color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "7px 10px", lineHeight: "1.5" } }, "\u26A0 Estimated with defaulted inputs: ", /* @__PURE__ */ React.createElement("strong", null, imp.join(", ")), ". Enter these for a patient-specific score.") : null;
-    })(), qriskMetrics.risk === null && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#fef2f2", border: "1.5px solid #fecaca", borderRadius: "12px", padding: "14px 16px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", fontWeight: "800", color: "#991b1b" } }, "QRISK3 not applicable"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#b91c1c", marginTop: "4px", lineHeight: "1.5" } }, !qriskMetrics.inAgeRange ? "QRISK3 is validated only for adults aged 25\u201384. This patient is outside that range \u2014 no score is shown." : "Enter height and weight (BMI) to compute the score.")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: "10px", padding: "12px 14px", fontSize: "11px", color: "#4338ca", lineHeight: "1.7" } }, /* @__PURE__ */ React.createElement("strong", null, "India note:"), " QRISK3 is derived on a UK cohort. Its Indian/South-Asian ethnicity term raises risk relative to White, but studies suggest it may still under-estimate true risk in Indians. Treat \u2265 10% as the usual statin-consideration threshold, and interpret alongside the ", /* @__PURE__ */ React.createElement("strong", null, "Lipid Association of India"), " risk stratification and ICMR guidance. QRISK3 does not apply to established CVD, familial hypercholesterolaemia, or type-appropriate secondary prevention."), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "auto", paddingTop: "18px", borderTop: "1px solid #f1f5f9", fontSize: "11px", color: "#94a3b8", lineHeight: "1.7" } }, "QRISK3-2017 \xB7 Hippisley-Cox J et al., BMJ 2017;357:j2099 \xB7 ClinRisk open-source coefficients (GNU LGPL), verified against the CRAN QRISK3 reference. Clinician must verify \u2014 decision support only, not a diagnostic device.")), activeTab === "timeline" && /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", gap: "16px" } }, /* @__PURE__ */ React.createElement("div", { className: "timeline-header" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("h3", { style: { fontSize: "13px", fontWeight: "800", color: "#334155" } }, "CKD Progression Ledger"), /* @__PURE__ */ React.createElement("p", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "3px" } }, "Session snapshots \u2014 chronicity assessment over \u2265 90 days")), /* @__PURE__ */ React.createElement("div", { className: "timeline-actions" }, /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: logCurrentData,
-        style: { padding: "7px 16px", background: "#4f46e5", color: "white", border: "none", borderRadius: "9px", fontSize: "12px", fontWeight: "700", cursor: "pointer", boxShadow: "0 1px 4px rgba(79,70,229,0.3)", transition: "background 0.15s" },
-        onMouseEnter: (e) => e.target.style.background = "#4338ca",
-        onMouseLeave: (e) => e.target.style.background = "#4f46e5"
-      },
-      "+ Log Snapshot"
-    ), timeline.length > 0 && /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: () => {
-          if (window.confirm("Clear all logged snapshots from the ledger?")) setTimeline([]);
-        },
-        style: { padding: "7px 14px", background: "white", color: "#64748b", border: "1.5px solid #e2e8f0", borderRadius: "9px", fontSize: "12px", fontWeight: "600", cursor: "pointer", transition: "all 0.15s" },
-        onMouseEnter: (e) => e.target.style.background = "#f8fafc",
-        onMouseLeave: (e) => e.target.style.background = "white"
-      },
-      "Reset"
-    ))), /* @__PURE__ */ React.createElement("div", { style: { padding: "14px 16px", borderRadius: "12px", fontSize: "12px", lineHeight: "1.6" }, className: chronicityStatus.bgClass }, /* @__PURE__ */ React.createElement("span", { style: { fontWeight: "800", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.06em", display: "block", marginBottom: "3px" } }, "Chronicity Assessment"), chronicityStatus.status), timeline.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "16px", border: "1px solid #e2e8f0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "10px" } }, "eGFR Timeline"), /* @__PURE__ */ React.createElement("svg", { width: "100%", height: "100", viewBox: "0 0 500 100", preserveAspectRatio: "none", style: { borderRadius: "8px", background: "white", border: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("line", { x1: "0", y1: "22", x2: "500", y2: "22", stroke: "#f1f5f9", strokeWidth: "1.5" }), /* @__PURE__ */ React.createElement("line", { x1: "0", y1: "50", x2: "500", y2: "50", stroke: "#f1f5f9", strokeWidth: "1.5" }), /* @__PURE__ */ React.createElement("line", { x1: "0", y1: "78", x2: "500", y2: "78", stroke: "#f1f5f9", strokeWidth: "1.5" }), (() => {
-      const sorted = [...timeline].sort((a, b) => new Date(a.date) - new Date(b.date));
-      const pts = sorted.map((e, i) => ({
-        x: sorted.length > 1 ? i / (sorted.length - 1) * 440 + 30 : 250,
-        y: 90 - Math.min(e.egfr, 150) / 150 * 70,
-        e
-      }));
-      return /* @__PURE__ */ React.createElement("g", null, pts.length > 1 && /* @__PURE__ */ React.createElement("polyline", { fill: "none", stroke: "#4f46e5", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", points: pts.map((p) => `${p.x},${p.y}`).join(" ") }), pts.map((p, i) => /* @__PURE__ */ React.createElement("g", { key: p.e.id }, /* @__PURE__ */ React.createElement("circle", { cx: p.x, cy: p.y, r: "4", fill: "#4f46e5" }), /* @__PURE__ */ React.createElement("text", { x: p.x, y: p.y - 9, textAnchor: "middle", fill: "#4338ca", fontSize: "9", fontWeight: "bold" }, p.e.egfr), /* @__PURE__ */ React.createElement("text", { x: p.x, y: "96", textAnchor: "middle", fill: "#94a3b8", fontSize: "8" }, p.e.date.slice(5)))));
-    })())), timeline.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: "12px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "52px", height: "52px", borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "none", stroke: "#94a3b8", strokeWidth: "2", strokeLinecap: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M12 5v14M5 12l7 7 7-7" }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "700", color: "#64748b" } }, "No snapshots logged yet"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8" } }, 'Enter patient data and click "Log Snapshot" to begin tracking.')) : /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto", borderRadius: "12px", border: "1px solid #e2e8f0" }, className: "custom-scrollbar" }, /* @__PURE__ */ React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", minWidth: "580px", fontSize: "12px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { background: "#f8fafc", borderBottom: "1px solid #e2e8f0" } }, ["Date", "Age", "Ht / Wt", "SCr", "eGFR", "ACR", "FIB-4"].map((h) => /* @__PURE__ */ React.createElement("th", { key: h, style: { padding: "10px 12px", textAlign: "left", fontWeight: "800", color: "#64748b", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" } }, h)))), /* @__PURE__ */ React.createElement("tbody", null, timeline.map((item, idx) => /* @__PURE__ */ React.createElement("tr", { key: item.id, style: { borderBottom: "1px solid #f1f5f9", background: idx % 2 === 0 ? "white" : "#fafbfc" } }, /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "700", color: "#1e293b" } }, item.date), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", color: "#475569" } }, item.age.toFixed(1), " y"), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", color: "#64748b" } }, item.height, " / ", item.weight), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "700", color: "#475569" } }, item.creatinine), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "800", color: "#4f46e5" } }, item.egfr), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("span", { style: { padding: "2px 8px", borderRadius: "99px", fontSize: "10px", fontWeight: "700", background: "#eef2ff", color: "#4338ca", border: "1px solid #c7d2fe" } }, item.albuminuria)), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "700", color: "#059669" } }, item.fib4 !== null ? item.fib4 : "\u2014")))))))), /* @__PURE__ */ React.createElement("div", { className: "card no-print", style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#0891b2", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "General Health Indicators")), /* @__PURE__ */ React.createElement("div", { className: "general-grid" }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Body Mass Index"), height !== "" && weight !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.bmi.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "kg/m\xB2")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.bmiCat, variant: generalMetrics.bmiVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Asian cutoffs: Normal < 23, OW \u2265 23, Obese \u2265 27.5")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter height & weight")), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Mean Arterial Pressure"), systolic !== "" && diastolic !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.map.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "mmHg")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.mapCat, variant: generalMetrics.mapVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Normal range: 70\u2013100 mmHg")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter systolic & diastolic BP")))))), /* @__PURE__ */ React.createElement("footer", { className: "clinical-footer" }, "Reference: Khadilkar V et al. (2015) Indian Pediatrics \xB7 TW3 (Tanner-Whitehouse 3, 2001) \xB7 QRISK3-2017 (Hippisley-Cox, BMJ 2017; ClinRisk LGPL) \xB7 CKD-EPI 2021 \xB7 Modified Bedside Schwartz (2009) \xB7 FRAX India Asian \xB7 FIB-4 (Sterling et al.) \xB7 For clinical decision support only.")));
+    })(), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? "#f8fafc" : "#fffbeb", border: boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? "1px solid #e2e8f0" : "1px solid #fde68a", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700", letterSpacing: "0.05em", textTransform: "uppercase", color: "#64748b" } }, "Predicted Adult Height \xB7 TW3 skeletal"), boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "24px", fontWeight: "900", color: "#1e293b" } }, boneMetrics.predictedPah.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", color: "#94a3b8", marginLeft: "5px" } }, "cm"))), boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.predPct !== null ? `${boneMetrics.predPct.toFixed(1)}th centile \xB7 ` : "", boneMetrics.pct.toFixed(1), "% of adult height attained at bone age ", boneMetrics.ba.toFixed(1), " yr", boneMetrics.remaining !== null ? ` \xB7 ${boneMetrics.remaining.toFixed(1)} cm left to grow` : ""), boneMetrics.predVsTarget !== null && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "700", marginTop: "8px", color: boneMetrics.withinTarget ? "#059669" : "#d97706" } }, boneMetrics.predVsTarget >= 0 ? "+" : "", boneMetrics.predVsTarget.toFixed(1), " cm vs genetic target \xB7 ", boneMetrics.withinTarget ? "within" : "outside", " mid-parental channel")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#92400e", lineHeight: "1.7", marginTop: "4px" } }, /* @__PURE__ */ React.createElement("strong", null, "Calibration required \u2014 no value shown by design."), " A skeletal prediction needs the licensed TW3 \u201C% of adult height attained by bone age\u201D reference (or another validated method) in ", /* @__PURE__ */ React.createElement("code", null, "TW3_CONFIG.pctAdultHeight"), ". The mid-parental target above is a ", /* @__PURE__ */ React.createElement("em", null, "genetic target"), ", not a prediction, and is never substituted here.")), /* @__PURE__ */ React.createElement("div", { className: "secondary-grid", style: { marginTop: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Bone Age vs Chronological"), boneMetrics.hasBone ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "26px", fontWeight: "900", color: Math.abs(boneMetrics.diff) > 2 ? "#d97706" : "#1e293b", lineHeight: 1 } }, boneMetrics.diff >= 0 ? "+" : "", boneMetrics.diff.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "yr")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.diff > 1 ? "Advanced maturation" : boneMetrics.diff < -1 ? "Delayed maturation" : "Concordant with age")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8" } }, "No bone age set")), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Genetic Target on Khadilkar"), boneMetrics.mph !== null && boneMetrics.mphZ !== null ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "26px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, boneMetrics.mphZ >= 0 ? "+" : "", boneMetrics.mphZ.toFixed(2)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "SDS")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.mphPct.toFixed(1), "th percentile \xB7 target vs ", evalGender === "boys" ? "male" : "female", " adult (", boneMetrics.adult[0], " cm)")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8" } }, "Add parents' heights for target SDS"))), /* @__PURE__ */ React.createElement(MetricRow, { label: "Current Height", value: evalHeight.toFixed(1), unit: "cm", sub: `Chronological age ${evalAge.toFixed(1)} yr` })), /* @__PURE__ */ React.createElement("details", { className: "clinical-notes" }, /* @__PURE__ */ React.createElement("summary", null, "Clinical notes \xB7 TW3 workflow & Indian-population context"), /* @__PURE__ */ React.createElement("div", { className: "clinical-notes-body" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#4338ca", lineHeight: "1.7", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("strong", null, "TW3 workflow:"), " use a ", /* @__PURE__ */ React.createElement("strong", null, "left"), " hand\u2013wrist PA radiograph. Stage all ", /* @__PURE__ */ React.createElement("strong", null, "20 bones"), " \u2014 13 RUS (radius, ulna, metacarpals 1\xB73\xB75, proximal/middle/distal phalanges 1\xB73\xB75) and 7 carpals \u2014 with the original TW3 letters A\u2192I. RUS and carpal maturity scores convert to ", /* @__PURE__ */ React.createElement("strong", null, "separate"), " bone ages (never averaged). Two independent reads within \xB10.5 yr is acceptable. Bayley\u2013Pinneau and Greulich\u2013Pyle are ", /* @__PURE__ */ React.createElement("strong", null, "not"), " used."), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#92400e", lineHeight: "1.7" } }, /* @__PURE__ */ React.createElement("strong", null, "Indian-population note:"), " No India-specific TW3 reference exists. In validation on Indian children, ", /* @__PURE__ */ React.createElement("strong", null, "TW3 was the most accurate"), " of the common methods (Shah et al., 2021, 851 children), which is why it is used here. However, skeletal maturation in Indian children differs from Western standards: boys run roughly ", /* @__PURE__ */ React.createElement("strong", null, "~6 months behind"), " and girls vary (delayed pre-puberty, sometimes advanced in early puberty) (Patel 2012; Khadilkar 2022). Scoring uses ", /* @__PURE__ */ React.createElement("strong", null, "TW3-C (Chinese)"), " tables as the closest freely-available reference \u2014 ", /* @__PURE__ */ React.createElement("strong", null, "no numeric correction is applied automatically"), ". Interpret borderline results, and ", /* @__PURE__ */ React.createElement("strong", null, "pubertal boys especially"), ", with clinical correlation."))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "auto", paddingTop: "18px", borderTop: "1px solid #f1f5f9", fontSize: "11px", color: "#94a3b8", lineHeight: "1.7" } }, "TW3: Tanner, Healy, Goldstein & Cameron (2001) \u2014 licensed reference values required for scoring & skeletal height prediction. Mid-parental target: Tanner (open). Adult-height SDS/centile vs Khadilkar (WHO\u2013IAP) 18-yr reference. Clinician must verify \u2014 not a diagnostic device."))), activeTab === "renal" && /* @__PURE__ */ React.createElement(RenalPanel, null), activeTab === "liver" && /* @__PURE__ */ React.createElement(LiverPanel, null), activeTab === "frax" && /* @__PURE__ */ React.createElement(FraxPanel, null), activeTab === "qrisk" && /* @__PURE__ */ React.createElement(QriskPanel, null), activeTab === "timeline" && /* @__PURE__ */ React.createElement(LedgerPanel, null)), /* @__PURE__ */ React.createElement("div", { className: "card no-print", style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#0891b2", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "General Health Indicators")), /* @__PURE__ */ React.createElement("div", { className: "general-grid" }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Body Mass Index"), height !== "" && weight !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.bmi.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "kg/m\xB2")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.bmiCat, variant: generalMetrics.bmiVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Asian cutoffs: Normal < 23, OW \u2265 23, Obese \u2265 27.5")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter height & weight")), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Mean Arterial Pressure"), systolic !== "" && diastolic !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.map.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "mmHg")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.mapCat, variant: generalMetrics.mapVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Normal range: 70\u2013100 mmHg")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter systolic & diastolic BP")))))), /* @__PURE__ */ React.createElement("footer", { className: "clinical-footer" }, "Reference: Khadilkar V et al. (2015) Indian Pediatrics \xB7 TW3 (Tanner-Whitehouse 3, 2001) \xB7 QRISK3-2017 (Hippisley-Cox, BMJ 2017; ClinRisk LGPL) \xB7 CKD-EPI 2021 \xB7 Modified Bedside Schwartz (2009) \xB7 FRAX India Asian \xB7 FIB-4 (Sterling et al.) \xB7 For clinical decision support only.")));
   }
   var root = ReactDOM.createRoot(document.getElementById("root"));
   root.render(/* @__PURE__ */ React.createElement(App, null));

@@ -79,7 +79,112 @@ function useFrax() {
   return { metrics: s.fraxMetrics, hasManual: s.hasManualFrax };
 }
 
+
+
+/** Every module's derived status, for the at-a-glance grid. */
+function useOverview() {
+  const s = useClinicalState();
+  return {
+    moduleStatus: s.moduleStatus,
+    setActiveTab: s.setActiveTab,
+  };
+}
+
+/** Charts, centiles and the printable report. */
+function useGrowth() {
+  const s = useClinicalState();
+  return {
+    age: s.age,
+    evalAge: s.evalAge,
+    evalGender: s.evalGender,
+    evalHeight: s.evalHeight,
+    evalWeight: s.evalWeight,
+    examDate: s.examDate,
+    exportGrowthReportPdf: s.exportGrowthReportPdf,
+    gender: s.gender,
+    growthChartMeasure: s.growthChartMeasure,
+    growthMetrics: s.growthMetrics,
+    growthSeries: s.growthSeries,
+    hasManualGrowth: s.hasManualGrowth,
+    height: s.height,
+    moduleStatus: s.moduleStatus,
+    patientMrn: s.patientMrn,
+    patientName: s.patientName,
+    printGrowthReport: s.printGrowthReport,
+    setGrowthChartMeasure: s.setGrowthChartMeasure,
+    setShowChart: s.setShowChart,
+    showChart: s.showChart,
+    timeline: s.timeline,
+    weight: s.weight,
+  };
+}
+
+/** QRISK3 inputs and result. Mostly setters: unlike the other panels it owns its
+ *  own risk-factor toggles rather than reading shared measurements. */
+function useQrisk() {
+  const s = useClinicalState();
+  return {
+    age: s.age,
+    cholRatio: s.cholRatio,
+    diabetes: s.diabetes,
+    ethnicity: s.ethnicity,
+    evalGender: s.evalGender,
+    height: s.height,
+    qAF: s.qAF,
+    qAtypAntipsy: s.qAtypAntipsy,
+    qCKD: s.qCKD,
+    qCortico: s.qCortico,
+    qED: s.qED,
+    qFhCvd: s.qFhCvd,
+    qMigraine: s.qMigraine,
+    qRA: s.qRA,
+    qSLE: s.qSLE,
+    qSMI: s.qSMI,
+    qTreatedHtn: s.qTreatedHtn,
+    qriskMetrics: s.qriskMetrics,
+    sbpSD: s.sbpSD,
+    setCholRatio: s.setCholRatio,
+    setDiabetes: s.setDiabetes,
+    setEthnicity: s.setEthnicity,
+    setQAF: s.setQAF,
+    setQAtypAntipsy: s.setQAtypAntipsy,
+    setQCKD: s.setQCKD,
+    setQCortico: s.setQCortico,
+    setQED: s.setQED,
+    setQFhCvd: s.setQFhCvd,
+    setQMigraine: s.setQMigraine,
+    setQRA: s.setQRA,
+    setQSLE: s.setQSLE,
+    setQSMI: s.setQSMI,
+    setQTreatedHtn: s.setQTreatedHtn,
+    setSbpSD: s.setSbpSD,
+    setSmokeCat: s.setSmokeCat,
+    smokeCat: s.smokeCat,
+    systolic: s.systolic,
+    weight: s.weight,
+  };
+}
+
+/** The visit ledger -- the second consumer of the derived metrics, and the
+ *  reason they are shared state rather than panel-local. */
+function useLedger() {
+  const s = useClinicalState();
+  return {
+    age: s.age,
+    albuminuria: s.albuminuria,
+    assessment: s.assessment,
+    chronicityStatus: s.chronicityStatus,
+    creatinine: s.creatinine,
+    height: s.height,
+    logCurrentData: s.logCurrentData,
+    setTimeline: s.setTimeline,
+    timeline: s.timeline,
+    weight: s.weight,
+  };
+}
+
 export {
   ClinicalStateContext, ClinicalStateProvider, useClinicalState,
   usePatient, useLiver, useRenal, useFrax,
+  useOverview, useGrowth, useQrisk, useLedger,
 };

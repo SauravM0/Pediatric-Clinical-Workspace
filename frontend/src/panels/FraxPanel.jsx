@@ -5,8 +5,7 @@
  * card renders the same numbers.
  */
 import { useFrax, usePatient } from "../state.jsx";
-import { SectionHeader, StatusBadge, EmptyState, MetricRow, ProbBar,
-         FraxToggleRow, heroTone } from "../ui.jsx";
+import { ProbBar, StatusBadge, SectionHeader, EmptyState, heroTone } from "../ui.jsx";
 
 function FraxPanel() {
   const { metrics, hasManual } = useFrax();

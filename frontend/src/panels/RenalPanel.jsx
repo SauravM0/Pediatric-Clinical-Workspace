@@ -6,8 +6,7 @@
  * hence context rather than props.
  */
 import { useRenal, usePatient } from "../state.jsx";
-import { SectionHeader, StatusBadge, EmptyState, MetricRow, ProbBar,
-         FraxToggleRow, heroTone } from "../ui.jsx";
+import { StatusBadge, SectionHeader, EmptyState, heroTone } from "../ui.jsx";
 
 function RenalPanel() {
   const { metrics, hasManual, creatinine, monitoring } = useRenal();

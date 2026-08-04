@@ -6,8 +6,7 @@
  * FIB-4 is simply not validated in children.
  */
 import { useLiver, usePatient } from "../state.jsx";
-import { SectionHeader, StatusBadge, EmptyState, MetricRow, ProbBar,
-         FraxToggleRow, heroTone } from "../ui.jsx";
+import { StatusBadge, SectionHeader, EmptyState, heroTone } from "../ui.jsx";
 
 function LiverPanel() {
   const { metrics, hasManual, platelets } = useLiver();

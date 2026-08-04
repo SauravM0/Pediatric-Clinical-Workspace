@@ -42,6 +42,10 @@ import { ClinicalStateProvider } from "./state.jsx";
 import { RenalPanel } from "./panels/RenalPanel.jsx";
 import { LiverPanel } from "./panels/LiverPanel.jsx";
 import { FraxPanel } from "./panels/FraxPanel.jsx";
+import { OverviewPanel } from "./panels/OverviewPanel.jsx";
+import { GrowthPanel } from "./panels/GrowthPanel.jsx";
+import { QriskPanel } from "./panels/QriskPanel.jsx";
+import { LedgerPanel } from "./panels/LedgerPanel.jsx";
 
         function App() {
           const [activeTab, setActiveTab] = useState('overview');
@@ -1245,11 +1249,115 @@ import { FraxPanel } from "./panels/FraxPanel.jsx";
             liverMetrics, hasManualLiver, platelets,
             renalMetrics, hasManualRenal, creatinine, monitoring,
             fraxMetrics, hasManualFrax,
+            albuminuria,
+            assessment,
+            cholRatio,
+            chronicityStatus,
+            diabetes,
+            ethnicity,
+            evalGender,
+            exportGrowthReportPdf,
+            growthChartMeasure,
+            growthMetrics,
+            growthSeries,
+            hasManualGrowth,
+            logCurrentData,
+            moduleStatus,
+            printGrowthReport,
+            qAF,
+            qAtypAntipsy,
+            qCKD,
+            qCortico,
+            qED,
+            qFhCvd,
+            qMigraine,
+            qRA,
+            qSLE,
+            qSMI,
+            qTreatedHtn,
+            qriskMetrics,
+            sbpSD,
+            setActiveTab,
+            setCholRatio,
+            setDiabetes,
+            setEthnicity,
+            setGrowthChartMeasure,
+            setQAF,
+            setQAtypAntipsy,
+            setQCKD,
+            setQCortico,
+            setQED,
+            setQFhCvd,
+            setQMigraine,
+            setQRA,
+            setQSLE,
+            setQSMI,
+            setQTreatedHtn,
+            setSbpSD,
+            setShowChart,
+            setSmokeCat,
+            setTimeline,
+            showChart,
+            smokeCat,
+            systolic,
+            timeline,
           }), [age, dob, gender, height, weight, evalAge, evalHeight, evalWeight,
                patientName, patientMrn, examDate,
                liverMetrics, hasManualLiver, platelets,
                renalMetrics, hasManualRenal, creatinine, monitoring,
-               fraxMetrics, hasManualFrax]);
+               fraxMetrics, hasManualFrax,
+               albuminuria,
+               assessment,
+               cholRatio,
+               chronicityStatus,
+               diabetes,
+               ethnicity,
+               evalGender,
+               exportGrowthReportPdf,
+               growthChartMeasure,
+               growthMetrics,
+               growthSeries,
+               hasManualGrowth,
+               logCurrentData,
+               moduleStatus,
+               printGrowthReport,
+               qAF,
+               qAtypAntipsy,
+               qCKD,
+               qCortico,
+               qED,
+               qFhCvd,
+               qMigraine,
+               qRA,
+               qSLE,
+               qSMI,
+               qTreatedHtn,
+               qriskMetrics,
+               sbpSD,
+               setActiveTab,
+               setCholRatio,
+               setDiabetes,
+               setEthnicity,
+               setGrowthChartMeasure,
+               setQAF,
+               setQAtypAntipsy,
+               setQCKD,
+               setQCortico,
+               setQED,
+               setQFhCvd,
+               setQMigraine,
+               setQRA,
+               setQSLE,
+               setQSMI,
+               setQTreatedHtn,
+               setSbpSD,
+               setShowChart,
+               setSmokeCat,
+               setTimeline,
+               showChart,
+               smokeCat,
+               systolic,
+               timeline]);
 
           return (
             <ClinicalStateProvider value={clinicalState}>
@@ -1500,174 +1608,8 @@ import { FraxPanel } from "./panels/FraxPanel.jsx";
                   <div className="card-lg result-panel">
 
                     {/* ══ OVERVIEW TAB ══ */}
-                    {activeTab === 'overview' && (
-                      <div style={{ flex:1 }}>
-                        <SectionHeader
-                          title="Patient Overview"
-                          subtitle="Every module's headline at a glance — click any card to open its full workspace."
-                        />
-                        <div className="overview-grid" style={{ marginTop:'16px' }}>
-                          {['growth','boneage','renal','liver','frax','qrisk'].map(key => {
-                            const m = moduleStatus[key];
-                            const accent = m.state === 'high' ? '#dc2626' : m.state === 'borderline' ? '#d97706' : m.state === 'normal' ? '#16a34a' : '#94a3b8';
-                            return (
-                              <button key={key} className="overview-card" onClick={() => setActiveTab(key)}>
-                                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'8px', marginBottom:'10px' }}>
-                                  <span style={{ fontSize:'11px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.05em', color:'#64748b' }}>{m.title}</span>
-                                  <span className={`status-dot status-dot-${m.state}`} style={{ marginLeft:0 }}></span>
-                                </div>
-                                <div style={{ display:'flex', alignItems:'baseline', gap:'6px' }}>
-                                  <span style={{ fontSize:'30px', fontWeight:'900', color:accent, lineHeight:1 }}>{m.value}</span>
-                                  <span style={{ fontSize:'11px', fontWeight:'600', color:'#94a3b8' }}>{m.unit}</span>
-                                </div>
-                                <div style={{ fontSize:'11px', color:'#64748b', marginTop:'6px', lineHeight:'1.5' }}>{m.label}</div>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        <div style={{ marginTop:'16px', background:'#eef2ff', border:'1px solid #c7d2fe', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#4338ca', lineHeight:'1.7' }}>
-                          Enter patient data in the left panel — every module recalculates automatically. A grey dot means that module still needs input; green / amber / red reflect the result. Decision support only — a clinician must verify every value.
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ══ GROWTH TAB ══ */}
-                    {activeTab === 'growth' && (() => {
-                      const gm = growthMetrics;
-                      const heightSeries = timeline.map(t => ({ age: t.age, value: t.height })).filter(p => p.value > 0);
-                      const weightSeries = timeline.map(t => ({ age: t.age, value: t.weight })).filter(p => p.value > 0);
-                      const bmiSeries = timeline.map(t => ({ age: t.age, value: (t.height>0 ? t.weight/Math.pow(t.height/100,2) : 0) })).filter(p => p.value > 0);
-                      const pctTxt = (p) => (p === null || p === undefined) ? '—' : p.toFixed(1) + 'th';
-                      const zTxt = (z) => (z === null || z === undefined) ? '—' : (z >= 0 ? '+' : '') + z.toFixed(2);
-                      const inRange = evalAge >= 0 && evalAge <= 19;
-                      return (
-                      <div style={{ flex:1 }}>
-                        <div className="report-only" style={{ fontSize:'13px', fontWeight:'700', color:'#334155', borderBottom:'1px solid #e5e7eb', paddingBottom:'8px' }}>
-                          {(patientName || 'Unnamed patient')} · MRN {(patientMrn || '—')} · {age !== "" ? `${age} yr` : '— yr'} · {gender === 'boys' ? 'Male' : gender === 'girls' ? 'Female' : '—'} · Exam {examDate}
-                        </div>
-                        <SectionHeader
-                          title="Pediatric Growth Chart · WHO (<5y) + IAP 2015 India (5–18y)"
-                          subtitle="Real L,M,S percentiles · height, weight & BMI · WHO under 5y, IAP 2015 India 5–18y (fit from the paper's published tables)."
-                          badge={moduleStatus.growth.state !== 'none' ? moduleStatus.growth.label : null}
-                          badgeVariant={moduleStatus.growth.state === 'high' ? 'high' : moduleStatus.growth.state === 'borderline' ? 'mid' : 'low'}
-                        />
-
-                        {!hasManualGrowth ? (
-                          <EmptyState title="Enter patient measurements"
-                            hint="Age, biological sex, height and weight are required to plot the growth chart. Values recalculate automatically as you type." />
-                        ) : !inRange ? (
-                          <EmptyState title="Pediatric workspace inactive"
-                            hint="The growth reference covers ages 0–19 years. Enter an age in that range to use the growth engine." />
-                        ) : (
-                          <div style={{ marginTop:'4px' }}>
-                            {/* Export PDF -- kept up top so exporting the growth report is one
-                                click and never requires opening the chart below. */}
-                            <div className="no-print" style={{ display:'flex', justifyContent:'flex-end', marginTop:'12px', marginBottom:'8px' }}>
-                              <button onClick={exportGrowthReportPdf}
-                                style={{ display:'flex', alignItems:'center', gap:'6px', padding:'8px 14px', background:'#4f46e5', color:'white', border:'none', borderRadius:'9px', fontSize:'12px', fontWeight:'700', cursor:'pointer' }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                                Export PDF
-                              </button>
-                            </div>
-
-                            {/* Summary strip */}
-                            <div className="summary-grid" style={{ marginBottom:'16px' }}>
-                              <div style={{ background: gm.stuntingVariant === 'low' ? '#f0fdf4' : gm.stuntingVariant === 'mid' ? '#fffbeb' : '#fff1f2', borderRadius:'12px', padding:'14px 16px', border:`1px solid ${gm.stuntingVariant === 'low' ? '#bbf7d0' : gm.stuntingVariant === 'mid' ? '#fde68a' : '#fecaca'}` }}>
-                                <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.06em', color:'#94a3b8', marginBottom:'4px' }}>Height Status</div>
-                                <div style={{ fontSize:'15px', fontWeight:'900', color: gm.stuntingVariant === 'low' ? '#16a34a' : gm.stuntingVariant === 'mid' ? '#d97706' : '#dc2626' }}>{gm.stuntingClass}</div>
-                                <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px' }}>{pctTxt(gm.heightPct)} percentile</div>
-                              </div>
-                              <div style={{ background: gm.underweightVariant === 'low' ? '#f0fdf4' : gm.underweightVariant === 'mid' ? '#fffbeb' : '#fff1f2', borderRadius:'12px', padding:'14px 16px', border:`1px solid ${gm.underweightVariant === 'low' ? '#bbf7d0' : gm.underweightVariant === 'mid' ? '#fde68a' : '#fecaca'}` }}>
-                                <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.06em', color:'#94a3b8', marginBottom:'4px' }}>Weight / BMI Status</div>
-                                <div style={{ fontSize:'15px', fontWeight:'900', color: gm.underweightVariant === 'low' ? '#16a34a' : gm.underweightVariant === 'mid' ? '#d97706' : '#dc2626' }}>{gm.underweightClass}</div>
-                                <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'2px' }}>BMI {pctTxt(gm.bmiPct)} percentile</div>
-                              </div>
-                            </div>
-
-                            {/* Metric rows */}
-                            <MetricRow label="Chronological Age" value={evalAge.toFixed(1)} unit="yrs" />
-                            <MetricRow label="BMI" value={gm.bmiVal.toFixed(1)} unit="kg/m²" sub={`z ${zTxt(gm.bmiZ)} · ${pctTxt(gm.bmiPct)} pct`} />
-                            <MetricRow label="Median Weight for Age" value={gm.ref.wtMean !== null ? gm.ref.wtMean.toFixed(1) : "N/A"} unit="kg" sub={`Actual: ${evalWeight} kg`} />
-                            <MetricRow label="Median Height for Age" value={gm.ref.htMean !== null ? gm.ref.htMean.toFixed(1) : "N/A"} unit="cm" sub={`Actual: ${evalHeight} cm`} />
-                            <MetricRow label="Height Age (HA)" value={gm.heightAge.decimal ? gm.heightAge.decimal.toFixed(1) : "N/A"} unit="yrs equiv." />
-                            <MetricRow label="Weight Age (WA)" value={gm.weightAge.decimal ? gm.weightAge.decimal.toFixed(1) : "N/A"} unit="yrs equiv." />
-
-                            {/* Height SDS with bar */}
-                            <div style={{ padding:'14px 0', borderBottom:'1px solid #f1f5f9' }}>
-                              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'10px' }}>
-                                <span style={{ fontSize:'11px', fontWeight:'700', letterSpacing:'0.05em', textTransform:'uppercase', color:'#64748b' }}>Height SDS ({evalAge*12 >= 60 ? 'IAP' : 'WHO'})</span>
-                                <div>
-                                  <span style={{ fontSize:'32px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{zTxt(gm.heightZ)}</span>
-                                  <span style={{ fontSize:'11px', color:'#94a3b8', marginLeft:'6px' }}>SD</span>
-                                </div>
-                              </div>
-                              {gm.heightZ !== null ? <SDSBar z={gm.heightZ} /> : <div style={{ fontSize:'11px', color:'#94a3b8' }}>Out of reference range.</div>}
-                            </div>
-
-                            {/* BMI SDS with bar */}
-                            <div style={{ padding:'14px 0' }}>
-                              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:'10px' }}>
-                                <span style={{ fontSize:'11px', fontWeight:'700', letterSpacing:'0.05em', textTransform:'uppercase', color:'#64748b' }}>BMI SDS (WHO)</span>
-                                <div>
-                                  <span style={{ fontSize:'32px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{zTxt(gm.bmiZ)}</span>
-                                  <span style={{ fontSize:'11px', color:'#94a3b8', marginLeft:'6px' }}>SD</span>
-                                </div>
-                              </div>
-                              {gm.bmiZ !== null ? <SDSBar z={gm.bmiZ} /> : <div style={{ fontSize:'11px', color:'#94a3b8' }}>Out of reference range.</div>}
-                            </div>
-
-                            {/* ── Growth chart (optional visualisation) ── collapsed by default so the
-                                numbers above stay the primary read. The H+W / BMI toggle lives inside.
-                                The chart body is display-toggled (not unmounted) so PDF export -- which
-                                reads this exact markup -- keeps working whether it is open or closed. */}
-                            <div className="no-print" style={{ marginTop:'18px', borderTop:'1px solid #f1f5f9', paddingTop:'14px' }}>
-                              <button onClick={() => setShowChart(s => !s)}
-                                style={{ width:'100%', display:'flex', alignItems:'center', gap:'10px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'10px', padding:'11px 14px', cursor:'pointer', textAlign:'left' }}>
-                                <span style={{ color:'#4f46e5', fontWeight:'800', fontSize:'13px', transform: showChart ? 'rotate(90deg)' : 'none', transition:'transform 0.15s', display:'inline-block' }}>▸</span>
-                                <span style={{ fontSize:'13px', fontWeight:'800', color:'#334155' }}>{showChart ? 'Hide growth chart' : 'Show growth chart'}</span>
-                                <span style={{ marginLeft:'auto', fontSize:'11px', color:'#94a3b8', fontWeight:'600' }}>Optional visualisation — the numbers above are the primary read</span>
-                              </button>
-                            </div>
-
-                            <div style={{ display: showChart ? 'block' : 'none', marginTop:'12px' }}>
-                              {/* H+W / BMI toggle */}
-                              <div className="no-print" style={{ display:'flex', gap:'4px', background:'#f1f5f9', padding:'4px', borderRadius:'10px', marginBottom:'10px', width:'fit-content' }}>
-                                {[{ key:'combined', label:'Growth Chart (H+W)' }, { key:'bmi', label:'BMI' }].map(({key:mkey,label}) => (
-                                  <button key={mkey} onClick={() => setGrowthChartMeasure(mkey)}
-                                    className="toggle-btn"
-                                    style={{ background: growthChartMeasure===mkey ? 'white' : 'transparent', color: growthChartMeasure===mkey ? '#1e293b' : '#64748b', boxShadow: growthChartMeasure===mkey ? '0 1px 3px rgba(0,0,0,0.12)' : 'none' }}>
-                                    {label}
-                                  </button>
-                                ))}
-                              </div>
-
-                              {/* Growth centile chart (auto-filled from patient data). Sized for A4 print --
-                                  see printGrowthReport() below, which prints this exact same markup. */}
-                              <div id="growth-chart-print" style={{ border:'1px solid #eef2f7', borderRadius:'12px', padding:'8px', marginBottom:'16px', background:'white', overflowX:'auto' }}>
-                                {growthChartMeasure === 'combined' ? (
-                                  <GrowthChartCombined
-                                    sex={evalGender} ageYears={evalAge}
-                                    heightValue={evalHeight} weightValue={evalWeight}
-                                    heightData={growthSeries[evalGender].height} weightData={growthSeries[evalGender].weight}
-                                    heightSeries={heightSeries} weightSeries={weightSeries}
-                                  />
-                                ) : (
-                                  <GrowthChart measure="bmi" sex={evalGender} ageYears={evalAge} value={gm.bmiVal} series={bmiSeries} chartData={growthSeries[evalGender].bmi} />
-                                )}
-                              </div>
-                              {growthChartMeasure==='combined' && !gm.weightAvailable && (
-                                <div style={{ fontSize:'11px', color:'#d97706', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'8px 12px', marginBottom:'12px' }}>
-                                  Weight-for-age has no reference data at this age. Use BMI-for-age for weight status instead.
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      );
-                    })()}
-
-                    {/* ══ BONE AGE TAB ══ */}
+                    {activeTab === 'overview' && <OverviewPanel />}
+                    {activeTab === 'growth' && <GrowthPanel />}
                     {activeTab === 'boneage' && (
                       <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
                         <SectionHeader
@@ -2579,229 +2521,8 @@ import { FraxPanel } from "./panels/FraxPanel.jsx";
                     {activeTab === 'renal' && <RenalPanel />}
                     {activeTab === 'liver' && <LiverPanel />}
                     {activeTab === 'frax' && <FraxPanel />}
-                    {activeTab === 'qrisk' && (
-                      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
-                        <SectionHeader
-                          title="QRISK3 · 10-Year Cardiovascular Risk"
-                          subtitle="Hippisley-Cox 2017 (ClinRisk open source) · South-Asian ethnicity aware"
-                          badge={qriskMetrics.risk !== null ? qriskMetrics.band : "Age 25–84"}
-                          badgeVariant={qriskMetrics.risk !== null ? qriskMetrics.variant : 'neutral'}
-                        />
-
-                        {!qriskMetrics.inAgeRange && (
-                          <div style={{ marginTop:'12px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#92400e', lineHeight:'1.6' }}>
-                            ⚠ QRISK3 is validated for ages 25–84. Set the patient's age in that range (Demographics) to compute risk.
-                          </div>
-                        )}
-
-                        {/* Cardio inputs */}
-                        <div style={{ marginTop:'16px', display:'flex', flexDirection:'column', gap:'12px' }}>
-                          <div>
-                            <label className="field-label">Ethnicity</label>
-                            <select value={ethnicity} onChange={e => setEthnicity(parseInt(e.target.value))} className="input-field" style={{ width:'100%' }}>
-                              <option value={1}>White / not stated</option>
-                              <option value={2}>Indian</option>
-                              <option value={3}>Pakistani</option>
-                              <option value={4}>Bangladeshi</option>
-                              <option value={5}>Other Asian</option>
-                              <option value={6}>Black Caribbean</option>
-                              <option value={7}>Black African</option>
-                              <option value={8}>Chinese</option>
-                              <option value={9}>Other</option>
-                            </select>
-                          </div>
-                          <div className="split-grid">
-                            <div>
-                              <label className="field-label">Smoking</label>
-                              <select value={smokeCat} onChange={e => setSmokeCat(parseInt(e.target.value))} className="input-field" style={{ width:'100%' }}>
-                                <option value={0}>Non-smoker</option>
-                                <option value={1}>Ex-smoker</option>
-                                <option value={2}>Light (&lt; 10/day)</option>
-                                <option value={3}>Moderate (10–19/day)</option>
-                                <option value={4}>Heavy (20+/day)</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="field-label">Diabetes</label>
-                              <select value={diabetes} onChange={e => setDiabetes(parseInt(e.target.value))} className="input-field" style={{ width:'100%' }}>
-                                <option value={0}>None</option>
-                                <option value={1}>Type 1</option>
-                                <option value={2}>Type 2</option>
-                              </select>
-                            </div>
-                          </div>
-                          <div className="split-grid">
-                            <InputWithUnit label="Total : HDL Cholesterol ratio" value={cholRatio} onChange={e => setCholRatio(e.target.value)} placeholder="e.g. 4.0" step="0.1" unit="ratio" />
-                            <InputWithUnit label="SBP variability (SD, optional)" value={sbpSD} onChange={e => setSbpSD(e.target.value)} placeholder="mmHg SD" step="0.1" unit="SD" />
-                          </div>
-                          <div style={{ fontSize:'10px', color:'#94a3b8', lineHeight:'1.5' }}>
-                            Uses BMI (from height/weight) and systolic BP from the left panel. Blank cholesterol ratio / SBP-SD contribute neutrally (QRISK3 convention). Townsend deprivation is set to 0 (UK-only index).
-                          </div>
-                          <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'10px', padding:'6px 14px' }}>
-                            <FraxToggleRow label="Atrial fibrillation" value={qAF} setter={setQAF} />
-                            <FraxToggleRow label="On BP treatment" value={qTreatedHtn} setter={setQTreatedHtn} />
-                            <FraxToggleRow label="CKD stage 3–5" value={qCKD} setter={setQCKD} />
-                            <FraxToggleRow label="Rheumatoid arthritis" value={qRA} setter={setQRA} />
-                            <FraxToggleRow label="Migraine" value={qMigraine} setter={setQMigraine} />
-                            <FraxToggleRow label="SLE (lupus)" value={qSLE} setter={setQSLE} />
-                            <FraxToggleRow label="Severe mental illness" value={qSMI} setter={setQSMI} />
-                            <FraxToggleRow label="Atypical antipsychotics" value={qAtypAntipsy} setter={setQAtypAntipsy} />
-                            <FraxToggleRow label="Regular corticosteroids" value={qCortico} setter={setQCortico} />
-                            {evalGender === 'boys' && <FraxToggleRow label="Erectile dysfunction" value={qED} setter={setQED} />}
-                            <FraxToggleRow label="Family history of CVD" value={qFhCvd} setter={setQFhCvd} />
-                          </div>
-                        </div>
-
-                        {/* Risk hero */}
-                        {qriskMetrics.risk !== null && (
-                          <div style={{ ...heroTone(qriskMetrics.variant), borderRadius:'16px', padding:'22px', marginTop:'16px' }}>
-                            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'16px', flexWrap:'wrap', gap:'8px' }}>
-                              <div>
-                                <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'6px' }}>10-Year CVD Risk</div>
-                                <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
-                                  <span className="hero-value" style={{ fontSize:'44px', fontWeight:'900', color: qriskMetrics.variant === 'high' ? '#dc2626' : qriskMetrics.variant === 'mid' ? '#d97706' : '#16a34a', lineHeight:1 }}>{qriskMetrics.risk.toFixed(1)}</span>
-                                  <span style={{ fontSize:'18px', fontWeight:'700', color:'#64748b' }}>%</span>
-                                </div>
-                                {qriskMetrics.typical !== null && <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'3px' }}>Healthy baseline (same age/sex/ethnicity): {qriskMetrics.typical.toFixed(1)}%</div>}
-                              </div>
-                              <StatusBadge text={qriskMetrics.band} variant={qriskMetrics.variant} />
-                            </div>
-                            <ProbBar prob={qriskMetrics.risk} maxProb={40} threshold={10} />
-                          </div>
-                        )}
-
-                        {/* Imputed-input disclosure — never a precise-looking score from incomplete data (audit F-3) */}
-                        {qriskMetrics.risk !== null && (() => {
-                          const imp = [];
-                          if (qriskMetrics.missingRatio) imp.push('cholesterol ratio');
-                          if (systolic === '') imp.push('systolic BP');
-                          if (sbpSD === '') imp.push('SBP variability (SD)');
-                          return imp.length ? (
-                            <div style={{ marginTop:'10px', fontSize:'10.5px', color:'#92400e', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'7px 10px', lineHeight:'1.5' }}>
-                              ⚠ Estimated with defaulted inputs: <strong>{imp.join(', ')}</strong>. Enter these for a patient-specific score.
-                            </div>
-                          ) : null;
-                        })()}
-
-                        {/* Eligibility gate — QRISK3 is validated only for adults 25–84 (audit F-3) */}
-                        {qriskMetrics.risk === null && (
-                          <div style={{ marginTop:'16px', background:'#fef2f2', border:'1.5px solid #fecaca', borderRadius:'12px', padding:'14px 16px' }}>
-                            <div style={{ fontSize:'12px', fontWeight:'800', color:'#991b1b' }}>QRISK3 not applicable</div>
-                            <div style={{ fontSize:'11px', color:'#b91c1c', marginTop:'4px', lineHeight:'1.5' }}>
-                              {!qriskMetrics.inAgeRange ? 'QRISK3 is validated only for adults aged 25–84. This patient is outside that range — no score is shown.' : 'Enter height and weight (BMI) to compute the score.'}
-                            </div>
-                          </div>
-                        )}
-
-                        <div style={{ marginTop:'16px', background:'#eef2ff', border:'1px solid #c7d2fe', borderRadius:'10px', padding:'12px 14px', fontSize:'11px', color:'#4338ca', lineHeight:'1.7' }}>
-                          <strong>India note:</strong> QRISK3 is derived on a UK cohort. Its Indian/South-Asian ethnicity term raises risk relative to White, but studies suggest it may still under-estimate true risk in Indians. Treat ≥ 10% as the usual statin-consideration threshold, and interpret alongside the <strong>Lipid Association of India</strong> risk stratification and ICMR guidance. QRISK3 does not apply to established CVD, familial hypercholesterolaemia, or type-appropriate secondary prevention.
-                        </div>
-
-                        <div style={{ marginTop:'auto', paddingTop:'18px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
-                          QRISK3-2017 · Hippisley-Cox J et al., BMJ 2017;357:j2099 · ClinRisk open-source coefficients (GNU LGPL), verified against the CRAN QRISK3 reference. Clinician must verify — decision support only, not a diagnostic device.
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ══ TIMELINE TAB ══ */}
-                    {activeTab === 'timeline' && (
-                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'16px' }}>
-                        <div className="timeline-header">
-                          <div>
-                            <h3 style={{ fontSize:'13px', fontWeight:'800', color:'#334155' }}>CKD Progression Ledger</h3>
-                            <p style={{ fontSize:'11px', color:'#94a3b8', marginTop:'3px' }}>Session snapshots — chronicity assessment over ≥ 90 days</p>
-                          </div>
-                          <div className="timeline-actions">
-                            <button onClick={logCurrentData} style={{ padding:'7px 16px', background:'#4f46e5', color:'white', border:'none', borderRadius:'9px', fontSize:'12px', fontWeight:'700', cursor:'pointer', boxShadow:'0 1px 4px rgba(79,70,229,0.3)', transition:'background 0.15s' }}
-                              onMouseEnter={e=>e.target.style.background='#4338ca'} onMouseLeave={e=>e.target.style.background='#4f46e5'}>
-                              + Log Snapshot
-                            </button>
-                            {timeline.length > 0 && (
-                              <button onClick={() => { if (window.confirm('Clear all logged snapshots from the ledger?')) setTimeline([]); }} style={{ padding:'7px 14px', background:'white', color:'#64748b', border:'1.5px solid #e2e8f0', borderRadius:'9px', fontSize:'12px', fontWeight:'600', cursor:'pointer', transition:'all 0.15s' }}
-                                onMouseEnter={e=>e.target.style.background='#f8fafc'} onMouseLeave={e=>e.target.style.background='white'}>
-                                Reset
-                              </button>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Chronicity status */}
-                        <div style={{ padding:'14px 16px', borderRadius:'12px', fontSize:'12px', lineHeight:'1.6' }} className={chronicityStatus.bgClass}>
-                          <span style={{ fontWeight:'800', fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.06em', display:'block', marginBottom:'3px' }}>Chronicity Assessment</span>
-                          {chronicityStatus.status}
-                        </div>
-
-                        {/* GFR sparkline */}
-                        {timeline.length > 0 && (
-                          <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'16px', border:'1px solid #e2e8f0' }}>
-                            <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'10px' }}>eGFR Timeline</div>
-                            <svg width="100%" height="100" viewBox="0 0 500 100" preserveAspectRatio="none" style={{ borderRadius:'8px', background:'white', border:'1px solid #f1f5f9' }}>
-                              <line x1="0" y1="22" x2="500" y2="22" stroke="#f1f5f9" strokeWidth="1.5"/>
-                              <line x1="0" y1="50" x2="500" y2="50" stroke="#f1f5f9" strokeWidth="1.5"/>
-                              <line x1="0" y1="78" x2="500" y2="78" stroke="#f1f5f9" strokeWidth="1.5"/>
-                              {(() => {
-                                const sorted = [...timeline].sort((a,b) => new Date(a.date)-new Date(b.date));
-                                const pts = sorted.map((e,i) => ({
-                                  x: sorted.length > 1 ? (i/(sorted.length-1))*440+30 : 250,
-                                  y: 90 - ((Math.min(e.egfr,150)/150)*70),
-                                  e
-                                }));
-                                return (
-                                  <g>
-                                    {pts.length > 1 && <polyline fill="none" stroke="#4f46e5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={pts.map(p=>`${p.x},${p.y}`).join(' ')} />}
-                                    {pts.map((p,i) => (
-                                      <g key={p.e.id}>
-                                        <circle cx={p.x} cy={p.y} r="4" fill="#4f46e5" />
-                                        <text x={p.x} y={p.y-9} textAnchor="middle" fill="#4338ca" fontSize="9" fontWeight="bold">{p.e.egfr}</text>
-                                        <text x={p.x} y="96" textAnchor="middle" fill="#94a3b8" fontSize="8">{p.e.date.slice(5)}</text>
-                                      </g>
-                                    ))}
-                                  </g>
-                                );
-                              })()}
-                            </svg>
-                          </div>
-                        )}
-
-                        {/* Table */}
-                        {timeline.length === 0 ? (
-                          <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'40px 0', gap:'12px', textAlign:'center' }}>
-                            <div style={{ width:'52px', height:'52px', borderRadius:'50%', background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
-                            </div>
-                            <div style={{ fontSize:'13px', fontWeight:'700', color:'#64748b' }}>No snapshots logged yet</div>
-                            <div style={{ fontSize:'12px', color:'#94a3b8' }}>Enter patient data and click "Log Snapshot" to begin tracking.</div>
-                          </div>
-                        ) : (
-                          <div style={{ overflowX:'auto', borderRadius:'12px', border:'1px solid #e2e8f0' }} className="custom-scrollbar">
-                            <table style={{ width:'100%', borderCollapse:'collapse', minWidth:'580px', fontSize:'12px' }}>
-                              <thead>
-                                <tr style={{ background:'#f8fafc', borderBottom:'1px solid #e2e8f0' }}>
-                                  {['Date','Age','Ht / Wt','SCr','eGFR','ACR','FIB-4'].map(h => (
-                                    <th key={h} style={{ padding:'10px 12px', textAlign:'left', fontWeight:'800', color:'#64748b', fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap' }}>{h}</th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {timeline.map((item, idx) => (
-                                  <tr key={item.id} style={{ borderBottom:'1px solid #f1f5f9', background: idx % 2 === 0 ? 'white' : '#fafbfc' }}>
-                                    <td style={{ padding:'10px 12px', fontWeight:'700', color:'#1e293b' }}>{item.date}</td>
-                                    <td style={{ padding:'10px 12px', color:'#475569' }}>{item.age.toFixed(1)} y</td>
-                                    <td style={{ padding:'10px 12px', color:'#64748b' }}>{item.height} / {item.weight}</td>
-                                    <td style={{ padding:'10px 12px', fontWeight:'700', color:'#475569' }}>{item.creatinine}</td>
-                                    <td style={{ padding:'10px 12px', fontWeight:'800', color:'#4f46e5' }}>{item.egfr}</td>
-                                    <td style={{ padding:'10px 12px' }}>
-                                      <span style={{ padding:'2px 8px', borderRadius:'99px', fontSize:'10px', fontWeight:'700', background:'#eef2ff', color:'#4338ca', border:'1px solid #c7d2fe' }}>{item.albuminuria}</span>
-                                    </td>
-                                    <td style={{ padding:'10px 12px', fontWeight:'700', color:'#059669' }}>{item.fib4 !== null ? item.fib4 : '—'}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {activeTab === 'qrisk' && <QriskPanel />}
+                    {activeTab === 'timeline' && <LedgerPanel />}
 
                   </div>
 

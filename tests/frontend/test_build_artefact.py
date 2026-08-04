@@ -185,7 +185,11 @@ def test_using_state_outside_the_provider_fails_loudly():
     assert "must be used inside" in body
 
 
-@pytest.mark.parametrize("panel", ["LiverPanel", "RenalPanel", "FraxPanel"])
+_PANELS = ["LiverPanel", "RenalPanel", "FraxPanel", "OverviewPanel",
+           "GrowthPanel", "QriskPanel", "LedgerPanel"]
+
+
+@pytest.mark.parametrize("panel", _PANELS)
 def test_extracted_panels_consume_context_not_props(panel):
     body = (SRC_DIR / "panels" / f"{panel}.jsx").read_text(encoding="utf-8")
     assert 'from "../state.jsx"' in body, f"{panel} does not read from context"
@@ -196,14 +200,34 @@ def test_extracted_panels_consume_context_not_props(panel):
 
 def test_app_renders_panels_as_elements_not_inline_jsx():
     app = (SRC_DIR / "app.jsx").read_text(encoding="utf-8")
-    for panel in ("LiverPanel", "RenalPanel", "FraxPanel"):
+    for panel in _PANELS:
         assert f"<{panel} />" in app, f"app.jsx does not render <{panel} />"
     assert "<ClinicalStateProvider" in app, "App does not provide the context"
-    # The old inline blocks must be gone, not merely bypassed.
-    assert "activeTab === 'liver' && (" not in app
-    assert "Liver Fibrosis · FIB-4 Index" not in app, (
-        "the liver panel markup is still in app.jsx as well as its own file"
-    )
+
+
+def test_no_panel_markup_is_left_behind_in_app():
+    """A distinctive string from each panel. If markup survives in app.jsx as
+    well as its own file, the two copies drift and only one is rendered."""
+    app = (SRC_DIR / "app.jsx").read_text(encoding="utf-8")
+    # Markup strings unique to a panel. Deliberately NOT bare identifiers like
+    # "QRISK3" -- that appears legitimately in app.jsx's import line, its
+    # moduleStatus title and a comment, so it would fail on correct code.
+    for needle in ("Liver Fibrosis · FIB-4 Index",
+                   "QRISK3 · 10-Year Cardiovascular Risk",
+                   "FRAX Plus · 10-Year Fracture Risk",
+                   "Every module's headline at a glance",
+                   "activeTab === 'liver' && (",
+                   "activeTab === 'qrisk' && (",
+                   "activeTab === 'growth' && (() =>"):
+        assert needle not in app, f"{needle!r} is still inline in app.jsx"
+
+
+def test_app_is_now_mostly_state_and_handlers():
+    """Started at 3,857 lines with every panel inline. What is left is the state,
+    the handlers, the input column and the Bone Age panel -- which is a separate
+    job (109 dependencies including ~40 async handlers)."""
+    lines = len((SRC_DIR / "app.jsx").read_text(encoding="utf-8").splitlines())
+    assert lines < 2600, f"app.jsx is {lines} lines; the panel extraction regressed"
 
 
 def test_context_value_is_explicit_rather_than_a_spread():
