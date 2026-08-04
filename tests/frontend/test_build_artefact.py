@@ -172,7 +172,7 @@ def test_clinical_state_context_exists_with_grouped_selectors():
     """Panels read a narrow slice, not the whole store. A single god-hook would
     let any panel reach any value and make the sharing surface unreviewable."""
     body = (SRC_DIR / "state.jsx").read_text(encoding="utf-8")
-    for hook in ("usePatient", "useLiver", "useRenal", "useFrax"):
+    for hook in ("usePatient", "useLiver", "useRenal", "useFrax", "useBoneAge"):
         assert f"function {hook}(" in body, f"{hook} selector is missing"
     assert "ClinicalStateProvider" in body
 
@@ -186,7 +186,7 @@ def test_using_state_outside_the_provider_fails_loudly():
 
 
 _PANELS = ["LiverPanel", "RenalPanel", "FraxPanel", "OverviewPanel",
-           "GrowthPanel", "QriskPanel", "LedgerPanel"]
+           "GrowthPanel", "QriskPanel", "LedgerPanel", "BoneAgePanel"]
 
 
 @pytest.mark.parametrize("panel", _PANELS)
@@ -216,23 +216,77 @@ def test_no_panel_markup_is_left_behind_in_app():
                    "QRISK3 · 10-Year Cardiovascular Risk",
                    "FRAX Plus · 10-Year Fracture Risk",
                    "Every module's headline at a glance",
+                   "Bone Age · 20-bone staging (13 RUS + 7 carpal)",
                    "activeTab === 'liver' && (",
                    "activeTab === 'qrisk' && (",
+                   "activeTab === 'boneage' && (",
                    "activeTab === 'growth' && (() =>"):
         assert needle not in app, f"{needle!r} is still inline in app.jsx"
 
 
 def test_app_is_now_mostly_state_and_handlers():
     """Started at 3,857 lines with every panel inline. What is left is the state,
-    the handlers, the input column and the Bone Age panel -- which is a separate
-    job (109 dependencies including ~40 async handlers)."""
+    the input column and the wiring -- every panel, including Bone Age, is its
+    own file."""
     lines = len((SRC_DIR / "app.jsx").read_text(encoding="utf-8").splitlines())
-    assert lines < 2600, f"app.jsx is {lines} lines; the panel extraction regressed"
+    assert lines < 1500, f"app.jsx is {lines} lines; the panel extraction regressed"
 
 
 def test_context_value_is_explicit_rather_than_a_spread():
     """A spread would silently widen what panels can reach as App grows; the
     explicit list doubles as the record of what is genuinely cross-panel."""
     app = (SRC_DIR / "app.jsx").read_text(encoding="utf-8")
-    start = app.index("const clinicalState = useMemo")
+    start = app.index("const clinicalState = {")
     assert "..." not in app[start:start + 700], "clinicalState is built with a spread"
+
+
+# ── bone age: handlers and panel (the last and largest extraction) ──────────
+
+def test_bone_age_handlers_are_their_own_module():
+    """Bone Age was 907 lines with ~34 mostly-async handlers. The panel renders;
+    the handlers -- fetch, upload, adjudication, audit -- live apart from it so
+    the markup can be read without scrolling past the network code."""
+    body = (SRC_DIR / "boneAgeHandlers.js").read_text(encoding="utf-8")
+    assert "function useBoneAgeHandlers(" in body
+    assert "export { useBoneAgeHandlers }" in body
+    assert "<div" not in body, (
+        "boneAgeHandlers.js grew markup -- it is a .js file, so esbuild will not "
+        "even transform JSX in it, and the failure would be a parse error"
+    )
+
+
+def test_app_owns_bone_age_state_but_not_bone_age_handlers():
+    """The asymmetry is deliberate and worth pinning: App still reads 27 of the
+    bone-age STATE values (the header, the ledger and the export all need them),
+    but none of the handlers. So the handlers moved out and the state stayed."""
+    app = (SRC_DIR / "app.jsx").read_text(encoding="utf-8")
+    assert "useBoneAgeHandlers({" in app, "App no longer wires up the handlers"
+    for moved in ("const runEstimate", "const calculateAssessment",
+                  "const loadCoverage", "const loadAdjudication",
+                  "const resolveAdjudication", "const saveLetterTables"):
+        assert moved not in app, (
+            f"{moved!r} is defined in app.jsx as well as boneAgeHandlers.js"
+        )
+
+
+def test_bone_age_panel_declares_every_name_it_uses_from_context():
+    """A name used but never destructured from useBoneAge() is a ReferenceError
+    at RENDER time. The bundler does not report it -- the panel simply blanks
+    out when a doctor opens the tab -- so it is checked here instead."""
+    body = (SRC_DIR / "panels" / "BoneAgePanel.jsx").read_text(encoding="utf-8")
+    slice_start = body.index("useBoneAge()")
+    declared_block = body[body.index("{", body.index("function BoneAgePanel")):slice_start]
+    declared = set(re.findall(r"\b([a-zA-Z_$][\w$]*)\b", declared_block))
+    imported = set(re.findall(r"import\s*\{([^}]*)\}", body))
+    for group in imported:
+        declared |= {n.strip().split(" as ")[-1].strip() for n in group.split(",")}
+
+    # Handler names follow a stable convention; those are the ones that were
+    # rewired and so the ones at risk of being used without being declared.
+    used = set(re.findall(r"\b((?:handle|run|load|refresh|fetch|save|apply|toggle)"
+                          r"[A-Z][\w$]*)\b", body))
+    missing = sorted(n for n in used if n not in declared)
+    assert not missing, (
+        f"BoneAgePanel uses {missing} without destructuring them from useBoneAge() "
+        "-- these would be ReferenceErrors the moment the tab is opened"
+    )

@@ -25,8 +25,7 @@
   ];
   var REPORT_CARPALS = ["Capitate", "Hamate", "Triquetral", "Lunate", "Scaphoid", "Trapezium", "Trapezoid"];
   var LETTER_STAGES = ["A", "B", "C", "D", "E", "F", "G", "H", "I"];
-  var carpalCode = (name) => name.toLowerCase();
-  var carpalName = (code) => code.charAt(0).toUpperCase() + code.slice(1);
+  var carpalCode2 = (name) => name.toLowerCase();
   var IMAGE_DOMAINS = [
     ["digital_diagnostic", "Digital \xB7 DICOM / PACS / direct"],
     ["compressed", "Compressed \xB7 WhatsApp / screenshot"],
@@ -736,6 +735,791 @@
       weight: s.weight
     };
   }
+  function useBoneAge() {
+    const s = useClinicalState();
+    return {
+      DECLARABLE_FLAGS: s.DECLARABLE_FLAGS,
+      LC_API: s.LC_API,
+      addOrSelectBox: s.addOrSelectBox,
+      adjBusy: s.adjBusy,
+      adjItems: s.adjItems,
+      adjMsg: s.adjMsg,
+      adjReviewer: s.adjReviewer,
+      age: s.age,
+      aiBusy: s.aiBusy,
+      aiEstimate: s.aiEstimate,
+      analysisUrl: s.analysisUrl,
+      assessment: s.assessment,
+      attachImage: s.attachImage,
+      boneAge: s.boneAge,
+      boneAgeSource: s.boneAgeSource,
+      boneMetrics: s.boneMetrics,
+      boneReport: s.boneReport,
+      bonesIntoGrids: s.bonesIntoGrids,
+      boxes: s.boxes,
+      carpalStages: s.carpalStages,
+      clearBox: s.clearBox,
+      covBusy: s.covBusy,
+      coverage: s.coverage,
+      curveToText: s.curveToText,
+      declaredFlags: s.declaredFlags,
+      endLocDrag: s.endLocDrag,
+      estimateDomain: s.estimateDomain,
+      evalAge: s.evalAge,
+      evalGender: s.evalGender,
+      evalHeight: s.evalHeight,
+      fatherHeight: s.fatherHeight,
+      fbAge: s.fbAge,
+      fbBusy: s.fbBusy,
+      fbConfidence: s.fbConfidence,
+      fbMethod: s.fbMethod,
+      fbMsg: s.fbMsg,
+      fbNote: s.fbNote,
+      fbRater: s.fbRater,
+      height: s.height,
+      lcBtn: s.lcBtn,
+      lcBusy: s.lcBusy,
+      lcLocked: s.lcLocked,
+      lcMsg: s.lcMsg,
+      letterResult: s.letterResult,
+      loadAdjudication: s.loadAdjudication,
+      loadCoverage: s.loadCoverage,
+      loadLetterTables: s.loadLetterTables,
+      loadMonitoring: s.loadMonitoring,
+      locBusy: s.locBusy,
+      locImg: s.locImg,
+      locMsg: s.locMsg,
+      locRef: s.locRef,
+      localizeBones: s.localizeBones,
+      ltBusy: s.ltBusy,
+      ltMsg: s.ltMsg,
+      ltSection: s.ltSection,
+      ltSex: s.ltSex,
+      ltStatus: s.ltStatus,
+      ltTables: s.ltTables,
+      monBusy: s.monBusy,
+      monitoring: s.monitoring,
+      motherHeight: s.motherHeight,
+      onLocMove: s.onLocMove,
+      patientCode: s.patientCode,
+      radiograph: s.radiograph,
+      resolveAdjudication: s.resolveAdjudication,
+      reviseAssessment: s.reviseAssessment,
+      runEstimate: s.runEstimate,
+      rusStages: s.rusStages,
+      saveBoxes: s.saveBoxes,
+      saveDraft: s.saveDraft,
+      saveLetterTables: s.saveLetterTables,
+      selBone: s.selBone,
+      setAdjReviewer: s.setAdjReviewer,
+      setAssessment: s.setAssessment,
+      setBoneAge: s.setBoneAge,
+      setBoneAgeSource: s.setBoneAgeSource,
+      setCarpalStages: s.setCarpalStages,
+      setEstimateDomain: s.setEstimateDomain,
+      setFatherHeight: s.setFatherHeight,
+      setFbAge: s.setFbAge,
+      setFbConfidence: s.setFbConfidence,
+      setFbMethod: s.setFbMethod,
+      setFbNote: s.setFbNote,
+      setFbRater: s.setFbRater,
+      setImageDomain: s.setImageDomain,
+      setLcBusy: s.setLcBusy,
+      setLcMsg: s.setLcMsg,
+      setLocImg: s.setLocImg,
+      setLtCurve: s.setLtCurve,
+      setLtPoint: s.setLtPoint,
+      setLtSection: s.setLtSection,
+      setLtSex: s.setLtSex,
+      setLtSexCurve: s.setLtSexCurve,
+      setLtTables: s.setLtTables,
+      setMotherHeight: s.setMotherHeight,
+      setPatientCode: s.setPatientCode,
+      setRefExpected: s.setRefExpected,
+      setRusStages: s.setRusStages,
+      setShowAudit: s.setShowAudit,
+      showAudit: s.showAudit,
+      startBoxDrag: s.startBoxDrag,
+      submitFeedback: s.submitFeedback,
+      toggleAudit: s.toggleAudit,
+      toggleDeclaredFlag: s.toggleDeclaredFlag,
+      tw3Config: s.tw3Config,
+      useGridAsReference: s.useGridAsReference
+    };
+  }
+
+  // frontend/src/boneAgeHandlers.js
+  function useBoneAgeHandlers(s) {
+    const {
+      adjReviewer,
+      age,
+      aiEstimate,
+      approverName,
+      assessment,
+      boxes,
+      boxesRef,
+      carpalStages,
+      coverage,
+      declaredFlags,
+      estimateDomain,
+      evalAge,
+      evalGender,
+      fbAge,
+      fbConfidence,
+      fbMethod,
+      fbNote,
+      fbRater,
+      height,
+      lastFilm,
+      locDrag,
+      locImg,
+      locRef,
+      ltTables,
+      monitoring,
+      patientCode,
+      radiograph,
+      rusStages,
+      setAdjBusy,
+      setAdjItems,
+      setAdjMsg,
+      setAiBusy,
+      setAiEstimate,
+      setAssessment,
+      setBoneAge,
+      setBoneAgeSource,
+      setBoxes,
+      setCarpalStages,
+      setCovBusy,
+      setCoverage,
+      setDeclaredFlags,
+      setFbAge,
+      setFbBusy,
+      setFbMsg,
+      setFbNote,
+      setLastFilm,
+      setLcBusy,
+      setLcMsg,
+      setLocBusy,
+      setLocImg,
+      setLocMsg,
+      setLtBusy,
+      setLtMsg,
+      setLtStatus,
+      setLtTables,
+      setMonBusy,
+      setMonitoring,
+      setRadiograph,
+      setRusStages,
+      setSelBone,
+      setShowAudit,
+      showAudit
+    } = s;
+    const LC_API = "/api/bone-age/assessments";
+    const lcLocked = assessment && (assessment.assessment_status === "approved" || assessment.assessment_status === "superseded");
+    const saveDraft = async () => {
+      if (!patientCode.trim()) {
+        setLcMsg({ type: "err", text: "Enter a patient code to save." });
+        return;
+      }
+      if (evalGender !== "boys" && evalGender !== "girls") {
+        setLcMsg({ type: "err", text: "Set biological sex first." });
+        return;
+      }
+      const carpalEntries = Object.entries(carpalStages).map(([n, g]) => [carpalCode(n), g]);
+      if (Object.keys(rusStages).length === 0 && carpalEntries.length === 0) {
+        setLcMsg({ type: "err", text: "Grade at least one bone." });
+        return;
+      }
+      setLcBusy(true);
+      setLcMsg(null);
+      try {
+        let a = assessment;
+        if (!a || a.assessment_status === "approved" || a.assessment_status === "superseded") {
+          const res = await fetch(LC_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              patient_code: patientCode.trim(),
+              sex: evalGender,
+              chronological_age_years: age !== "" ? Number(age) : null,
+              stage_system: "tw3-letters"
+            })
+          });
+          if (!res.ok) throw new Error((await res.json()).detail || "create failed");
+          a = await res.json();
+        }
+        for (const [bone, grade] of [...Object.entries(rusStages), ...carpalEntries]) {
+          const r = await fetch(`${LC_API}/${a.id}/bones/${bone}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ stage: grade })
+          });
+          if (r.ok) {
+            a = await r.json();
+          } else {
+            throw new Error((await r.json()).detail || `could not save ${bone}`);
+          }
+        }
+        setAssessment(a);
+        setLcMsg({ type: "ok", text: `Saved annotation \xB7 #${a.id} rev ${a.revision} \xB7 ${a.rus_staged_count}/13 RUS + ${a.carpal_staged_count}/7 carpal` });
+      } catch (e) {
+        setLcMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setLcBusy(false);
+      }
+    };
+    const bonesIntoGrids = (bones) => {
+      const rus = {}, carp = {}, bx = {};
+      (bones || []).forEach((b) => {
+        if (b.localisation_box) bx[b.bone_code] = b.localisation_box;
+        if (!b.confirmed_stage) return;
+        if (b.bone_group === "carpal") carp[carpalName(b.bone_code)] = b.confirmed_stage;
+        else rus[b.bone_code] = b.confirmed_stage;
+      });
+      setRusStages(rus);
+      setCarpalStages(carp);
+      setBoxes(bx);
+    };
+    const calculateAssessment = async () => {
+      if (!assessment) return;
+      setLcBusy(true);
+      setLcMsg(null);
+      try {
+        const res = await fetch(`${LC_API}/${assessment.id}/calculate`, { method: "POST" });
+        const d = await res.json();
+        if (!res.ok) {
+          setLcMsg({ type: "err", text: d.detail || "calculate failed" });
+        } else {
+          setAssessment(d);
+          if (d.bone_age_years != null) {
+            setBoneAge(Number(d.bone_age_years.toFixed(1)));
+            setBoneAgeSource("rus");
+          }
+          setLcMsg({ type: "ok", text: `Calculated \xB7 RUS ${d.total_rus_score} \u2192 ${d.bone_age_years} yr` });
+        }
+      } catch (e) {
+        setLcMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setLcBusy(false);
+      }
+    };
+    const approveAssessment = async () => {
+      if (!assessment) return;
+      if (!approverName.trim()) {
+        setLcMsg({ type: "err", text: "Enter the approving doctor name." });
+        return;
+      }
+      setLcBusy(true);
+      setLcMsg(null);
+      try {
+        const res = await fetch(`${LC_API}/${assessment.id}/approve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ approved_by: approverName.trim() })
+        });
+        const d = await res.json();
+        if (!res.ok) setLcMsg({ type: "err", text: d.detail || "approve failed" });
+        else {
+          setAssessment(d);
+          setLcMsg({ type: "ok", text: `Approved by ${d.approved_by}` });
+        }
+      } catch (e) {
+        setLcMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setLcBusy(false);
+      }
+    };
+    const reviseAssessment = async () => {
+      if (!assessment) return;
+      setLcBusy(true);
+      setLcMsg(null);
+      try {
+        const res = await fetch(`${LC_API}/${assessment.id}/revise`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: "re-read" })
+        });
+        const d = await res.json();
+        if (!res.ok) setLcMsg({ type: "err", text: d.detail || "revise failed" });
+        else {
+          bonesIntoGrids(d.bones);
+          setAssessment(d);
+          setShowAudit(false);
+          setLcMsg({ type: "ok", text: `Opened revision ${d.revision} (draft)` });
+        }
+      } catch (e) {
+        setLcMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setLcBusy(false);
+      }
+    };
+    const toggleAudit = async () => {
+      if (!assessment) return;
+      const next = !showAudit;
+      setShowAudit(next);
+      if (next) {
+        try {
+          const r = await fetch(`${LC_API}/${assessment.id}?include_audit=true`);
+          if (r.ok) setAssessment(await r.json());
+        } catch {
+        }
+      }
+    };
+    const submitFeedback = async () => {
+      const yrs = parseFloat(fbAge);
+      if (!(yrs > 0)) {
+        setFbMsg({ type: "err", text: "Enter the correct bone age in years." });
+        return;
+      }
+      setFbBusy(true);
+      setFbMsg(null);
+      try {
+        const body = {
+          corrected_age_years: yrs,
+          method: fbMethod,
+          confidence: fbConfidence,
+          rater_id: fbRater || null,
+          sex: evalGender === "boys" || evalGender === "girls" ? evalGender : null,
+          chronological_age_years: evalAge || null,
+          ai_estimate_years: aiEstimate && aiEstimate.bone_age_years != null ? aiEstimate.bone_age_years : null,
+          ai_model_version: aiEstimate && aiEstimate.model_version || null,
+          radiograph_id: radiograph && radiograph.id || null,
+          assessment_id: assessment && assessment.id || null,
+          image_domain: radiograph && radiograph.source_domain || estimateDomain || null,
+          note: fbNote || null
+        };
+        const res = await fetch("/api/bone-age/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const d = await res.json();
+        if (!res.ok) {
+          setFbMsg({ type: "err", text: d.detail || "could not save" });
+        } else {
+          setFbMsg({ type: "ok", text: d.message || "Thanks \u2014 logged." });
+          setFbAge("");
+          setFbNote("");
+        }
+      } catch (e) {
+        setFbMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setFbBusy(false);
+      }
+    };
+    const runEstimate = async (fileObj, flags) => {
+      if (evalGender !== "boys" && evalGender !== "girls") {
+        setAiEstimate({ error: "Set biological sex in Demographics first." });
+        return;
+      }
+      const useFlags = flags || declaredFlags;
+      setLastFilm(fileObj);
+      setAiBusy(true);
+      setAiEstimate(null);
+      try {
+        const fd = new FormData();
+        fd.append("file", fileObj);
+        fd.append("sex", evalGender);
+        fd.append("image_domain", estimateDomain);
+        fd.append("declared_flags", useFlags.join(","));
+        const res = await fetch("/api/bone-age/estimate", { method: "POST", body: fd });
+        const d = await res.json();
+        if (!res.ok) setAiEstimate({ error: d.detail || "estimate failed" });
+        else setAiEstimate(d);
+      } catch (e) {
+        setAiEstimate({ error: String(e.message || e) });
+      } finally {
+        setAiBusy(false);
+      }
+    };
+    const toggleDeclaredFlag = (code) => {
+      setDeclaredFlags((prev) => {
+        const next = prev.includes(code) ? prev.filter((f) => f !== code) : [...prev, code];
+        if (lastFilm) runEstimate(lastFilm, next);
+        return next;
+      });
+    };
+    const attachImage = async (fileObj) => {
+      if (!assessment) {
+        setLcMsg({ type: "err", text: "Save the draft first, then attach a film." });
+        return;
+      }
+      if (lcLocked) {
+        setLcMsg({ type: "err", text: "Assessment is locked; open a revision to change the image." });
+        return;
+      }
+      setLcBusy(true);
+      setLcMsg(null);
+      try {
+        const fd = new FormData();
+        fd.append("file", fileObj);
+        const res = await fetch(`${LC_API}/${assessment.id}/image`, { method: "POST", body: fd });
+        const d = await res.json();
+        if (!res.ok) {
+          setLcMsg({ type: "err", text: d.detail || "upload failed" });
+        } else {
+          setRadiograph(d);
+          setLcMsg({ type: "ok", text: `Film attached \xB7 ${d.source_format} \xB7 ${d.quality_status.replace(/_/g, " ")}` });
+          runEstimate(fileObj);
+          localizeBones();
+        }
+      } catch (e) {
+        setLcMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setLcBusy(false);
+      }
+    };
+    const loadCoverage = async () => {
+      setCovBusy(true);
+      try {
+        const r = await fetch("/api/bone-age/coverage");
+        if (r.ok) setCoverage(await r.json());
+      } catch {
+      } finally {
+        setCovBusy(false);
+      }
+    };
+    const loadMonitoring = async () => {
+      setMonBusy(true);
+      try {
+        const r = await fetch("/api/bone-age/monitoring");
+        if (r.ok) setMonitoring(await r.json());
+      } catch {
+      } finally {
+        setMonBusy(false);
+      }
+    };
+    const loadAdjudication = async () => {
+      setAdjBusy(true);
+      setAdjMsg(null);
+      try {
+        const r = await fetch("/api/bone-age/adjudication?status=open");
+        if (r.ok) setAdjItems((await r.json()).items || []);
+      } catch (e) {
+        setAdjMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setAdjBusy(false);
+      }
+    };
+    const resolveAdjudication = async (id, stage) => {
+      if (!adjReviewer.trim()) {
+        setAdjMsg({ type: "err", text: "Enter the reviewing clinician first." });
+        return;
+      }
+      setAdjBusy(true);
+      setAdjMsg(null);
+      try {
+        const r = await fetch(`/api/bone-age/adjudication/${id}/resolve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ resolved_stage: stage, resolved_by: adjReviewer.trim() })
+        });
+        if (r.ok) {
+          setAdjMsg({ type: "ok", text: `Resolved to stage ${stage}.` });
+          await loadAdjudication();
+        } else {
+          const e = await r.json();
+          setAdjMsg({ type: "err", text: e.detail || "Resolve failed." });
+        }
+      } catch (e) {
+        setAdjMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setAdjBusy(false);
+      }
+    };
+    const _emptyLt = () => ({
+      method: "TW3-letters",
+      version: "letters-clinic",
+      rus_stage_to_score: { boys: {}, girls: {} },
+      carpal_stage_to_score: { boys: {}, girls: {} },
+      rus_score_to_age: { twii: { boys: [], girls: [] }, twiii: { boys: [], girls: [] } },
+      carpal_score_to_age: { twii: { boys: [], girls: [] }, twiii: { boys: [], girls: [] } },
+      tw20_stage_to_score: { boys: {}, girls: {} },
+      tw20_score_to_age: { boys: [], girls: [] },
+      reference_cases: []
+    });
+    const loadLetterTables = async () => {
+      setLtBusy(true);
+      setLtMsg(null);
+      try {
+        const d = await (await fetch("/api/bone-age/letters-tables")).json();
+        const t = d.tables && d.tables.rus_stage_to_score ? d.tables : _emptyLt();
+        t.rus_stage_to_score = t.rus_stage_to_score || { boys: {}, girls: {} };
+        t.carpal_stage_to_score = t.carpal_stage_to_score || { boys: {}, girls: {} };
+        t.rus_score_to_age = t.rus_score_to_age || { twii: { boys: [], girls: [] }, twiii: { boys: [], girls: [] } };
+        t.carpal_score_to_age = t.carpal_score_to_age || { twii: { boys: [], girls: [] }, twiii: { boys: [], girls: [] } };
+        t.tw20_stage_to_score = t.tw20_stage_to_score || { boys: {}, girls: {} };
+        t.tw20_score_to_age = t.tw20_score_to_age || { boys: [], girls: [] };
+        t.reference_cases = (t.reference_cases || []).filter((c) => c && !c._fill && !String(c.id || "").startsWith("example"));
+        setLtTables(t);
+        setLtStatus(d.status);
+      } catch (e) {
+        setLtMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setLtBusy(false);
+      }
+    };
+    const setLtPoint = (group, sex, bone, letter, val) => {
+      setLtTables((prev) => {
+        const t = JSON.parse(JSON.stringify(prev || _emptyLt()));
+        t[group][sex] = t[group][sex] || {};
+        t[group][sex][bone] = t[group][sex][bone] || {};
+        if (val === "" || val === null) delete t[group][sex][bone][letter];
+        else t[group][sex][bone][letter] = Number(val);
+        return t;
+      });
+    };
+    const curveToText = (arr) => (arr || []).map((p) => p.join(", ")).join("\n");
+    const parseCurve = (text) => text.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => l.split(/[\s,]+/).map(Number)).filter((p) => p.length === 2 && p.every((n) => !isNaN(n)));
+    const setLtCurve = (group, curve, sex, text) => {
+      setLtTables((prev) => {
+        const t = JSON.parse(JSON.stringify(prev || _emptyLt()));
+        t[group][curve] = t[group][curve] || {};
+        t[group][curve][sex] = parseCurve(text);
+        return t;
+      });
+    };
+    const setLtSexCurve = (group, sex, text) => {
+      setLtTables((prev) => {
+        const t = JSON.parse(JSON.stringify(prev || _emptyLt()));
+        t[group] = t[group] || {};
+        t[group][sex] = parseCurve(text);
+        return t;
+      });
+    };
+    const useGridAsReference = () => {
+      const rus = { ...rusStages };
+      const carp = {};
+      Object.entries(carpalStages).forEach(([n, g]) => carp[carpalCode(n)] = g);
+      setLtTables((prev) => {
+        const t = JSON.parse(JSON.stringify(prev || _emptyLt()));
+        t.reference_cases = [{
+          id: "clinic-ref-1",
+          sex: evalGender === "girls" ? "girls" : "boys",
+          rus_stages: rus,
+          carpal_stages: carp,
+          expected: t.reference_cases[0] && t.reference_cases[0].expected || { rus_score: null, twiii_rus_age_years: null },
+          tolerance_years: 0.3
+        }];
+        return t;
+      });
+      setLtMsg({ type: "ok", text: "Reference stages captured from the grading grid. Now enter the reported score/age below." });
+    };
+    const setRefExpected = (field, val) => {
+      setLtTables((prev) => {
+        const t = JSON.parse(JSON.stringify(prev || _emptyLt()));
+        if (!t.reference_cases[0]) t.reference_cases[0] = { id: "clinic-ref-1", sex: "girls", rus_stages: {}, carpal_stages: {}, expected: {}, tolerance_years: 0.3 };
+        t.reference_cases[0].expected = t.reference_cases[0].expected || {};
+        t.reference_cases[0].expected[field] = val === "" ? null : Number(val);
+        return t;
+      });
+    };
+    const saveLetterTables = async () => {
+      setLtBusy(true);
+      setLtMsg(null);
+      try {
+        const r = await fetch("/api/bone-age/letters-tables", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tables: ltTables })
+        });
+        const d = await r.json();
+        if (!r.ok) {
+          setLtMsg({ type: "err", text: d.detail || "save failed" });
+        } else {
+          setLtStatus(d.status);
+          if (d.status.scoring_ready) setLtMsg({ type: "ok", text: "Saved \u2014 TW3 scoring is ON (accuracy gate passed). The report now fills with real numbers." });
+          else if (!d.status.reference_validation.all_passed && d.status.reference_validation.n_cases > 0)
+            setLtMsg({ type: "err", text: "Saved, but scoring stays OFF: the reference case is not reproduced by these values \u2014 recheck the points/curve or the reported numbers." });
+          else if (d.status.provenance_complete === false)
+            setLtMsg({ type: "err", text: "Saved, but scoring stays OFF: document the licensed source in the Provenance tab (book, edition, owner, who entered/verified, date)." });
+          else setLtMsg({ type: "err", text: "Saved, but scoring stays OFF: fill every bone\u2019s points, the score\u2192age curves, and a reference case." });
+        }
+      } catch (e) {
+        setLtMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setLtBusy(false);
+      }
+    };
+    const setImageDomain = async (domain) => {
+      if (!assessment) return;
+      try {
+        const res = await fetch(`${LC_API}/${assessment.id}/image-domain`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain })
+        });
+        const d = await res.json();
+        if (!res.ok) {
+          setLcMsg({ type: "err", text: d.detail || "could not set domain" });
+        } else {
+          setRadiograph((r) => ({ ...r || {}, source_domain: d.source_domain }));
+        }
+      } catch (e) {
+        setLcMsg({ type: "err", text: String(e.message || e) });
+      }
+    };
+    const analysisUrl = radiograph ? `/api/bone-age/radiographs/${radiograph.radiograph_id}/analysis` : null;
+    const localizeBones = async () => {
+      if (!assessment) {
+        setLocMsg({ type: "err", text: "Save the annotation and attach a film first." });
+        return;
+      }
+      setLocBusy(true);
+      setLocMsg(null);
+      try {
+        const res = await fetch(`${LC_API}/${assessment.id}/localize`, { method: "POST" });
+        const d = await res.json();
+        if (!res.ok) {
+          setLocMsg({ type: "err", text: d.detail || "localize failed" });
+          return;
+        }
+        if (d.image_width) setLocImg({ width: d.image_width, height: d.image_height });
+        if (!d.available) {
+          setLocMsg({ type: "err", text: d.message || "No localizer model installed." });
+          return;
+        }
+        const nb = { ...boxes };
+        (d.boxes || []).forEach((b) => {
+          nb[b.bone_code] = b.box;
+        });
+        setBoxes(nb);
+        setLocMsg({ type: "ok", text: `Auto-located ${(d.boxes || []).length} bones \u2014 drag to correct, then Save boxes.` });
+      } catch (e) {
+        setLocMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setLocBusy(false);
+      }
+    };
+    const addOrSelectBox = (bone) => {
+      setSelBone(bone);
+      setBoxes((prev) => {
+        if (prev[bone] || !locImg) return prev;
+        const s2 = Math.min(locImg.width, locImg.height) * 0.16;
+        const cx = locImg.width / 2, cy = locImg.height / 2;
+        return { ...prev, [bone]: [cx - s2 / 2, cy - s2 / 2, cx + s2 / 2, cy + s2 / 2] };
+      });
+    };
+    const clearBox = (bone) => setBoxes((prev) => {
+      const n = { ...prev };
+      delete n[bone];
+      return n;
+    });
+    const saveBoxes = async () => {
+      if (!assessment) return;
+      setLocBusy(true);
+      setLocMsg(null);
+      try {
+        let a = assessment;
+        const cur = boxesRef.current;
+        const codes = new Set(Object.keys(cur));
+        for (const [bone, box] of Object.entries(cur)) {
+          const r = await fetch(`${LC_API}/${assessment.id}/bones/${bone}/box`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ box: box.map((v) => Math.round(v * 10) / 10) })
+          });
+          if (r.ok) a = await r.json();
+          else throw new Error((await r.json()).detail || `save ${bone}`);
+        }
+        (a.bones || []).forEach(async (b) => {
+          if (b.localisation_box && !codes.has(b.bone_code)) {
+            await fetch(`${LC_API}/${assessment.id}/bones/${b.bone_code}/box`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ box: null })
+            });
+          }
+        });
+        setAssessment(a);
+        setLocMsg({ type: "ok", text: `Saved ${codes.size} bone box${codes.size === 1 ? "" : "es"}.` });
+      } catch (e) {
+        setLocMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setLocBusy(false);
+      }
+    };
+    const startBoxDrag = (bone, mode, e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!locRef.current || !locImg) return;
+      const rect = locRef.current.getBoundingClientRect();
+      const scale = rect.width / locImg.width;
+      locDrag.current = {
+        bone,
+        mode,
+        mx: (e.clientX - rect.left) / scale,
+        my: (e.clientY - rect.top) / scale,
+        orig: [...boxesRef.current[bone] || [0, 0, 0, 0]]
+      };
+      setSelBone(bone);
+    };
+    const onLocMove = (e) => {
+      const d = locDrag.current;
+      if (!d || !locRef.current || !locImg) return;
+      const rect = locRef.current.getBoundingClientRect();
+      const scale = rect.width / locImg.width;
+      const mx = (e.clientX - rect.left) / scale, my = (e.clientY - rect.top) / scale;
+      const W = locImg.width, H = locImg.height, clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      setBoxes((prev) => {
+        let [x0, y0, x1, y1] = d.orig;
+        if (d.mode === "move") {
+          let dx = mx - d.mx, dy = my - d.my;
+          dx = clamp(dx, -x0, W - x1);
+          dy = clamp(dy, -y0, H - y1);
+          return { ...prev, [d.bone]: [x0 + dx, y0 + dy, x1 + dx, y1 + dy] };
+        }
+        return { ...prev, [d.bone]: [x0, y0, clamp(mx, x0 + 8, W), clamp(my, y0 + 8, H)] };
+      });
+    };
+    const endLocDrag = () => {
+      locDrag.current = null;
+    };
+    const lcBtn = (bg, disabled) => ({
+      padding: "7px 12px",
+      background: disabled ? "#cbd5e1" : bg,
+      color: "white",
+      border: "none",
+      borderRadius: "8px",
+      fontSize: "11px",
+      fontWeight: "700",
+      cursor: disabled ? "not-allowed" : "pointer"
+    });
+    return {
+      LC_API,
+      lcLocked,
+      saveDraft,
+      bonesIntoGrids,
+      calculateAssessment,
+      approveAssessment,
+      reviseAssessment,
+      toggleAudit,
+      submitFeedback,
+      runEstimate,
+      toggleDeclaredFlag,
+      attachImage,
+      loadCoverage,
+      loadMonitoring,
+      loadAdjudication,
+      resolveAdjudication,
+      _emptyLt,
+      loadLetterTables,
+      setLtPoint,
+      curveToText,
+      parseCurve,
+      setLtCurve,
+      setLtSexCurve,
+      useGridAsReference,
+      setRefExpected,
+      saveLetterTables,
+      setImageDomain,
+      analysisUrl,
+      localizeBones,
+      addOrSelectBox,
+      clearBox,
+      saveBoxes,
+      startBoxDrag,
+      onLocMove,
+      endLocDrag,
+      lcBtn
+    };
+  }
 
   // frontend/src/panels/RenalPanel.jsx
   function RenalPanel() {
@@ -951,6 +1735,462 @@
       }));
       return /* @__PURE__ */ React.createElement("g", null, pts.length > 1 && /* @__PURE__ */ React.createElement("polyline", { fill: "none", stroke: "#4f46e5", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round", points: pts.map((p) => `${p.x},${p.y}`).join(" ") }), pts.map((p, i) => /* @__PURE__ */ React.createElement("g", { key: p.e.id }, /* @__PURE__ */ React.createElement("circle", { cx: p.x, cy: p.y, r: "4", fill: "#4f46e5" }), /* @__PURE__ */ React.createElement("text", { x: p.x, y: p.y - 9, textAnchor: "middle", fill: "#4338ca", fontSize: "9", fontWeight: "bold" }, p.e.egfr), /* @__PURE__ */ React.createElement("text", { x: p.x, y: "96", textAnchor: "middle", fill: "#94a3b8", fontSize: "8" }, p.e.date.slice(5)))));
     })())), timeline.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 0", gap: "12px", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "52px", height: "52px", borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "none", stroke: "#94a3b8", strokeWidth: "2", strokeLinecap: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M12 5v14M5 12l7 7 7-7" }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "700", color: "#64748b" } }, "No snapshots logged yet"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8" } }, 'Enter patient data and click "Log Snapshot" to begin tracking.')) : /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto", borderRadius: "12px", border: "1px solid #e2e8f0" }, className: "custom-scrollbar" }, /* @__PURE__ */ React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", minWidth: "580px", fontSize: "12px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { background: "#f8fafc", borderBottom: "1px solid #e2e8f0" } }, ["Date", "Age", "Ht / Wt", "SCr", "eGFR", "ACR", "FIB-4"].map((h) => /* @__PURE__ */ React.createElement("th", { key: h, style: { padding: "10px 12px", textAlign: "left", fontWeight: "800", color: "#64748b", fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" } }, h)))), /* @__PURE__ */ React.createElement("tbody", null, timeline.map((item, idx) => /* @__PURE__ */ React.createElement("tr", { key: item.id, style: { borderBottom: "1px solid #f1f5f9", background: idx % 2 === 0 ? "white" : "#fafbfc" } }, /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "700", color: "#1e293b" } }, item.date), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", color: "#475569" } }, item.age.toFixed(1), " y"), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", color: "#64748b" } }, item.height, " / ", item.weight), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "700", color: "#475569" } }, item.creatinine), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "800", color: "#4f46e5" } }, item.egfr), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("span", { style: { padding: "2px 8px", borderRadius: "99px", fontSize: "10px", fontWeight: "700", background: "#eef2ff", color: "#4338ca", border: "1px solid #c7d2fe" } }, item.albuminuria)), /* @__PURE__ */ React.createElement("td", { style: { padding: "10px 12px", fontWeight: "700", color: "#059669" } }, item.fib4 !== null ? item.fib4 : "\u2014")))))));
+  }
+
+  // frontend/src/panels/BoneAgePanel.jsx
+  function BoneAgePanel() {
+    const {
+      DECLARABLE_FLAGS,
+      LC_API,
+      addOrSelectBox,
+      adjBusy,
+      adjItems,
+      adjMsg,
+      adjReviewer,
+      age,
+      aiBusy,
+      aiEstimate,
+      analysisUrl,
+      assessment,
+      attachImage,
+      boneAge,
+      boneAgeSource,
+      boneMetrics,
+      boneReport,
+      bonesIntoGrids,
+      boxes,
+      carpalStages,
+      clearBox,
+      covBusy,
+      coverage,
+      curveToText,
+      declaredFlags,
+      endLocDrag,
+      estimateDomain,
+      evalAge,
+      evalGender,
+      evalHeight,
+      fatherHeight,
+      fbAge,
+      fbBusy,
+      fbConfidence,
+      fbMethod,
+      fbMsg,
+      fbNote,
+      fbRater,
+      height,
+      lcBtn,
+      lcBusy,
+      lcLocked,
+      lcMsg,
+      letterResult,
+      loadAdjudication,
+      loadCoverage,
+      loadLetterTables,
+      loadMonitoring,
+      locBusy,
+      locImg,
+      locMsg,
+      locRef,
+      localizeBones,
+      ltBusy,
+      ltMsg,
+      ltSection,
+      ltSex,
+      ltStatus,
+      ltTables,
+      monBusy,
+      monitoring,
+      motherHeight,
+      onLocMove,
+      patientCode,
+      radiograph,
+      resolveAdjudication,
+      reviseAssessment,
+      runEstimate,
+      rusStages,
+      saveBoxes,
+      saveDraft,
+      saveLetterTables,
+      selBone,
+      setAdjReviewer,
+      setAssessment,
+      setBoneAge,
+      setBoneAgeSource,
+      setCarpalStages,
+      setEstimateDomain,
+      setFatherHeight,
+      setFbAge,
+      setFbConfidence,
+      setFbMethod,
+      setFbNote,
+      setFbRater,
+      setImageDomain,
+      setLcBusy,
+      setLcMsg,
+      setLocImg,
+      setLtCurve,
+      setLtPoint,
+      setLtSection,
+      setLtSex,
+      setLtSexCurve,
+      setLtTables,
+      setMotherHeight,
+      setPatientCode,
+      setRefExpected,
+      setRusStages,
+      setShowAudit,
+      showAudit,
+      startBoxDrag,
+      submitFeedback,
+      toggleAudit,
+      toggleDeclaredFlag,
+      tw3Config,
+      useGridAsReference
+    } = useBoneAge();
+    return /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ React.createElement(
+      SectionHeader,
+      {
+        title: "Bone Age \xB7 20-bone staging (13 RUS + 7 carpal)",
+        subtitle: "TW3 scores RUS and carpal SEPARATELY and defines no combined 20-bone age (that is a TW2 construct) \u2014 all 20 are staged for per-bone visibility \xB7 letters A\u2013I, doctor-graded \xB7 Indian (Khadilkar) adult-height context",
+        badge: boneMetrics && boneMetrics.hasBone ? "TW3 bone age set" : "Grade the film",
+        badgeVariant: "info"
+      }
+    ), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "linear-gradient(135deg,#eef2ff,#faf5ff)", border: "1.5px solid #ddd6fe", borderRadius: "16px", padding: "18px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#6b21a8", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "10px" } }, "1 \xB7 Attach hand X\u2011ray \u2192 bone age"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("label", { style: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px", padding: "18px 22px", border: "1.5px dashed #c7d2fe", borderRadius: "12px", background: "white", cursor: tw3Config && tw3Config.ai_estimate_available ? "pointer" : "not-allowed", textAlign: "center", minWidth: "190px" } }, /* @__PURE__ */ React.createElement("svg", { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "#7c3aed", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), /* @__PURE__ */ React.createElement("polyline", { points: "17 8 12 3 7 8" }), /* @__PURE__ */ React.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", fontWeight: "700", color: "#7c3aed" } }, "Attach left-hand film"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", color: "#a78bfa" } }, "DICOM \xB7 PNG \xB7 JPEG \xB7 runs locally"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "file",
+        accept: ".dcm,image/*",
+        style: { display: "none" },
+        disabled: !(tw3Config && tw3Config.ai_estimate_available),
+        onChange: (e) => {
+          const f = e.target.files && e.target.files[0];
+          if (f) runEstimate(f);
+          e.target.value = "";
+        }
+      }
+    )), /* @__PURE__ */ React.createElement("div", { style: { minWidth: "170px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Image source"), /* @__PURE__ */ React.createElement("select", { value: estimateDomain, onChange: (e) => setEstimateDomain(e.target.value), className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "11px" } }, IMAGE_DOMAINS.map(([v, label]) => /* @__PURE__ */ React.createElement("option", { key: v, value: v }, label))), /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", margin: "8px 0 3px" } }, "Declare image issues"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "4px" } }, DECLARABLE_FLAGS.map(([code, label]) => {
+      const on = declaredFlags.includes(code);
+      return /* @__PURE__ */ React.createElement(
+        "button",
+        {
+          key: code,
+          onClick: () => toggleDeclaredFlag(code),
+          title: code,
+          style: {
+            fontSize: "10px",
+            fontWeight: "700",
+            padding: "2px 7px",
+            borderRadius: "999px",
+            cursor: "pointer",
+            border: on ? "1px solid #dc2626" : "1px solid #cbd5e1",
+            background: on ? "#fee2e2" : "white",
+            color: on ? "#991b1b" : "#64748b"
+          }
+        },
+        on ? "\u2715 " : "",
+        label
+      );
+    })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "9px", color: "#94a3b8", marginTop: "3px", lineHeight: "1.4" } }, "Any of these makes the AI estimate abstain \u2014 a whole-hand model can't read these films.")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: "200px" } }, aiBusy && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#4338ca", fontWeight: "600" } }, "Analysing locally\u2026"), aiEstimate && aiEstimate.error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#b45309", fontWeight: "600" } }, aiEstimate.error), aiEstimate && aiEstimate.accepted === false && /* @__PURE__ */ React.createElement("div", { style: { background: "#fef2f2", border: "1.5px solid #fecaca", borderRadius: "10px", padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", fontWeight: "800", color: "#991b1b" } }, "\u26A0 Manual assessment required"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10.5px", color: "#b91c1c", marginTop: "4px", lineHeight: "1.5" } }, aiEstimate.message), aiEstimate.quality && aiEstimate.quality.hard_flags.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#7f1d1d", marginTop: "5px", fontWeight: "700" } }, "Flags: ", aiEstimate.quality.hard_flags.map((f) => f.replace(/_/g, " ")).join(", ")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "9.5px", color: "#94a3b8", marginTop: "5px" } }, "No AI age is shown \u2014 grade the bones manually below.")), aiEstimate && aiEstimate.available === false && aiEstimate.accepted !== false && aiEstimate.message && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#b45309", fontWeight: "600" } }, aiEstimate.message), aiEstimate && aiEstimate.bone_age_years != null && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#6b21a8", fontWeight: "700" } }, "Bone age from this X\u2011ray"), /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "900", color: "#5b21b6", lineHeight: 1 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "34px" } }, aiEstimate.bone_age_years), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "14px" } }, "yr")), aiEstimate.ci_low_years != null && aiEstimate.ci_high_years != null && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#7c3aed", fontWeight: "700", marginTop: "3px" } }, aiEstimate.interval_kind === "conformal" ? `${Math.round(parseFloat(aiEstimate.interval_coverage) * 100)}% interval` : "Likely range", " ", aiEstimate.ci_low_years, "\u2013", aiEstimate.ci_high_years, " yr", /* @__PURE__ */ React.createElement("span", { style: { fontWeight: "500", color: "#a78bfa" } }, " ", aiEstimate.interval_kind === "conformal" ? `(conformal \xB7 \xB1${aiEstimate.uncertainty_months} mo, held-out RSNA)` : `(\xB1${aiEstimate.uncertainty_months} mo MAE \u2014 approx, not calibrated)`)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#7c3aed", marginTop: "2px" } }, "Greulich\u2013Pyle whole-image \xB7 NOT TW3", aiEstimate.model_version ? ` \xB7 ${aiEstimate.model_version}` : ""), aiEstimate.quality_warning && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "7px", padding: "6px 8px", marginTop: "6px", lineHeight: "1.5" } }, "\u26A0 ", aiEstimate.quality_warning), aiEstimate.population_note && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b", marginTop: "6px", lineHeight: "1.5" } }, aiEstimate.population_note), /* @__PURE__ */ React.createElement("button", { onClick: () => {
+      setBoneAge(Number(aiEstimate.bone_age_years.toFixed(1)));
+      setBoneAgeSource("manual");
+    }, style: { marginTop: "8px", padding: "6px 12px", background: "#16a34a", color: "white", border: "none", borderRadius: "8px", fontSize: "11px", fontWeight: "700", cursor: "pointer" } }, "Use as bone age")))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "14px", paddingTop: "14px", borderTop: "1px dashed #ddd6fe" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#6b21a8", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "8px" } }, "Is this right? Suggest the correct bone age"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { style: { minWidth: "120px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Correct bone age (yr)"), /* @__PURE__ */ React.createElement("input", { type: "number", step: "0.1", min: "0", max: "25", value: fbAge, onChange: (e) => setFbAge(e.target.value), placeholder: "e.g. 11.5", className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "12px" } })), /* @__PURE__ */ React.createElement("div", { style: { minWidth: "130px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Method used"), /* @__PURE__ */ React.createElement("select", { value: fbMethod, onChange: (e) => setFbMethod(e.target.value), className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "12px" } }, /* @__PURE__ */ React.createElement("option", { value: "tw3-rus" }, "TW3-RUS"), /* @__PURE__ */ React.createElement("option", { value: "greulich-pyle" }, "Greulich\u2013Pyle"), /* @__PURE__ */ React.createElement("option", { value: "clinical" }, "Clinical judgement"), /* @__PURE__ */ React.createElement("option", { value: "other" }, "Other"))), /* @__PURE__ */ React.createElement("div", { style: { minWidth: "110px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Confidence"), /* @__PURE__ */ React.createElement("select", { value: fbConfidence, onChange: (e) => setFbConfidence(e.target.value), className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "12px" } }, /* @__PURE__ */ React.createElement("option", { value: "high" }, "High"), /* @__PURE__ */ React.createElement("option", { value: "medium" }, "Medium"), /* @__PURE__ */ React.createElement("option", { value: "low" }, "Low"))), /* @__PURE__ */ React.createElement("div", { style: { minWidth: "120px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Your initials / ID"), /* @__PURE__ */ React.createElement("input", { value: fbRater, onChange: (e) => setFbRater(e.target.value), placeholder: "e.g. DR", className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "12px" } })), /* @__PURE__ */ React.createElement("button", { onClick: submitFeedback, disabled: fbBusy, style: { padding: "8px 14px", background: "#7c3aed", color: "white", border: "none", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: fbBusy ? "wait" : "pointer" } }, fbBusy ? "Saving\u2026" : "Submit suggestion")), /* @__PURE__ */ React.createElement("input", { value: fbNote, onChange: (e) => setFbNote(e.target.value), placeholder: "Optional note (e.g. which bones drove the difference)", className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "11px", marginTop: "8px" } }), fbMsg && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px", fontSize: "11px", fontWeight: "700", color: fbMsg.type === "ok" ? "#16a34a" : "#b45309" } }, fbMsg.text), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px", fontSize: "10px", color: "#a78bfa", lineHeight: 1.5 } }, "Your correction is logged as training evidence to improve accuracy over time. It does ", /* @__PURE__ */ React.createElement("strong", null, "not"), " change this patient's reported result.")), tw3Config && !tw3Config.ai_estimate_available && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#94a3b8" } }, "Bone-age model not installed yet. To enable: ", /* @__PURE__ */ React.createElement("code", null, "python -m backend.ai.train_boneage")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#7c3aed", lineHeight: "1.5" } }, "Whole-image AI estimate \u2014 the clinician verifies each result. The full doctor-graded 20-bone TW3 workflow (grading, licensed tables, scores) is built and can be re-enabled when needed.")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "10px" } }, "2 \xB7 Bone Age Report"), (() => {
+      const L = letterResult || assessment && assessment.letters;
+      const rusAge = L && L.rus ? L.rus.twiii_age_years : null;
+      const carpalAge = L && L.carpal ? L.carpal.twiii_age_years : null;
+      const aiYears = aiEstimate && aiEstimate.bone_age_years != null ? aiEstimate.bone_age_years : null;
+      if (rusAge != null) return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#0f766e", textTransform: "uppercase", letterSpacing: ".05em" } }, "TW3 bone age \xB7 TWIII-RUS"), /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "900", color: "#0f766e", lineHeight: 1.1 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "34px" } }, rusAge), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "14px" } }, "yr"), carpalAge != null && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#475569", fontWeight: "700" } }, "  \xB7  carpal ", carpalAge, " yr")));
+      if (aiYears != null) return (
+        // Secondary treatment: the whole-image AI is screening
+        /* triage only, so it renders smaller and boxed -- clearly
+           subordinate to the authoritative TW3 age above. */
+        /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px", background: "#faf5ff", border: "1px dashed #d8b4fe", borderRadius: "10px", padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "9px", fontWeight: "800", color: "white", background: "#a78bfa", borderRadius: "99px", padding: "2px 7px", textTransform: "uppercase", letterSpacing: ".05em" } }, "AI screening"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", fontWeight: "700", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em" } }, "Bone age \xB7 from X-ray")), /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "900", color: "#6b21a8", lineHeight: 1.1, marginTop: "4px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "26px" } }, aiYears), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "13px" } }, "yr")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#7c3aed", marginTop: "2px" } }, "Whole-image estimate", aiEstimate.ci_low_years != null ? ` \xB7 ${aiEstimate.interval_kind === "conformal" ? Math.round(parseFloat(aiEstimate.interval_coverage) * 100) + "% " : ""}${aiEstimate.ci_low_years}\u2013${aiEstimate.ci_high_years} yr` : "", " \u2014 not TW3; the clinician verifies. Grade the bones for the authoritative age."))
+      );
+      return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px", fontSize: "12px", color: "#94a3b8" } }, "Attach a left\u2011hand X\u2011ray above to get the bone age.");
+    })(), (() => {
+      const Lc = letterResult || assessment && assessment.letters;
+      if (!Lc) return null;
+      const rows = [
+        ["TWIII \xB7 RUS", Lc.rus && Lc.rus.twiii_age_years, "#0f766e"],
+        ["TWII \xB7 RUS", Lc.rus && Lc.rus.twii_age_years, "#0f766e"],
+        ["TWII'20 \xB7 20-bone", Lc.tw20 && Lc.tw20.age_years, "#5b21b6"],
+        ["TWIII \xB7 carpal", Lc.carpal && Lc.carpal.twiii_age_years, "#b45309"]
+      ].filter((r) => r[1] != null);
+      if (rows.length < 2) return null;
+      return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 14px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "8px" } }, "Standard comparison \xB7 same staging"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "8px" } }, rows.map(([label, age2, color]) => /* @__PURE__ */ React.createElement("div", { key: label, style: { background: "white", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px 10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "9px", fontWeight: "800", color, textTransform: "uppercase", letterSpacing: ".04em" } }, label), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "20px", fontWeight: "900", color, lineHeight: 1.15 } }, age2, " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700" } }, "yr"))))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "Differences reflect the scoring ", /* @__PURE__ */ React.createElement("strong", null, "standard / reference tables"), ", not the child's radiograph. RUS and carpal bone ages are reported separately \u2014 never averaged."));
+    })(), (() => {
+      const L = letterResult || assessment && assessment.letters;
+      const tw3 = L && L.rus && L.rus.twiii_age_years != null ? L.rus.twiii_age_years : boneAge !== "" ? parseFloat(boneAge) : null;
+      const gp = aiEstimate && aiEstimate.bone_age_years != null ? aiEstimate.bone_age_years : null;
+      const carpal = L && L.carpal && L.carpal.twiii_age_years != null ? L.carpal.twiii_age_years : null;
+      const rows = [
+        ["TW3-RUS", tw3, "#0f766e"],
+        ["GP model estimate", gp, "#6b21a8"],
+        ["TW3 carpal", carpal, "#b45309"]
+      ].filter((r) => r[1] != null && !isNaN(r[1]));
+      if (rows.length < 2) return null;
+      const vals = rows.map((r) => Number(r[1]));
+      const spread = Math.max(...vals) - Math.min(...vals);
+      const agree = spread <= 1;
+      return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "8px" } }, "Cross-check \xB7 independent methods"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "8px" } }, rows.map(([label, age2, color], i) => /* @__PURE__ */ React.createElement("div", { key: label, style: { background: i === 0 ? "#f0fdfa" : "#faf5ff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px 10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "9px", fontWeight: "800", color, textTransform: "uppercase", letterSpacing: ".04em" } }, label, i === 0 ? " \xB7 default" : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: i === 0 ? "22px" : "18px", fontWeight: "900", color, lineHeight: 1.15 } }, Number(age2).toFixed(1), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700" } }, "yr"))))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", fontWeight: "700", color: agree ? "#16a34a" : "#b45309" } }, agree ? `\u2713 Methods agree \u2014 within ${spread.toFixed(1)} yr` : `\u26A0 Methods differ by ${spread.toFixed(1)} yr \u2014 re-check staging or image quality`), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "4px", fontSize: "10px", color: "#94a3b8", lineHeight: 1.5 } }, "TW3-RUS is the authoritative result. The others are an independent cross-check \u2014 agreement builds trust; disagreement usually means a mis-staged bone or a low-quality film."));
+    })(), radiograph && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px", background: "#f0fdfa", border: "1px solid #99f6e4", borderRadius: "10px", padding: "10px 12px", fontSize: "11px", color: "#0f766e", lineHeight: "1.75" } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "800", textTransform: "uppercase", fontSize: "10px", letterSpacing: ".05em", marginBottom: "4px" } }, "Automated film analysis"), /* @__PURE__ */ React.createElement("div", null, "Image \xB7 ", radiograph.source_format || "\u2014", radiograph.width && radiograph.height ? ` \xB7 ${radiograph.width}\xD7${radiograph.height}` : "", " \xB7 laterality ", radiograph.laterality || "n/a", " \xB7 quality ", String(radiograph.quality_status || "\u2014").replace(/_/g, " "), radiograph.source_domain ? ` \xB7 ${String(radiograph.source_domain).replace(/_/g, " ")}` : ""), aiEstimate && aiEstimate.bone_age_years != null && /* @__PURE__ */ React.createElement("div", null, "AI whole-image estimate ", /* @__PURE__ */ React.createElement("span", { style: { color: "#64748b" } }, "(screening, not TW3)"), " \xB7 ", /* @__PURE__ */ React.createElement("strong", null, aiEstimate.bone_age_years, " yr"), aiEstimate.val_mae_months ? ` \xB7 \xB1~${Math.round(aiEstimate.val_mae_months)} mo` : ""), /* @__PURE__ */ React.createElement("div", null, "Bones auto-located \xB7 ", Object.keys(boxes).length, "/20", Object.keys(boxes).length === 0 ? " \u2014 draw boxes below, or train the localizer (backend/ai/LOCALIZE.md)" : ""), /* @__PURE__ */ React.createElement("div", null, "Per-bone TW3 stages \xB7 ", /* @__PURE__ */ React.createElement("strong", null, "doctor-graded below"), " ", /* @__PURE__ */ React.createElement("span", { style: { color: "#64748b" } }, "(automatic staging is the next AI step \u2014 needs the staging model)"))), /* @__PURE__ */ React.createElement("details", { style: { marginTop: "4px" }, open: true }, /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontSize: "11px", fontWeight: "700", color: "#7c3aed", listStyle: "none", padding: "4px 0" } }, "\u25B8 Detailed 20-bone report (per-bone staging \xB7 RUS & carpal kept separate)"), (() => {
+      const rep = boneReport;
+      const yrs = (v) => v === null || v === void 0 ? "\u2014" : v + " yr";
+      const num = (v) => v === null || v === void 0 ? "\u2014" : v;
+      const visChip = (v) => {
+        const map = { STAGED: ["#dcfce7", "#166534"], NOT_VISIBLE: ["#fef3c7", "#92400e"], NOT_SCORABLE: ["#fee2e2", "#991b1b"], NOT_STAGED: ["#f1f5f9", "#94a3b8"] };
+        const [bg, fg] = map[v] || map.NOT_STAGED;
+        return /* @__PURE__ */ React.createElement("span", { style: { background: bg, color: fg, fontSize: "9px", fontWeight: "800", padding: "1px 6px", borderRadius: "999px", letterSpacing: "0.02em" } }, v.replace("_", " "));
+      };
+      const rows = rep ? rep.per_bone_results : [];
+      return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "11px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { textAlign: "left", color: "#64748b", borderBottom: "1px solid #e2e8f0" } }, /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "#"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Bone"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Sys"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Stage"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Visibility"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700", textAlign: "right" } }, "Points"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700", textAlign: "right" } }, "% of max"))), /* @__PURE__ */ React.createElement("tbody", null, rows.map((b) => /* @__PURE__ */ React.createElement("tr", { key: b.bone_id, style: { borderBottom: "1px solid #f1f5f9", background: b.system === "CARPAL" ? "#fafafa" : "white" } }, /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", color: "#94a3b8" } }, b.display_order), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", fontWeight: "600", color: "#1e293b" } }, b.anatomical_name), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", color: "#64748b" } }, b.system === "CARPAL" ? "Carpal" : "RUS"), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", fontWeight: "700", color: "#5b21b6" } }, b.stage && !b.stage.startsWith("NOT_") ? b.stage : "\u2014"), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px" } }, visChip(b.visibility)), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", textAlign: "right", color: "#475569" } }, num(b.points)), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", textAlign: "right", color: "#475569" } }, b.pct_of_bone_max != null ? b.pct_of_bone_max + "%" : "\u2014"))), rows.length === 0 && /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { colSpan: "7", style: { padding: "10px 6px", color: "#94a3b8" } }, "Grade the bones below to build the report."))))), rep && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: "10px", padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.05em" } }, "RUS (13 bones)"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginTop: "4px" } }, "Staged ", rep.completeness.rus_staged, "/13 \xB7 score ", num(rep.rus.total_score)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "800", color: "#5b21b6", marginTop: "2px" } }, "TWIII age ", yrs(rep.rus.twiii_age_years), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", fontWeight: "600", color: "#94a3b8" } }, "\xB7 TWII ", yrs(rep.rus.twii_age_years)))), /* @__PURE__ */ React.createElement("div", { style: { background: "#fafafa", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" } }, "Carpal (7 bones) \xB7 separate"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginTop: "4px" } }, "Staged ", rep.completeness.carpal_staged, "/7 \xB7 score ", num(rep.carpal.total_score)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "800", color: "#334155", marginTop: "2px" } }, "TWIII age ", yrs(rep.carpal.twiii_age_years), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", fontWeight: "600", color: "#94a3b8" } }, "\xB7 never averaged with RUS")))), rep && rep.scoring_note && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "10px", color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "8px 10px", lineHeight: "1.5" } }, rep.scoring_note), rep && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, rep.mandatory_disclaimer));
+    })())), /* @__PURE__ */ React.createElement("details", { style: { marginTop: "16px", display: "none" } }, /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontWeight: "800", fontSize: "12px", color: "#7c3aed", padding: "8px 0", listStyle: "none" } }, "\u2699 Advanced \xB7 manual grading, save & approve, adult-height"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "800", color: "#6b21a8", textTransform: "uppercase", letterSpacing: "0.05em" } }, "Manual TW3 grading \xB7 left hand\u2013wrist \xB7 stages A\u2013I"), /* @__PURE__ */ React.createElement("button", { onClick: () => {
+      setRusStages({});
+      setCarpalStages({});
+    }, style: { padding: "5px 12px", background: "white", color: "#7c3aed", border: "1.5px solid #ddd6fe", borderRadius: "8px", fontSize: "11px", fontWeight: "700", cursor: "pointer" } }, "Clear grades")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#7c3aed", marginBottom: "6px", textTransform: "uppercase", letterSpacing: ".04em" } }, "RUS bones (13)"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "8px" } }, REPORT_RUS.map(([code, label]) => /* @__PURE__ */ React.createElement("div", { key: code }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#7c3aed", display: "block", marginBottom: "3px" } }, label), /* @__PURE__ */ React.createElement("select", { value: rusStages[code] || "", onChange: (e) => setRusStages((s) => {
+      const n = { ...s };
+      if (e.target.value) n[code] = e.target.value;
+      else delete n[code];
+      return n;
+    }), className: "input-field", style: { padding: "7px 8px", width: "100%" } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 stage \u2014"), LETTER_STAGES.map((st) => /* @__PURE__ */ React.createElement("option", { key: st, value: st }, st)))))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#7c3aed", margin: "14px 0 6px", textTransform: "uppercase", letterSpacing: ".04em" } }, "Carpal bones (7)"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "8px" } }, REPORT_CARPALS.map((name) => /* @__PURE__ */ React.createElement("div", { key: name }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#7c3aed", display: "block", marginBottom: "3px" } }, name), /* @__PURE__ */ React.createElement("select", { value: carpalStages[name] || "", onChange: (e) => setCarpalStages((s) => {
+      const n = { ...s };
+      if (e.target.value) n[name] = e.target.value;
+      else delete n[name];
+      return n;
+    }), className: "input-field", style: { padding: "7px 8px", width: "100%" } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 stage \u2014"), LETTER_STAGES.map((st) => /* @__PURE__ */ React.createElement("option", { key: st, value: st }, st)))))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "These letter grades appear in the report above. The RUS/carpal scores and the TWII / TWIII / TWII'20 bone ages compute once the clinic's licensed TW3 tables are supplied \u2014 no values are guessed.")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "4px" } }, "Annotation record"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginBottom: "10px", lineHeight: "1.5" } }, "Saves the doctor-confirmed 20-bone letter staging to the local database (for review and to build the training dataset). Sex and age come from Demographics."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 180px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#64748b", display: "block", marginBottom: "3px" } }, "Patient code"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: patientCode,
+        onChange: (e) => setPatientCode(e.target.value),
+        placeholder: "e.g. CASE-001",
+        className: "input-field",
+        style: { padding: "7px 8px", width: "100%" },
+        disabled: lcLocked
+      }
+    )), /* @__PURE__ */ React.createElement("button", { onClick: saveDraft, disabled: lcBusy, style: lcBtn("#7c3aed", lcBusy) }, lcBusy ? "Saving\u2026" : assessment && !lcLocked ? "Update annotation" : "Save annotation"), /* @__PURE__ */ React.createElement("button", { onClick: async () => {
+      if (!patientCode.trim()) {
+        setLcMsg({ type: "err", text: "Enter a patient code to load." });
+        return;
+      }
+      setLcBusy(true);
+      setLcMsg(null);
+      try {
+        const r = await fetch(`${LC_API}?patient_code=${encodeURIComponent(patientCode.trim())}`);
+        const list = await r.json();
+        if (!r.ok || !Array.isArray(list) || list.length === 0) {
+          setLcMsg({ type: "err", text: "No saved annotation for that code." });
+          return;
+        }
+        const d = list[0];
+        bonesIntoGrids(d.bones);
+        setAssessment(d);
+        setShowAudit(false);
+        setLcMsg({ type: "ok", text: `Loaded #${d.id} rev ${d.revision} \xB7 ${d.assessment_status}` });
+      } catch (e) {
+        setLcMsg({ type: "err", text: String(e.message || e) });
+      } finally {
+        setLcBusy(false);
+      }
+    }, disabled: lcBusy, style: lcBtn("#475569", lcBusy) }, "Load saved"), assessment && lcLocked && /* @__PURE__ */ React.createElement("button", { onClick: reviseAssessment, disabled: lcBusy, style: lcBtn("#0891b2", lcBusy) }, "Open revision"), assessment && /* @__PURE__ */ React.createElement("button", { onClick: toggleAudit, disabled: lcBusy, style: lcBtn("#64748b", lcBusy) }, showAudit ? "Hide audit" : "Audit")), assessment && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "11px", color: "#475569" } }, "Record #", assessment.id, " \xB7 rev ", assessment.revision, " \xB7 ", /* @__PURE__ */ React.createElement("strong", { style: { textTransform: "uppercase" } }, assessment.assessment_status), " ", "\xB7 ", assessment.rus_staged_count, "/13 RUS + ", assessment.carpal_staged_count, "/7 carpal staged"), lcMsg && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", fontWeight: "700", color: lcMsg.type === "ok" ? "#059669" : "#dc2626" } }, lcMsg.text), showAudit && assessment && assessment.audit && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", maxHeight: "160px", overflowY: "auto", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px", fontFamily: "ui-monospace, Menlo, Consolas, monospace", fontSize: "10px", color: "#475569" } }, assessment.audit.map((e, i) => /* @__PURE__ */ React.createElement("div", { key: i }, e.timestamp ? e.timestamp.slice(0, 19).replace("T", " ") : "", " \xB7 ", e.event_type, " \xB7 ", e.actor, e.reason ? " \xB7 " + e.reason : ""))), assessment && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement("label", { style: { ...lcBtn("#0f766e", lcBusy || lcLocked), display: "inline-block" } }, radiograph ? "Replace film" : "Attach film", /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "file",
+        accept: ".dcm,image/*",
+        style: { display: "none" },
+        disabled: lcBusy || lcLocked,
+        onChange: (e) => {
+          const f = e.target.files && e.target.files[0];
+          if (f) attachImage(f);
+          e.target.value = "";
+        }
+      }
+    )), radiograph && /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 200px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#64748b", display: "block", marginBottom: "3px" } }, "Image source (confirm)"), /* @__PURE__ */ React.createElement(
+      "select",
+      {
+        value: radiograph.source_domain || "unknown",
+        onChange: (e) => setImageDomain(e.target.value),
+        className: "input-field",
+        style: { padding: "7px 8px", width: "100%" },
+        disabled: lcLocked
+      },
+      IMAGE_DOMAINS.map(([v, label]) => /* @__PURE__ */ React.createElement("option", { key: v, value: v }, label))
+    ))), radiograph && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", color: "#475569" } }, "Film #", radiograph.radiograph_id, " \xB7 ", radiograph.source_format, " \xB7 quality ", String(radiograph.quality_status || "").replace(/_/g, " "), radiograph.duplicate_of ? ` \xB7 duplicate of #${radiograph.duplicate_of}` : ""), radiograph && LOW_TRUST_DOMAINS.includes(radiograph.source_domain) && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "8px 10px", fontSize: "10.5px", color: "#92400e", lineHeight: "1.5" } }, "\u26A0 ", radiograph.source_domain === "film_photo" ? "Photograph of a film" : "Compressed image", ": reduced reliability. Any future AI suggestion must be treated with lower confidence and every bone confirmed manually \u2014 this domain is evaluated separately from digital images.")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "Scoring, bone-age calculation and doctor approval unlock automatically once the clinic's licensed TW3 point/age tables are installed. Until then this record captures verified staging only.")), radiograph && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em" } }, "Bone localization"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "2px" } }, "Auto-box the bones (or draw them), drag to correct, save. Confirmed boxes become training crops.")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px" } }, /* @__PURE__ */ React.createElement("button", { onClick: localizeBones, disabled: locBusy || lcLocked, style: lcBtn("#0f766e", locBusy || lcLocked) }, locBusy ? "\u2026" : "Auto-locate"), /* @__PURE__ */ React.createElement("button", { onClick: saveBoxes, disabled: locBusy || lcLocked || Object.keys(boxes).length === 0, style: lcBtn("#7c3aed", locBusy || lcLocked || Object.keys(boxes).length === 0) }, "Save boxes"))), analysisUrl && /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        ref: locRef,
+        onMouseMove: onLocMove,
+        onMouseUp: endLocDrag,
+        onMouseLeave: endLocDrag,
+        style: { position: "relative", width: "100%", maxWidth: "420px", margin: "12px auto 0", userSelect: "none" }
+      },
+      /* @__PURE__ */ React.createElement(
+        "img",
+        {
+          src: analysisUrl,
+          alt: "radiograph",
+          draggable: false,
+          onLoad: (e) => {
+            if (!locImg) setLocImg({ width: e.target.naturalWidth, height: e.target.naturalHeight });
+          },
+          style: { width: "100%", display: "block", borderRadius: "8px", border: "1px solid #e2e8f0" }
+        }
+      ),
+      locImg && Object.entries(boxes).map(([bone, b]) => {
+        const sel = selBone === bone;
+        const st = {
+          position: "absolute",
+          left: `${b[0] / locImg.width * 100}%`,
+          top: `${b[1] / locImg.height * 100}%`,
+          width: `${(b[2] - b[0]) / locImg.width * 100}%`,
+          height: `${(b[3] - b[1]) / locImg.height * 100}%`,
+          border: `2px solid ${sel ? "#f59e0b" : "#0ea5e9"}`,
+          background: sel ? "rgba(245,158,11,0.12)" : "rgba(14,165,233,0.08)",
+          cursor: "move",
+          boxSizing: "border-box"
+        };
+        return /* @__PURE__ */ React.createElement("div", { key: bone, onMouseDown: (e) => startBoxDrag(bone, "move", e), style: st }, /* @__PURE__ */ React.createElement("span", { style: { position: "absolute", top: "-14px", left: "-1px", fontSize: "8px", fontWeight: "700", color: sel ? "#b45309" : "#0369a1", background: "white", padding: "0 2px", borderRadius: "2px", whiteSpace: "nowrap" } }, bone), /* @__PURE__ */ React.createElement(
+          "div",
+          {
+            onMouseDown: (e) => startBoxDrag(bone, "resize", e),
+            style: { position: "absolute", right: "-5px", bottom: "-5px", width: "10px", height: "10px", background: "white", border: `2px solid ${sel ? "#f59e0b" : "#0ea5e9"}`, borderRadius: "2px", cursor: "nwse-resize" }
+          }
+        ));
+      })
+    ), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "10px", fontWeight: "700", color: "#64748b" } }, "Bones \u2014 click to add/select a box (\xD7 to remove):"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "4px" } }, [...REPORT_RUS.map(([c]) => c), ...REPORT_CARPALS.map(carpalCode2)].map((code) => {
+      const has = !!boxes[code];
+      const sel = selBone === code;
+      return /* @__PURE__ */ React.createElement(
+        "span",
+        {
+          key: code,
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "2px",
+            padding: "3px 6px",
+            borderRadius: "6px",
+            fontSize: "10px",
+            fontWeight: "700",
+            cursor: "pointer",
+            border: `1px solid ${has ? "#0ea5e9" : "#e2e8f0"}`,
+            background: sel ? "#fef3c7" : has ? "#e0f2fe" : "white",
+            color: has ? "#0369a1" : "#94a3b8"
+          },
+          onClick: () => addOrSelectBox(code)
+        },
+        code,
+        has && /* @__PURE__ */ React.createElement("span", { onClick: (e) => {
+          e.stopPropagation();
+          clearBox(code);
+        }, style: { color: "#ef4444", fontWeight: "800" } }, "\xD7")
+      );
+    })), locMsg && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", fontWeight: "700", color: locMsg.type === "ok" ? "#059669" : "#dc2626" } }, locMsg.text), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "Auto-locate needs a trained localizer model (see backend/ai/LOCALIZE.md); until then you can draw boxes manually and they still save + export as crops.")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em" } }, "Dataset coverage"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "2px" } }, "Unique patients per bone \xD7 stage across all saved annotations. Drives when AI suggestions could be trained.")), /* @__PURE__ */ React.createElement("button", { onClick: loadCoverage, disabled: covBusy, style: lcBtn("#475569", covBusy) }, covBusy ? "Loading\u2026" : coverage ? "Refresh" : "Load coverage")), coverage && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginBottom: "8px" } }, coverage.n_patients, " patients \xB7 ", coverage.n_assessments, " assessments.", Object.entries(coverage.summary).map(([sys, s]) => /* @__PURE__ */ React.createElement("span", { key: sys, style: { marginLeft: "8px" } }, "\xB7 ", /* @__PURE__ */ React.createElement("strong", null, sys), ": ", s.unique_patients, " pt / ", s.cells_covered, " cells / ", s.annotations, " anno"))), coverage.cells.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8" } }, "No confirmed staging yet \u2014 save an annotation above.") : /* @__PURE__ */ React.createElement("div", { style: { maxHeight: "220px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "8px" } }, /* @__PURE__ */ React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "11px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { background: "#f8fafc", color: "#64748b", textAlign: "left" } }, /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "Bone"), /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "Stage"), /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "\u2642"), /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "\u2640"), /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "w/img"), /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "Support"))), /* @__PURE__ */ React.createElement("tbody", null, [...coverage.cells].sort((a, b) => a.unique_total - b.unique_total).map((c, i) => {
+      const col = { empty: "#dc2626", minimal: "#d97706", experimental: "#d97706", limited: "#2563eb", candidate: "#059669" }[c.support] || "#64748b";
+      return /* @__PURE__ */ React.createElement("tr", { key: i, style: { borderTop: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px", color: "#334155" } }, c.bone_code, /* @__PURE__ */ React.createElement("span", { style: { color: "#cbd5e1" } }, " \xB7 ", c.stage_system.replace("tw3", ""))), /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px", fontWeight: "700" } }, c.stage), /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px" } }, c.unique_boys), /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px" } }, c.unique_girls), /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px" } }, c.n_with_image), /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px", color: col, fontWeight: "700" } }, c.support));
+    })))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "Bands (unique patients): minimal 1\u20139 \xB7 experimental 10\u201324 \xB7 limited 25\u201349 \xB7 candidate \u226550. Engineering thresholds only \u2014 not proof of clinical validity."))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em" } }, "Monitoring & drift"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "2px" } }, "AI-vs-clinician error over time, input-quality drift, and a soft external plausibility check. Watch-the-gap only \u2014 this never changes a model or a reported age.")), /* @__PURE__ */ React.createElement("button", { onClick: loadMonitoring, disabled: monBusy, style: lcBtn("#475569", monBusy) }, monBusy ? "Loading\u2026" : monitoring ? "Refresh" : "Load monitoring")), monitoring && (() => {
+      const st = monitoring.stats || {};
+      const tr = st.trend || {};
+      const dr = monitoring.input_drift || {};
+      const pl = monitoring.plausibility || {};
+      const pct = (v) => v == null ? "\u2014" : `${Math.round(v * 100)}%`;
+      const yr = (v) => v == null ? "\u2014" : `${v} yr`;
+      return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 150px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b" } }, "AI vs clinician MAE"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "18px", fontWeight: "800", color: "#334155" } }, yr(st.ai_vs_human_mae_years)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8" } }, st.paired_with_ai || 0, " paired \xB7 ", st.total_feedback || 0, " total")), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 150px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b" } }, "Trend (recent vs older)"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "18px", fontWeight: "800", color: tr.improving ? "#059669" : "#334155" } }, yr(tr.recent_mae_years), " ", tr.improving ? "\u2193" : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8" } }, "was ", yr(tr.older_mae_years))), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 150px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b" } }, "Low-trust input share"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "18px", fontWeight: "800", color: dr.worsening ? "#d97706" : "#334155" } }, pct(dr.recent_low_trust_share), " ", dr.worsening ? "\u2191" : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8" } }, "was ", pct(dr.older_low_trust_share), " \xB7 compressed/photo"))), pl.vs_cpp && /* @__PURE__ */ React.createElement("div", { style: { background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#92400e" } }, "External plausibility (soft \xB7 non-gating)"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#334155", marginTop: "4px" } }, "Observed bone-age distribution vs published cohorts \u2014 TV distance: CPP ", pl.vs_cpp.tv_distance ?? "\u2014", " \xB7 control ", pl.vs_control?.tv_distance ?? "\u2014", "."), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#b45309", marginTop: "6px", lineHeight: "1.5" } }, "\u26A0 ", pl.vs_cpp.caveat)));
+    })()), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em" } }, "Adjudication queue"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "2px" } }, "Bones where independent reads disagree are queued for a senior read \u2014 resolved to one stage, never silently averaged.")), /* @__PURE__ */ React.createElement("button", { onClick: loadAdjudication, disabled: adjBusy, style: lcBtn("#475569", adjBusy) }, adjBusy ? "Loading\u2026" : adjItems ? "Refresh" : "Load queue")), adjItems && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "11px", color: "#475569" } }, "Reviewing clinician"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        value: adjReviewer,
+        onChange: (e) => setAdjReviewer(e.target.value),
+        placeholder: "e.g. Dr Rao",
+        style: { fontSize: "11px", padding: "4px 8px", border: "1px solid #cbd5e1", borderRadius: "6px" }
+      }
+    )), adjItems.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8" } }, "No disputed bones open. Multi-reader disagreements appear here for resolution.") : /* @__PURE__ */ React.createElement("div", { style: { maxHeight: "240px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "8px" } }, adjItems.map((it) => /* @__PURE__ */ React.createElement("div", { key: it.id, style: { padding: "8px 10px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#334155" } }, /* @__PURE__ */ React.createElement("strong", null, it.bone_code), " ", /* @__PURE__ */ React.createElement("span", { style: { color: "#cbd5e1" } }, "\xB7 ", it.film_key), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b", marginTop: "2px" } }, it.n_readers, " readers \xB7 votes ", Object.entries(it.votes).map(([s, n]) => `${s}:${n}`).join("  "))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "4px", flexWrap: "wrap" } }, Object.keys(it.votes).sort().map((stage) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: stage,
+        onClick: () => resolveAdjudication(it.id, stage),
+        disabled: adjBusy,
+        style: { fontSize: "11px", fontWeight: "700", padding: "3px 9px", border: "1px solid #cbd5e1", borderRadius: "6px", background: "#f8fafc", color: "#334155", cursor: adjBusy ? "default" : "pointer" }
+      },
+      stage
+    )))))), adjMsg && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", fontWeight: "700", color: adjMsg.type === "ok" ? "#059669" : "#dc2626" } }, adjMsg.text))), /* @__PURE__ */ React.createElement(
+      "details",
+      {
+        style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" },
+        onToggle: (e) => {
+          if (e.target.open && !ltTables) loadLetterTables();
+        }
+      },
+      /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em", listStyle: "none" } }, "\u{1F522} Licensed TW3 tables \u2014 enter once to turn scoring ON"),
+      /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", margin: "8px 0 12px", lineHeight: "1.5" } }, "Enter the point values and score\u2192age curves from your own licensed TW3 reference. Nothing is shipped or guessed. Scoring switches on only after a reference case from one of your reported films is reproduced (accuracy gate)."),
+      ltStatus && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "10px", fontSize: "11px", fontWeight: "700", color: ltStatus.scoring_ready ? "#059669" : "#b45309" } }, ltStatus.scoring_ready ? "\u2713 Scoring is ON \u2014 report fills with real numbers." : ltStatus.provenance_complete === false ? "\u25CB Scoring OFF \u2014 document the licensed source (Provenance tab)." : "\u25CB Scoring OFF \u2014 table incomplete or reference not reproduced."),
+      !ltTables ? /* @__PURE__ */ React.createElement("button", { onClick: loadLetterTables, disabled: ltBusy, style: lcBtn("#7c3aed", ltBusy) }, ltBusy ? "Loading\u2026" : "Open table editor") : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" } }, [["rus", "RUS points"], ["carpal", "Carpal points"], ["tw20", "TWII'20 points"], ["curves", "Score\u2192age curves"], ["ref", "Reference case"], ["prov", "Provenance"]].map(([k, label]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setLtSection(k), style: { padding: "5px 10px", borderRadius: "8px", fontSize: "11px", fontWeight: "700", cursor: "pointer", border: "1px solid #ddd6fe", background: ltSection === k ? "#7c3aed" : "white", color: ltSection === k ? "white" : "#7c3aed" } }, label)), ltSection !== "ref" && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", display: "flex", gap: "4px" } }, ["boys", "girls"].map((s) => /* @__PURE__ */ React.createElement("button", { key: s, onClick: () => setLtSex(s), style: { padding: "5px 10px", borderRadius: "8px", fontSize: "11px", fontWeight: "700", cursor: "pointer", border: "1px solid #cbd5e1", background: ltSex === s ? "#334155" : "white", color: ltSex === s ? "white" : "#334155" } }, s === "boys" ? "Boys" : "Girls")))), (ltSection === "rus" || ltSection === "carpal" || ltSection === "tw20") && (() => {
+        const group = ltSection === "rus" ? "rus_stage_to_score" : ltSection === "carpal" ? "carpal_stage_to_score" : "tw20_stage_to_score";
+        const carpalRows = REPORT_CARPALS.map((n) => [carpalCode2(n), n]);
+        const rows = ltSection === "carpal" ? carpalRows : ltSection === "tw20" ? [...REPORT_RUS, ...carpalRows] : REPORT_RUS;
+        const cell = (bone, L) => ((ltTables[group][ltSex] || {})[bone] || {})[L];
+        return /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ React.createElement("table", { style: { borderCollapse: "collapse", fontSize: "11px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { style: { padding: "3px 6px", textAlign: "left", color: "#64748b" } }, ltSex, " \xB7 bone"), LETTER_STAGES.map((L) => /* @__PURE__ */ React.createElement("th", { key: L, style: { padding: "3px 4px", color: "#64748b" } }, L)))), /* @__PURE__ */ React.createElement("tbody", null, rows.map(([code, label]) => /* @__PURE__ */ React.createElement("tr", { key: code }, /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", whiteSpace: "nowrap", color: "#334155" } }, label), LETTER_STAGES.map((L) => /* @__PURE__ */ React.createElement("td", { key: L, style: { padding: "1px" } }, /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            type: "number",
+            value: cell(code, L) ?? "",
+            onChange: (e) => setLtPoint(group, ltSex, code, L, e.target.value),
+            style: { width: "42px", padding: "3px 2px", fontSize: "11px", textAlign: "center", border: "1px solid #e2e8f0", borderRadius: "4px" }
+          }
+        ))))))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "6px" } }, "Leave a cell blank if that letter is not defined for that bone. Enter both Boys and Girls."));
+      })(), ltSection === "curves" && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "12px", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" } }, [["rus_score_to_age", "RUS"], ["carpal_score_to_age", "Carpal"]].flatMap(
+        ([grp, gl]) => ["twii", "twiii"].map((cv) => /* @__PURE__ */ React.createElement("div", { key: grp + cv }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#7c3aed", display: "block", marginBottom: "3px" } }, gl, " \xB7 ", cv.toUpperCase(), " \xB7 ", ltSex), /* @__PURE__ */ React.createElement(
+          "textarea",
+          {
+            value: curveToText((ltTables[grp][cv] || {})[ltSex]),
+            onChange: (e) => setLtCurve(grp, cv, ltSex, e.target.value),
+            placeholder: "score, age\n300, 8\n450, 10",
+            rows: 4,
+            style: { width: "100%", fontFamily: "ui-monospace, monospace", fontSize: "11px", padding: "6px", border: "1px solid #e2e8f0", borderRadius: "6px" }
+          }
+        )))
+      ), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#7c3aed", display: "block", marginBottom: "3px" } }, "TWII'20 (20-bone) \xB7 ", ltSex), /* @__PURE__ */ React.createElement(
+        "textarea",
+        {
+          value: curveToText((ltTables.tw20_score_to_age || {})[ltSex]),
+          onChange: (e) => setLtSexCurve("tw20_score_to_age", ltSex, e.target.value),
+          placeholder: "score, age\n300, 8\n450, 10",
+          rows: 4,
+          style: { width: "100%", fontFamily: "ui-monospace, monospace", fontSize: "11px", padding: "6px", border: "1px solid #e2e8f0", borderRadius: "6px" }
+        }
+      )), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1/-1", fontSize: "10px", color: "#94a3b8" } }, `One "score, age" pair per line (ascending score). \u22652 points per curve. Carpal / TWII'20 curves optional if you only report RUS.`)), ltSection === "prov" && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "8px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" } }, [["book_title", "Book title *"], ["edition", "Edition / year *"], ["isbn", "ISBN"], ["licensed_owner", "Licensed owner *"], ["pages", "Pages"], ["entered_by", "Entered by *"], ["verified_by", "Verified by *"], ["verification_date", "Verification date *"]].map(([k, label]) => /* @__PURE__ */ React.createElement("div", { key: k }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#64748b", display: "block", marginBottom: "2px" } }, label), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          type: k === "verification_date" ? "date" : "text",
+          value: (ltTables.provenance || {})[k] || "",
+          onChange: (e) => setLtTables((t) => ({ ...t, provenance: { ...t.provenance || {}, [k]: e.target.value } })),
+          style: { width: "100%", padding: "5px 7px", fontSize: "11px", border: "1px solid #e2e8f0", borderRadius: "6px" }
+        }
+      ))), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1/-1", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "* required. Licensed TW3 values may not drive scoring without a documented, legally-owned source.", ltStatus && ltStatus.missing_provenance && ltStatus.missing_provenance.length > 0 ? ` Still missing: ${ltStatus.missing_provenance.join(", ")}.` : "")), ltSection === "ref" && (() => {
+        const ref = ltTables.reference_cases && ltTables.reference_cases[0] || null;
+        const nRus = ref ? Object.keys(ref.rus_stages || {}).length : 0;
+        const nCar = ref ? Object.keys(ref.carpal_stages || {}).length : 0;
+        return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginBottom: "8px", lineHeight: "1.5" } }, "Pick one of your own previously-reported films: grade its bones in the grid above, then capture them here and type the score/age you reported. Scoring turns on only when these values reproduce."), /* @__PURE__ */ React.createElement("button", { onClick: useGridAsReference, style: { ...lcBtn("#0891b2", false), marginBottom: "8px" } }, "Capture reference stages from grid"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginBottom: "8px" } }, "Captured: ", nRus, "/13 RUS + ", nCar, "/7 carpal \xB7 sex ", ref ? ref.sex : "\u2014"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "8px", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#64748b" } }, "Reported RUS score"), /* @__PURE__ */ React.createElement("input", { type: "number", value: (ref && ref.expected && ref.expected.rus_score) ?? "", onChange: (e) => setRefExpected("rus_score", e.target.value), className: "input-field", style: { padding: "6px 8px", width: "100%" } })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#64748b" } }, "Reported TWIII-RUS age (yr)"), /* @__PURE__ */ React.createElement("input", { type: "number", step: "0.1", value: (ref && ref.expected && ref.expected.twiii_rus_age_years) ?? "", onChange: (e) => setRefExpected("twiii_rus_age_years", e.target.value), className: "input-field", style: { padding: "6px 8px", width: "100%" } }))));
+      })(), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("button", { onClick: saveLetterTables, disabled: ltBusy, style: lcBtn("#7c3aed", ltBusy) }, ltBusy ? "Saving\u2026" : "Validate & save tables"), ltMsg && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700", color: ltMsg.type === "ok" ? "#059669" : "#dc2626" } }, ltMsg.text)))
+    ), /* @__PURE__ */ React.createElement("div", { className: "split-grid", style: { marginTop: "12px" } }, /* @__PURE__ */ React.createElement(
+      InputWithUnit,
+      {
+        label: "TW3 Bone Age (used for prediction)",
+        value: boneAge,
+        onChange: (e) => {
+          setBoneAge(e.target.value === "" ? "" : parseFloat(e.target.value));
+          setBoneAgeSource("manual");
+        },
+        placeholder: "e.g. 10.5",
+        step: "0.1",
+        unit: "yrs",
+        accent: "#7c3aed"
+      }
+    ), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Source"), /* @__PURE__ */ React.createElement("div", { style: { padding: "10px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "9px", fontSize: "12px", fontWeight: "700", color: "#475569" } }, boneAge === "" ? "Not set" : boneAgeSource === "rus" ? "From RUS staging" : "Manual entry"))), /* @__PURE__ */ React.createElement("div", { className: "split-grid", style: { marginTop: "12px" } }, /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Father's Height", value: fatherHeight, onChange: (e) => setFatherHeight(e.target.value === "" ? "" : parseFloat(e.target.value)), placeholder: "cm (optional)", unit: "cm" }), /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Mother's Height", value: motherHeight, onChange: (e) => setMotherHeight(e.target.value === "" ? "" : parseFloat(e.target.value)), placeholder: "cm (optional)", unit: "cm" })), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "10px", padding: "12px 14px", fontSize: "11px", color: "#64748b", lineHeight: "1.6" } }, "The TW3 bone age is derived only from the 20 doctor-confirmed bone stages above (RUS + carpal) via the licensed TW3 tables \u2014 never from the whole-image AI, which is a rough screening triage only. Automatic per-bone staging from the X-ray is not yet available (it needs stage-labelled training data the clinic is now collecting)."), !boneMetrics ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, gap: "12px", padding: "36px 0", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "52px", height: "52px", borderRadius: "50%", background: "#f5f3ff", display: "flex", alignItems: "center", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "none", stroke: "#a78bfa", strokeWidth: "2", strokeLinecap: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M18 8a6 6 0 0 0-9.33-5" }), /* @__PURE__ */ React.createElement("path", { d: "M6 16a6 6 0 0 0 9.33 5" }), /* @__PURE__ */ React.createElement("line", { x1: "12", y1: "2", x2: "12", y2: "22" }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "700", color: "#64748b" } }, "Set a TW3 bone age or both parents' heights"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", maxWidth: "320px", lineHeight: "1.6" } }, "Stage the left hand\u2013wrist film above (TW3 RUS), or enter a TW3 bone age manually. Add parents' heights for the genetic target. Current height is taken from Demographics.")) : /* @__PURE__ */ React.createElement("div", null, boneMetrics.mph !== null ? /* @__PURE__ */ React.createElement("div", { className: "hero-result", style: { background: "linear-gradient(135deg,#f5f3ff,#eef2ff)", border: "1.5px solid #ddd6fe", borderRadius: "16px", padding: "24px", marginTop: "16px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.08em", color: "#7c3aed", marginBottom: "8px" } }, "Mid-Parental Target Height"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "10px" } }, /* @__PURE__ */ React.createElement("span", { className: "hero-value", style: { fontWeight: "900", color: "#5b21b6", lineHeight: 1 } }, boneMetrics.mph.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "13px", color: "#7c3aed", fontWeight: "600" } }, "cm")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#8b5cf6", marginTop: "4px" } }, "\u2248 ", Math.floor(boneMetrics.mph / 30.48), "\u2032", Math.round(boneMetrics.mph / 2.54 % 12), "\u2033 \xB7 genetic target from parents (Tanner) \xB7 range ", boneMetrics.mphLow.toFixed(0), "\u2013", boneMetrics.mphHigh.toFixed(0), " cm")), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "right" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: "Genetic target \u2014 not a prediction", variant: "info" }), boneMetrics.mphPct !== null && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "12px", color: "#7c3aed", fontWeight: "700" } }, boneMetrics.mphPct.toFixed(1), "th centile (Khadilkar)"))) : /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "12px", padding: "16px", fontSize: "13px", fontWeight: "700", color: "#7c3aed", lineHeight: "1.6" } }, "Add both parents' heights for the mid-parental (genetic target) height and its \xB18.5 cm range."), boneMetrics.mph !== null && (() => {
+      const lo = boneMetrics.mphLow, hi = boneMetrics.mphHigh, span = hi - lo;
+      const marker = boneMetrics.predictedPah !== null ? boneMetrics.predictedPah : boneMetrics.mph;
+      const pos = Math.min(Math.max((marker - lo) / span * 100, 1), 99);
+      return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "14px", background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e2e8f0" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "relative", height: "10px", borderRadius: "99px", background: "#e9d5ff" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: "-3px", left: `${pos}%`, width: "16px", height: "16px", borderRadius: "50%", background: "white", border: "3px solid #7c3aed", transform: "translateX(-50%)", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" } })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "10px", fontWeight: "700", color: "#94a3b8" } }, /* @__PURE__ */ React.createElement("span", null, lo.toFixed(0), " cm"), /* @__PURE__ */ React.createElement("span", { style: { color: "#7c3aed" } }, "target range \xB18.5 cm", boneMetrics.predictedPah !== null ? " \xB7 marker = skeletal prediction" : ""), /* @__PURE__ */ React.createElement("span", null, hi.toFixed(0), " cm")));
+    })(), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? "#f8fafc" : "#fffbeb", border: boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? "1px solid #e2e8f0" : "1px solid #fde68a", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700", letterSpacing: "0.05em", textTransform: "uppercase", color: "#64748b" } }, "Predicted Adult Height \xB7 TW3 skeletal"), boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "24px", fontWeight: "900", color: "#1e293b" } }, boneMetrics.predictedPah.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", color: "#94a3b8", marginLeft: "5px" } }, "cm"))), boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.predPct !== null ? `${boneMetrics.predPct.toFixed(1)}th centile \xB7 ` : "", boneMetrics.pct.toFixed(1), "% of adult height attained at bone age ", boneMetrics.ba.toFixed(1), " yr", boneMetrics.remaining !== null ? ` \xB7 ${boneMetrics.remaining.toFixed(1)} cm left to grow` : ""), boneMetrics.predVsTarget !== null && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "700", marginTop: "8px", color: boneMetrics.withinTarget ? "#059669" : "#d97706" } }, boneMetrics.predVsTarget >= 0 ? "+" : "", boneMetrics.predVsTarget.toFixed(1), " cm vs genetic target \xB7 ", boneMetrics.withinTarget ? "within" : "outside", " mid-parental channel")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#92400e", lineHeight: "1.7", marginTop: "4px" } }, /* @__PURE__ */ React.createElement("strong", null, "Calibration required \u2014 no value shown by design."), " A skeletal prediction needs the licensed TW3 \u201C% of adult height attained by bone age\u201D reference (or another validated method) in ", /* @__PURE__ */ React.createElement("code", null, "TW3_CONFIG.pctAdultHeight"), ". The mid-parental target above is a ", /* @__PURE__ */ React.createElement("em", null, "genetic target"), ", not a prediction, and is never substituted here.")), /* @__PURE__ */ React.createElement("div", { className: "secondary-grid", style: { marginTop: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Bone Age vs Chronological"), boneMetrics.hasBone ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "26px", fontWeight: "900", color: Math.abs(boneMetrics.diff) > 2 ? "#d97706" : "#1e293b", lineHeight: 1 } }, boneMetrics.diff >= 0 ? "+" : "", boneMetrics.diff.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "yr")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.diff > 1 ? "Advanced maturation" : boneMetrics.diff < -1 ? "Delayed maturation" : "Concordant with age")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8" } }, "No bone age set")), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Genetic Target on Khadilkar"), boneMetrics.mph !== null && boneMetrics.mphZ !== null ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "26px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, boneMetrics.mphZ >= 0 ? "+" : "", boneMetrics.mphZ.toFixed(2)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "SDS")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.mphPct.toFixed(1), "th percentile \xB7 target vs ", evalGender === "boys" ? "male" : "female", " adult (", boneMetrics.adult[0], " cm)")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8" } }, "Add parents' heights for target SDS"))), /* @__PURE__ */ React.createElement(MetricRow, { label: "Current Height", value: evalHeight.toFixed(1), unit: "cm", sub: `Chronological age ${evalAge.toFixed(1)} yr` })), /* @__PURE__ */ React.createElement("details", { className: "clinical-notes" }, /* @__PURE__ */ React.createElement("summary", null, "Clinical notes \xB7 TW3 workflow & Indian-population context"), /* @__PURE__ */ React.createElement("div", { className: "clinical-notes-body" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#4338ca", lineHeight: "1.7", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("strong", null, "TW3 workflow:"), " use a ", /* @__PURE__ */ React.createElement("strong", null, "left"), " hand\u2013wrist PA radiograph. Stage all ", /* @__PURE__ */ React.createElement("strong", null, "20 bones"), " \u2014 13 RUS (radius, ulna, metacarpals 1\xB73\xB75, proximal/middle/distal phalanges 1\xB73\xB75) and 7 carpals \u2014 with the original TW3 letters A\u2192I. RUS and carpal maturity scores convert to ", /* @__PURE__ */ React.createElement("strong", null, "separate"), " bone ages (never averaged). Two independent reads within \xB10.5 yr is acceptable. Bayley\u2013Pinneau and Greulich\u2013Pyle are ", /* @__PURE__ */ React.createElement("strong", null, "not"), " used."), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#92400e", lineHeight: "1.7" } }, /* @__PURE__ */ React.createElement("strong", null, "Indian-population note:"), " No India-specific TW3 reference exists. In validation on Indian children, ", /* @__PURE__ */ React.createElement("strong", null, "TW3 was the most accurate"), " of the common methods (Shah et al., 2021, 851 children), which is why it is used here. However, skeletal maturation in Indian children differs from Western standards: boys run roughly ", /* @__PURE__ */ React.createElement("strong", null, "~6 months behind"), " and girls vary (delayed pre-puberty, sometimes advanced in early puberty) (Patel 2012; Khadilkar 2022). Scoring uses ", /* @__PURE__ */ React.createElement("strong", null, "TW3-C (Chinese)"), " tables as the closest freely-available reference \u2014 ", /* @__PURE__ */ React.createElement("strong", null, "no numeric correction is applied automatically"), ". Interpret borderline results, and ", /* @__PURE__ */ React.createElement("strong", null, "pubertal boys especially"), ", with clinical correlation."))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "auto", paddingTop: "18px", borderTop: "1px solid #f1f5f9", fontSize: "11px", color: "#94a3b8", lineHeight: "1.7" } }, "TW3: Tanner, Healy, Goldstein & Cameron (2001) \u2014 licensed reference values required for scoring & skeletal height prediction. Mid-parental target: Tanner (open). Adult-height SDS/centile vs Khadilkar (WHO\u2013IAP) 18-yr reference. Clinician must verify \u2014 not a diagnostic device.")));
   }
 
   // frontend/src/app.jsx
@@ -1461,7 +2701,7 @@
         return;
       }
       const carp = {};
-      Object.entries(carpalStages).forEach(([n, g]) => carp[carpalCode(n)] = g);
+      Object.entries(carpalStages).forEach(([n, g]) => carp[carpalCode2(n)] = g);
       const aiYrs = aiEstimate && aiEstimate.bone_age_years != null ? aiEstimate.bone_age_years : null;
       const id = setTimeout(() => {
         fetch("/api/bone-age/letters-score", {
@@ -1549,572 +2789,106 @@
         adult
       };
     }, [boneAge, evalAge, evalGender, evalHeight, fatherHeight, motherHeight, adultHeightStats]);
-    const LC_API = "/api/bone-age/assessments";
-    const lcLocked = assessment && (assessment.assessment_status === "approved" || assessment.assessment_status === "superseded");
-    const saveDraft = async () => {
-      if (!patientCode.trim()) {
-        setLcMsg({ type: "err", text: "Enter a patient code to save." });
-        return;
-      }
-      if (evalGender !== "boys" && evalGender !== "girls") {
-        setLcMsg({ type: "err", text: "Set biological sex first." });
-        return;
-      }
-      const carpalEntries = Object.entries(carpalStages).map(([n, g]) => [carpalCode(n), g]);
-      if (Object.keys(rusStages).length === 0 && carpalEntries.length === 0) {
-        setLcMsg({ type: "err", text: "Grade at least one bone." });
-        return;
-      }
-      setLcBusy(true);
-      setLcMsg(null);
-      try {
-        let a = assessment;
-        if (!a || a.assessment_status === "approved" || a.assessment_status === "superseded") {
-          const res = await fetch(LC_API, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              patient_code: patientCode.trim(),
-              sex: evalGender,
-              chronological_age_years: age !== "" ? Number(age) : null,
-              stage_system: "tw3-letters"
-            })
-          });
-          if (!res.ok) throw new Error((await res.json()).detail || "create failed");
-          a = await res.json();
-        }
-        for (const [bone, grade] of [...Object.entries(rusStages), ...carpalEntries]) {
-          const r = await fetch(`${LC_API}/${a.id}/bones/${bone}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ stage: grade })
-          });
-          if (r.ok) {
-            a = await r.json();
-          } else {
-            throw new Error((await r.json()).detail || `could not save ${bone}`);
-          }
-        }
-        setAssessment(a);
-        setLcMsg({ type: "ok", text: `Saved annotation \xB7 #${a.id} rev ${a.revision} \xB7 ${a.rus_staged_count}/13 RUS + ${a.carpal_staged_count}/7 carpal` });
-      } catch (e) {
-        setLcMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setLcBusy(false);
-      }
-    };
-    const bonesIntoGrids = (bones) => {
-      const rus = {}, carp = {}, bx = {};
-      (bones || []).forEach((b) => {
-        if (b.localisation_box) bx[b.bone_code] = b.localisation_box;
-        if (!b.confirmed_stage) return;
-        if (b.bone_group === "carpal") carp[carpalName(b.bone_code)] = b.confirmed_stage;
-        else rus[b.bone_code] = b.confirmed_stage;
-      });
-      setRusStages(rus);
-      setCarpalStages(carp);
-      setBoxes(bx);
-    };
-    const calculateAssessment = async () => {
-      if (!assessment) return;
-      setLcBusy(true);
-      setLcMsg(null);
-      try {
-        const res = await fetch(`${LC_API}/${assessment.id}/calculate`, { method: "POST" });
-        const d = await res.json();
-        if (!res.ok) {
-          setLcMsg({ type: "err", text: d.detail || "calculate failed" });
-        } else {
-          setAssessment(d);
-          if (d.bone_age_years != null) {
-            setBoneAge(Number(d.bone_age_years.toFixed(1)));
-            setBoneAgeSource("rus");
-          }
-          setLcMsg({ type: "ok", text: `Calculated \xB7 RUS ${d.total_rus_score} \u2192 ${d.bone_age_years} yr` });
-        }
-      } catch (e) {
-        setLcMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setLcBusy(false);
-      }
-    };
-    const approveAssessment = async () => {
-      if (!assessment) return;
-      if (!approverName.trim()) {
-        setLcMsg({ type: "err", text: "Enter the approving doctor name." });
-        return;
-      }
-      setLcBusy(true);
-      setLcMsg(null);
-      try {
-        const res = await fetch(`${LC_API}/${assessment.id}/approve`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ approved_by: approverName.trim() })
-        });
-        const d = await res.json();
-        if (!res.ok) setLcMsg({ type: "err", text: d.detail || "approve failed" });
-        else {
-          setAssessment(d);
-          setLcMsg({ type: "ok", text: `Approved by ${d.approved_by}` });
-        }
-      } catch (e) {
-        setLcMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setLcBusy(false);
-      }
-    };
-    const reviseAssessment = async () => {
-      if (!assessment) return;
-      setLcBusy(true);
-      setLcMsg(null);
-      try {
-        const res = await fetch(`${LC_API}/${assessment.id}/revise`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reason: "re-read" })
-        });
-        const d = await res.json();
-        if (!res.ok) setLcMsg({ type: "err", text: d.detail || "revise failed" });
-        else {
-          bonesIntoGrids(d.bones);
-          setAssessment(d);
-          setShowAudit(false);
-          setLcMsg({ type: "ok", text: `Opened revision ${d.revision} (draft)` });
-        }
-      } catch (e) {
-        setLcMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setLcBusy(false);
-      }
-    };
-    const toggleAudit = async () => {
-      if (!assessment) return;
-      const next = !showAudit;
-      setShowAudit(next);
-      if (next) {
-        try {
-          const r = await fetch(`${LC_API}/${assessment.id}?include_audit=true`);
-          if (r.ok) setAssessment(await r.json());
-        } catch {
-        }
-      }
-    };
-    const submitFeedback = async () => {
-      const yrs = parseFloat(fbAge);
-      if (!(yrs > 0)) {
-        setFbMsg({ type: "err", text: "Enter the correct bone age in years." });
-        return;
-      }
-      setFbBusy(true);
-      setFbMsg(null);
-      try {
-        const body = {
-          corrected_age_years: yrs,
-          method: fbMethod,
-          confidence: fbConfidence,
-          rater_id: fbRater || null,
-          sex: evalGender === "boys" || evalGender === "girls" ? evalGender : null,
-          chronological_age_years: evalAge || null,
-          ai_estimate_years: aiEstimate && aiEstimate.bone_age_years != null ? aiEstimate.bone_age_years : null,
-          ai_model_version: aiEstimate && aiEstimate.model_version || null,
-          radiograph_id: radiograph && radiograph.id || null,
-          assessment_id: assessment && assessment.id || null,
-          image_domain: radiograph && radiograph.source_domain || estimateDomain || null,
-          note: fbNote || null
-        };
-        const res = await fetch("/api/bone-age/feedback", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        const d = await res.json();
-        if (!res.ok) {
-          setFbMsg({ type: "err", text: d.detail || "could not save" });
-        } else {
-          setFbMsg({ type: "ok", text: d.message || "Thanks \u2014 logged." });
-          setFbAge("");
-          setFbNote("");
-        }
-      } catch (e) {
-        setFbMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setFbBusy(false);
-      }
-    };
-    const runEstimate = async (fileObj, flags) => {
-      if (evalGender !== "boys" && evalGender !== "girls") {
-        setAiEstimate({ error: "Set biological sex in Demographics first." });
-        return;
-      }
-      const useFlags = flags || declaredFlags;
-      setLastFilm(fileObj);
-      setAiBusy(true);
-      setAiEstimate(null);
-      try {
-        const fd = new FormData();
-        fd.append("file", fileObj);
-        fd.append("sex", evalGender);
-        fd.append("image_domain", estimateDomain);
-        fd.append("declared_flags", useFlags.join(","));
-        const res = await fetch("/api/bone-age/estimate", { method: "POST", body: fd });
-        const d = await res.json();
-        if (!res.ok) setAiEstimate({ error: d.detail || "estimate failed" });
-        else setAiEstimate(d);
-      } catch (e) {
-        setAiEstimate({ error: String(e.message || e) });
-      } finally {
-        setAiBusy(false);
-      }
-    };
-    const toggleDeclaredFlag = (code) => {
-      setDeclaredFlags((prev) => {
-        const next = prev.includes(code) ? prev.filter((f) => f !== code) : [...prev, code];
-        if (lastFilm) runEstimate(lastFilm, next);
-        return next;
-      });
-    };
-    const attachImage = async (fileObj) => {
-      if (!assessment) {
-        setLcMsg({ type: "err", text: "Save the draft first, then attach a film." });
-        return;
-      }
-      if (lcLocked) {
-        setLcMsg({ type: "err", text: "Assessment is locked; open a revision to change the image." });
-        return;
-      }
-      setLcBusy(true);
-      setLcMsg(null);
-      try {
-        const fd = new FormData();
-        fd.append("file", fileObj);
-        const res = await fetch(`${LC_API}/${assessment.id}/image`, { method: "POST", body: fd });
-        const d = await res.json();
-        if (!res.ok) {
-          setLcMsg({ type: "err", text: d.detail || "upload failed" });
-        } else {
-          setRadiograph(d);
-          setLcMsg({ type: "ok", text: `Film attached \xB7 ${d.source_format} \xB7 ${d.quality_status.replace(/_/g, " ")}` });
-          runEstimate(fileObj);
-          localizeBones();
-        }
-      } catch (e) {
-        setLcMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setLcBusy(false);
-      }
-    };
-    const loadCoverage = async () => {
-      setCovBusy(true);
-      try {
-        const r = await fetch("/api/bone-age/coverage");
-        if (r.ok) setCoverage(await r.json());
-      } catch {
-      } finally {
-        setCovBusy(false);
-      }
-    };
-    const loadMonitoring = async () => {
-      setMonBusy(true);
-      try {
-        const r = await fetch("/api/bone-age/monitoring");
-        if (r.ok) setMonitoring(await r.json());
-      } catch {
-      } finally {
-        setMonBusy(false);
-      }
-    };
-    const loadAdjudication = async () => {
-      setAdjBusy(true);
-      setAdjMsg(null);
-      try {
-        const r = await fetch("/api/bone-age/adjudication?status=open");
-        if (r.ok) setAdjItems((await r.json()).items || []);
-      } catch (e) {
-        setAdjMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setAdjBusy(false);
-      }
-    };
-    const resolveAdjudication = async (id, stage) => {
-      if (!adjReviewer.trim()) {
-        setAdjMsg({ type: "err", text: "Enter the reviewing clinician first." });
-        return;
-      }
-      setAdjBusy(true);
-      setAdjMsg(null);
-      try {
-        const r = await fetch(`/api/bone-age/adjudication/${id}/resolve`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ resolved_stage: stage, resolved_by: adjReviewer.trim() })
-        });
-        if (r.ok) {
-          setAdjMsg({ type: "ok", text: `Resolved to stage ${stage}.` });
-          await loadAdjudication();
-        } else {
-          const e = await r.json();
-          setAdjMsg({ type: "err", text: e.detail || "Resolve failed." });
-        }
-      } catch (e) {
-        setAdjMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setAdjBusy(false);
-      }
-    };
-    const _emptyLt = () => ({
-      method: "TW3-letters",
-      version: "letters-clinic",
-      rus_stage_to_score: { boys: {}, girls: {} },
-      carpal_stage_to_score: { boys: {}, girls: {} },
-      rus_score_to_age: { twii: { boys: [], girls: [] }, twiii: { boys: [], girls: [] } },
-      carpal_score_to_age: { twii: { boys: [], girls: [] }, twiii: { boys: [], girls: [] } },
-      tw20_stage_to_score: { boys: {}, girls: {} },
-      tw20_score_to_age: { boys: [], girls: [] },
-      reference_cases: []
-    });
-    const loadLetterTables = async () => {
-      setLtBusy(true);
-      setLtMsg(null);
-      try {
-        const d = await (await fetch("/api/bone-age/letters-tables")).json();
-        const t = d.tables && d.tables.rus_stage_to_score ? d.tables : _emptyLt();
-        t.rus_stage_to_score = t.rus_stage_to_score || { boys: {}, girls: {} };
-        t.carpal_stage_to_score = t.carpal_stage_to_score || { boys: {}, girls: {} };
-        t.rus_score_to_age = t.rus_score_to_age || { twii: { boys: [], girls: [] }, twiii: { boys: [], girls: [] } };
-        t.carpal_score_to_age = t.carpal_score_to_age || { twii: { boys: [], girls: [] }, twiii: { boys: [], girls: [] } };
-        t.tw20_stage_to_score = t.tw20_stage_to_score || { boys: {}, girls: {} };
-        t.tw20_score_to_age = t.tw20_score_to_age || { boys: [], girls: [] };
-        t.reference_cases = (t.reference_cases || []).filter((c) => c && !c._fill && !String(c.id || "").startsWith("example"));
-        setLtTables(t);
-        setLtStatus(d.status);
-      } catch (e) {
-        setLtMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setLtBusy(false);
-      }
-    };
-    const setLtPoint = (group, sex, bone, letter, val) => {
-      setLtTables((prev) => {
-        const t = JSON.parse(JSON.stringify(prev || _emptyLt()));
-        t[group][sex] = t[group][sex] || {};
-        t[group][sex][bone] = t[group][sex][bone] || {};
-        if (val === "" || val === null) delete t[group][sex][bone][letter];
-        else t[group][sex][bone][letter] = Number(val);
-        return t;
-      });
-    };
-    const curveToText = (arr) => (arr || []).map((p) => p.join(", ")).join("\n");
-    const parseCurve = (text) => text.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => l.split(/[\s,]+/).map(Number)).filter((p) => p.length === 2 && p.every((n) => !isNaN(n)));
-    const setLtCurve = (group, curve, sex, text) => {
-      setLtTables((prev) => {
-        const t = JSON.parse(JSON.stringify(prev || _emptyLt()));
-        t[group][curve] = t[group][curve] || {};
-        t[group][curve][sex] = parseCurve(text);
-        return t;
-      });
-    };
-    const setLtSexCurve = (group, sex, text) => {
-      setLtTables((prev) => {
-        const t = JSON.parse(JSON.stringify(prev || _emptyLt()));
-        t[group] = t[group] || {};
-        t[group][sex] = parseCurve(text);
-        return t;
-      });
-    };
-    const useGridAsReference = () => {
-      const rus = { ...rusStages };
-      const carp = {};
-      Object.entries(carpalStages).forEach(([n, g]) => carp[carpalCode(n)] = g);
-      setLtTables((prev) => {
-        const t = JSON.parse(JSON.stringify(prev || _emptyLt()));
-        t.reference_cases = [{
-          id: "clinic-ref-1",
-          sex: evalGender === "girls" ? "girls" : "boys",
-          rus_stages: rus,
-          carpal_stages: carp,
-          expected: t.reference_cases[0] && t.reference_cases[0].expected || { rus_score: null, twiii_rus_age_years: null },
-          tolerance_years: 0.3
-        }];
-        return t;
-      });
-      setLtMsg({ type: "ok", text: "Reference stages captured from the grading grid. Now enter the reported score/age below." });
-    };
-    const setRefExpected = (field, val) => {
-      setLtTables((prev) => {
-        const t = JSON.parse(JSON.stringify(prev || _emptyLt()));
-        if (!t.reference_cases[0]) t.reference_cases[0] = { id: "clinic-ref-1", sex: "girls", rus_stages: {}, carpal_stages: {}, expected: {}, tolerance_years: 0.3 };
-        t.reference_cases[0].expected = t.reference_cases[0].expected || {};
-        t.reference_cases[0].expected[field] = val === "" ? null : Number(val);
-        return t;
-      });
-    };
-    const saveLetterTables = async () => {
-      setLtBusy(true);
-      setLtMsg(null);
-      try {
-        const r = await fetch("/api/bone-age/letters-tables", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tables: ltTables })
-        });
-        const d = await r.json();
-        if (!r.ok) {
-          setLtMsg({ type: "err", text: d.detail || "save failed" });
-        } else {
-          setLtStatus(d.status);
-          if (d.status.scoring_ready) setLtMsg({ type: "ok", text: "Saved \u2014 TW3 scoring is ON (accuracy gate passed). The report now fills with real numbers." });
-          else if (!d.status.reference_validation.all_passed && d.status.reference_validation.n_cases > 0)
-            setLtMsg({ type: "err", text: "Saved, but scoring stays OFF: the reference case is not reproduced by these values \u2014 recheck the points/curve or the reported numbers." });
-          else if (d.status.provenance_complete === false)
-            setLtMsg({ type: "err", text: "Saved, but scoring stays OFF: document the licensed source in the Provenance tab (book, edition, owner, who entered/verified, date)." });
-          else setLtMsg({ type: "err", text: "Saved, but scoring stays OFF: fill every bone\u2019s points, the score\u2192age curves, and a reference case." });
-        }
-      } catch (e) {
-        setLtMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setLtBusy(false);
-      }
-    };
-    const setImageDomain = async (domain) => {
-      if (!assessment) return;
-      try {
-        const res = await fetch(`${LC_API}/${assessment.id}/image-domain`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ domain })
-        });
-        const d = await res.json();
-        if (!res.ok) {
-          setLcMsg({ type: "err", text: d.detail || "could not set domain" });
-        } else {
-          setRadiograph((r) => ({ ...r || {}, source_domain: d.source_domain }));
-        }
-      } catch (e) {
-        setLcMsg({ type: "err", text: String(e.message || e) });
-      }
-    };
-    const analysisUrl = radiograph ? `/api/bone-age/radiographs/${radiograph.radiograph_id}/analysis` : null;
-    const localizeBones = async () => {
-      if (!assessment) {
-        setLocMsg({ type: "err", text: "Save the annotation and attach a film first." });
-        return;
-      }
-      setLocBusy(true);
-      setLocMsg(null);
-      try {
-        const res = await fetch(`${LC_API}/${assessment.id}/localize`, { method: "POST" });
-        const d = await res.json();
-        if (!res.ok) {
-          setLocMsg({ type: "err", text: d.detail || "localize failed" });
-          return;
-        }
-        if (d.image_width) setLocImg({ width: d.image_width, height: d.image_height });
-        if (!d.available) {
-          setLocMsg({ type: "err", text: d.message || "No localizer model installed." });
-          return;
-        }
-        const nb = { ...boxes };
-        (d.boxes || []).forEach((b) => {
-          nb[b.bone_code] = b.box;
-        });
-        setBoxes(nb);
-        setLocMsg({ type: "ok", text: `Auto-located ${(d.boxes || []).length} bones \u2014 drag to correct, then Save boxes.` });
-      } catch (e) {
-        setLocMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setLocBusy(false);
-      }
-    };
-    const addOrSelectBox = (bone) => {
-      setSelBone(bone);
-      setBoxes((prev) => {
-        if (prev[bone] || !locImg) return prev;
-        const s = Math.min(locImg.width, locImg.height) * 0.16;
-        const cx = locImg.width / 2, cy = locImg.height / 2;
-        return { ...prev, [bone]: [cx - s / 2, cy - s / 2, cx + s / 2, cy + s / 2] };
-      });
-    };
-    const clearBox = (bone) => setBoxes((prev) => {
-      const n = { ...prev };
-      delete n[bone];
-      return n;
-    });
-    const saveBoxes = async () => {
-      if (!assessment) return;
-      setLocBusy(true);
-      setLocMsg(null);
-      try {
-        let a = assessment;
-        const cur = boxesRef.current;
-        const codes = new Set(Object.keys(cur));
-        for (const [bone, box] of Object.entries(cur)) {
-          const r = await fetch(`${LC_API}/${assessment.id}/bones/${bone}/box`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ box: box.map((v) => Math.round(v * 10) / 10) })
-          });
-          if (r.ok) a = await r.json();
-          else throw new Error((await r.json()).detail || `save ${bone}`);
-        }
-        (a.bones || []).forEach(async (b) => {
-          if (b.localisation_box && !codes.has(b.bone_code)) {
-            await fetch(`${LC_API}/${assessment.id}/bones/${b.bone_code}/box`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ box: null })
-            });
-          }
-        });
-        setAssessment(a);
-        setLocMsg({ type: "ok", text: `Saved ${codes.size} bone box${codes.size === 1 ? "" : "es"}.` });
-      } catch (e) {
-        setLocMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setLocBusy(false);
-      }
-    };
-    const startBoxDrag = (bone, mode, e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!locRef.current || !locImg) return;
-      const rect = locRef.current.getBoundingClientRect();
-      const scale = rect.width / locImg.width;
-      locDrag.current = {
-        bone,
-        mode,
-        mx: (e.clientX - rect.left) / scale,
-        my: (e.clientY - rect.top) / scale,
-        orig: [...boxesRef.current[bone] || [0, 0, 0, 0]]
-      };
-      setSelBone(bone);
-    };
-    const onLocMove = (e) => {
-      const d = locDrag.current;
-      if (!d || !locRef.current || !locImg) return;
-      const rect = locRef.current.getBoundingClientRect();
-      const scale = rect.width / locImg.width;
-      const mx = (e.clientX - rect.left) / scale, my = (e.clientY - rect.top) / scale;
-      const W = locImg.width, H = locImg.height, clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-      setBoxes((prev) => {
-        let [x0, y0, x1, y1] = d.orig;
-        if (d.mode === "move") {
-          let dx = mx - d.mx, dy = my - d.my;
-          dx = clamp(dx, -x0, W - x1);
-          dy = clamp(dy, -y0, H - y1);
-          return { ...prev, [d.bone]: [x0 + dx, y0 + dy, x1 + dx, y1 + dy] };
-        }
-        return { ...prev, [d.bone]: [x0, y0, clamp(mx, x0 + 8, W), clamp(my, y0 + 8, H)] };
-      });
-    };
-    const endLocDrag = () => {
-      locDrag.current = null;
-    };
-    const lcBtn = (bg, disabled) => ({
-      padding: "7px 12px",
-      background: disabled ? "#cbd5e1" : bg,
-      color: "white",
-      border: "none",
-      borderRadius: "8px",
-      fontSize: "11px",
-      fontWeight: "700",
-      cursor: disabled ? "not-allowed" : "pointer"
+    const {
+      LC_API,
+      lcLocked,
+      saveDraft,
+      bonesIntoGrids,
+      calculateAssessment,
+      approveAssessment,
+      reviseAssessment,
+      toggleAudit,
+      submitFeedback,
+      runEstimate,
+      toggleDeclaredFlag,
+      attachImage,
+      loadCoverage,
+      loadMonitoring,
+      loadAdjudication,
+      resolveAdjudication,
+      _emptyLt,
+      loadLetterTables,
+      setLtPoint,
+      curveToText,
+      parseCurve,
+      setLtCurve,
+      setLtSexCurve,
+      useGridAsReference,
+      setRefExpected,
+      saveLetterTables,
+      setImageDomain,
+      analysisUrl,
+      localizeBones,
+      addOrSelectBox,
+      clearBox,
+      saveBoxes,
+      startBoxDrag,
+      onLocMove,
+      endLocDrag,
+      lcBtn
+    } = useBoneAgeHandlers({
+      adjReviewer,
+      age,
+      aiEstimate,
+      approverName,
+      assessment,
+      boxes,
+      boxesRef,
+      carpalStages,
+      coverage,
+      declaredFlags,
+      estimateDomain,
+      evalAge,
+      evalGender,
+      fbAge,
+      fbConfidence,
+      fbMethod,
+      fbNote,
+      fbRater,
+      height,
+      lastFilm,
+      locDrag,
+      locImg,
+      locRef,
+      ltTables,
+      monitoring,
+      patientCode,
+      radiograph,
+      rusStages,
+      setAdjBusy,
+      setAdjItems,
+      setAdjMsg,
+      setAiBusy,
+      setAiEstimate,
+      setAssessment,
+      setBoneAge,
+      setBoneAgeSource,
+      setBoxes,
+      setCarpalStages,
+      setCovBusy,
+      setCoverage,
+      setDeclaredFlags,
+      setFbAge,
+      setFbBusy,
+      setFbMsg,
+      setFbNote,
+      setLastFilm,
+      setLcBusy,
+      setLcMsg,
+      setLocBusy,
+      setLocImg,
+      setLocMsg,
+      setLtBusy,
+      setLtMsg,
+      setLtStatus,
+      setLtTables,
+      setMonBusy,
+      setMonitoring,
+      setRadiograph,
+      setRusStages,
+      setSelBone,
+      setShowAudit,
+      showAudit
     });
     const qriskMetrics = useMemo(() => {
       const bmi = evalHeight > 0 ? evalWeight / Math.pow(evalHeight / 100, 2) : null;
@@ -2446,7 +3220,7 @@
     ];
     const labsRelevant = ["renal", "liver", "qrisk", "timeline", "overview"].includes(activeTab);
     const fraxRelevant = ["frax", "overview"].includes(activeTab);
-    const clinicalState = useMemo(() => ({
+    const clinicalState = {
       age,
       dob,
       gender,
@@ -2467,6 +3241,106 @@
       monitoring,
       fraxMetrics,
       hasManualFrax,
+      DECLARABLE_FLAGS,
+      LC_API,
+      addOrSelectBox,
+      adjBusy,
+      adjItems,
+      adjMsg,
+      adjReviewer,
+      aiBusy,
+      aiEstimate,
+      analysisUrl,
+      attachImage,
+      boneAge,
+      boneAgeSource,
+      boneMetrics,
+      boneReport,
+      bonesIntoGrids,
+      boxes,
+      carpalStages,
+      clearBox,
+      covBusy,
+      coverage,
+      curveToText,
+      declaredFlags,
+      endLocDrag,
+      estimateDomain,
+      fatherHeight,
+      fbAge,
+      fbBusy,
+      fbConfidence,
+      fbMethod,
+      fbMsg,
+      fbNote,
+      fbRater,
+      lcBtn,
+      lcBusy,
+      lcLocked,
+      lcMsg,
+      letterResult,
+      loadAdjudication,
+      loadCoverage,
+      loadLetterTables,
+      loadMonitoring,
+      locBusy,
+      locImg,
+      locMsg,
+      locRef,
+      localizeBones,
+      ltBusy,
+      ltMsg,
+      ltSection,
+      ltSex,
+      ltStatus,
+      ltTables,
+      monBusy,
+      motherHeight,
+      onLocMove,
+      patientCode,
+      radiograph,
+      resolveAdjudication,
+      reviseAssessment,
+      runEstimate,
+      rusStages,
+      saveBoxes,
+      saveDraft,
+      saveLetterTables,
+      selBone,
+      setAdjReviewer,
+      setAssessment,
+      setBoneAge,
+      setBoneAgeSource,
+      setCarpalStages,
+      setEstimateDomain,
+      setFatherHeight,
+      setFbAge,
+      setFbConfidence,
+      setFbMethod,
+      setFbNote,
+      setFbRater,
+      setImageDomain,
+      setLcBusy,
+      setLcMsg,
+      setLocImg,
+      setLtCurve,
+      setLtPoint,
+      setLtSection,
+      setLtSex,
+      setLtSexCurve,
+      setLtTables,
+      setMotherHeight,
+      setPatientCode,
+      setRefExpected,
+      setRusStages,
+      setShowAudit,
+      showAudit,
+      startBoxDrag,
+      submitFeedback,
+      toggleAudit,
+      toggleDeclaredFlag,
+      tw3Config,
+      useGridAsReference,
       albuminuria,
       assessment,
       cholRatio,
@@ -2519,80 +3393,7 @@
       smokeCat,
       systolic,
       timeline
-    }), [
-      age,
-      dob,
-      gender,
-      height,
-      weight,
-      evalAge,
-      evalHeight,
-      evalWeight,
-      patientName,
-      patientMrn,
-      examDate,
-      liverMetrics,
-      hasManualLiver,
-      platelets,
-      renalMetrics,
-      hasManualRenal,
-      creatinine,
-      monitoring,
-      fraxMetrics,
-      hasManualFrax,
-      albuminuria,
-      assessment,
-      cholRatio,
-      chronicityStatus,
-      diabetes,
-      ethnicity,
-      evalGender,
-      exportGrowthReportPdf,
-      growthChartMeasure,
-      growthMetrics,
-      growthSeries,
-      hasManualGrowth,
-      logCurrentData,
-      moduleStatus,
-      printGrowthReport,
-      qAF,
-      qAtypAntipsy,
-      qCKD,
-      qCortico,
-      qED,
-      qFhCvd,
-      qMigraine,
-      qRA,
-      qSLE,
-      qSMI,
-      qTreatedHtn,
-      qriskMetrics,
-      sbpSD,
-      setActiveTab,
-      setCholRatio,
-      setDiabetes,
-      setEthnicity,
-      setGrowthChartMeasure,
-      setQAF,
-      setQAtypAntipsy,
-      setQCKD,
-      setQCortico,
-      setQED,
-      setQFhCvd,
-      setQMigraine,
-      setQRA,
-      setQSLE,
-      setQSMI,
-      setQTreatedHtn,
-      setSbpSD,
-      setShowChart,
-      setSmokeCat,
-      setTimeline,
-      showChart,
-      smokeCat,
-      systolic,
-      timeline
-    ]);
+    };
     return /* @__PURE__ */ React.createElement(ClinicalStateProvider, { value: clinicalState }, /* @__PURE__ */ React.createElement("div", { className: "app-shell" }, /* @__PURE__ */ React.createElement("header", { style: { background: "white", borderBottom: "1px solid #e8ecf0", position: "sticky", top: 0, zIndex: 50, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" } }, /* @__PURE__ */ React.createElement("div", { className: "app-header-inner" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "36px", height: "36px", borderRadius: "10px", background: "linear-gradient(135deg,#4f46e5,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, /* @__PURE__ */ React.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M22 12h-4l-3 9L9 3l-3 9H2" }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "app-title", style: { fontSize: "15px", fontWeight: "900", color: "#0f172a", lineHeight: 1.2 } }, "Pediatric Clinical Workspace"), /* @__PURE__ */ React.createElement("div", { className: "app-subtitle", style: { fontSize: "10px", fontWeight: "700", color: "#94a3b8", letterSpacing: "0.06em", textTransform: "uppercase" } }, "Growth \xB7 TW3 Bone Age \xB7 QRISK3 \xB7 Renal \xB7 FRAX \xB7 FIB-4"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 } }, /* @__PURE__ */ React.createElement(
       "button",
       {
@@ -2682,349 +3483,7 @@
         }
       ),
       tab.id === "timeline" && timeline.length > 0 && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "6px", background: "#4f46e5", color: "white", fontSize: "9px", fontWeight: "800", padding: "1px 6px", borderRadius: "99px" } }, timeline.length)
-    )))), /* @__PURE__ */ React.createElement("div", { className: "card-lg result-panel" }, activeTab === "overview" && /* @__PURE__ */ React.createElement(OverviewPanel, null), activeTab === "growth" && /* @__PURE__ */ React.createElement(GrowthPanel, null), activeTab === "boneage" && /* @__PURE__ */ React.createElement("div", { style: { flex: 1, display: "flex", flexDirection: "column" } }, /* @__PURE__ */ React.createElement(
-      SectionHeader,
-      {
-        title: "Bone Age \xB7 20-bone staging (13 RUS + 7 carpal)",
-        subtitle: "TW3 scores RUS and carpal SEPARATELY and defines no combined 20-bone age (that is a TW2 construct) \u2014 all 20 are staged for per-bone visibility \xB7 letters A\u2013I, doctor-graded \xB7 Indian (Khadilkar) adult-height context",
-        badge: boneMetrics && boneMetrics.hasBone ? "TW3 bone age set" : "Grade the film",
-        badgeVariant: "info"
-      }
-    ), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "linear-gradient(135deg,#eef2ff,#faf5ff)", border: "1.5px solid #ddd6fe", borderRadius: "16px", padding: "18px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#6b21a8", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "10px" } }, "1 \xB7 Attach hand X\u2011ray \u2192 bone age"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "16px", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("label", { style: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "4px", padding: "18px 22px", border: "1.5px dashed #c7d2fe", borderRadius: "12px", background: "white", cursor: tw3Config && tw3Config.ai_estimate_available ? "pointer" : "not-allowed", textAlign: "center", minWidth: "190px" } }, /* @__PURE__ */ React.createElement("svg", { width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "#7c3aed", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" }), /* @__PURE__ */ React.createElement("polyline", { points: "17 8 12 3 7 8" }), /* @__PURE__ */ React.createElement("line", { x1: "12", y1: "3", x2: "12", y2: "15" })), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", fontWeight: "700", color: "#7c3aed" } }, "Attach left-hand film"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", color: "#a78bfa" } }, "DICOM \xB7 PNG \xB7 JPEG \xB7 runs locally"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        type: "file",
-        accept: ".dcm,image/*",
-        style: { display: "none" },
-        disabled: !(tw3Config && tw3Config.ai_estimate_available),
-        onChange: (e) => {
-          const f = e.target.files && e.target.files[0];
-          if (f) runEstimate(f);
-          e.target.value = "";
-        }
-      }
-    )), /* @__PURE__ */ React.createElement("div", { style: { minWidth: "170px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Image source"), /* @__PURE__ */ React.createElement("select", { value: estimateDomain, onChange: (e) => setEstimateDomain(e.target.value), className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "11px" } }, IMAGE_DOMAINS.map(([v, label]) => /* @__PURE__ */ React.createElement("option", { key: v, value: v }, label))), /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", margin: "8px 0 3px" } }, "Declare image issues"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "4px" } }, DECLARABLE_FLAGS.map(([code, label]) => {
-      const on = declaredFlags.includes(code);
-      return /* @__PURE__ */ React.createElement(
-        "button",
-        {
-          key: code,
-          onClick: () => toggleDeclaredFlag(code),
-          title: code,
-          style: {
-            fontSize: "10px",
-            fontWeight: "700",
-            padding: "2px 7px",
-            borderRadius: "999px",
-            cursor: "pointer",
-            border: on ? "1px solid #dc2626" : "1px solid #cbd5e1",
-            background: on ? "#fee2e2" : "white",
-            color: on ? "#991b1b" : "#64748b"
-          }
-        },
-        on ? "\u2715 " : "",
-        label
-      );
-    })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "9px", color: "#94a3b8", marginTop: "3px", lineHeight: "1.4" } }, "Any of these makes the AI estimate abstain \u2014 a whole-hand model can't read these films.")), /* @__PURE__ */ React.createElement("div", { style: { flex: 1, minWidth: "200px" } }, aiBusy && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#4338ca", fontWeight: "600" } }, "Analysing locally\u2026"), aiEstimate && aiEstimate.error && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#b45309", fontWeight: "600" } }, aiEstimate.error), aiEstimate && aiEstimate.accepted === false && /* @__PURE__ */ React.createElement("div", { style: { background: "#fef2f2", border: "1.5px solid #fecaca", borderRadius: "10px", padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", fontWeight: "800", color: "#991b1b" } }, "\u26A0 Manual assessment required"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10.5px", color: "#b91c1c", marginTop: "4px", lineHeight: "1.5" } }, aiEstimate.message), aiEstimate.quality && aiEstimate.quality.hard_flags.length > 0 && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#7f1d1d", marginTop: "5px", fontWeight: "700" } }, "Flags: ", aiEstimate.quality.hard_flags.map((f) => f.replace(/_/g, " ")).join(", ")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "9.5px", color: "#94a3b8", marginTop: "5px" } }, "No AI age is shown \u2014 grade the bones manually below.")), aiEstimate && aiEstimate.available === false && aiEstimate.accepted !== false && aiEstimate.message && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#b45309", fontWeight: "600" } }, aiEstimate.message), aiEstimate && aiEstimate.bone_age_years != null && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#6b21a8", fontWeight: "700" } }, "Bone age from this X\u2011ray"), /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "900", color: "#5b21b6", lineHeight: 1 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "34px" } }, aiEstimate.bone_age_years), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "14px" } }, "yr")), aiEstimate.ci_low_years != null && aiEstimate.ci_high_years != null && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#7c3aed", fontWeight: "700", marginTop: "3px" } }, aiEstimate.interval_kind === "conformal" ? `${Math.round(parseFloat(aiEstimate.interval_coverage) * 100)}% interval` : "Likely range", " ", aiEstimate.ci_low_years, "\u2013", aiEstimate.ci_high_years, " yr", /* @__PURE__ */ React.createElement("span", { style: { fontWeight: "500", color: "#a78bfa" } }, " ", aiEstimate.interval_kind === "conformal" ? `(conformal \xB7 \xB1${aiEstimate.uncertainty_months} mo, held-out RSNA)` : `(\xB1${aiEstimate.uncertainty_months} mo MAE \u2014 approx, not calibrated)`)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#7c3aed", marginTop: "2px" } }, "Greulich\u2013Pyle whole-image \xB7 NOT TW3", aiEstimate.model_version ? ` \xB7 ${aiEstimate.model_version}` : ""), aiEstimate.quality_warning && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#b45309", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "7px", padding: "6px 8px", marginTop: "6px", lineHeight: "1.5" } }, "\u26A0 ", aiEstimate.quality_warning), aiEstimate.population_note && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b", marginTop: "6px", lineHeight: "1.5" } }, aiEstimate.population_note), /* @__PURE__ */ React.createElement("button", { onClick: () => {
-      setBoneAge(Number(aiEstimate.bone_age_years.toFixed(1)));
-      setBoneAgeSource("manual");
-    }, style: { marginTop: "8px", padding: "6px 12px", background: "#16a34a", color: "white", border: "none", borderRadius: "8px", fontSize: "11px", fontWeight: "700", cursor: "pointer" } }, "Use as bone age")))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "14px", paddingTop: "14px", borderTop: "1px dashed #ddd6fe" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#6b21a8", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "8px" } }, "Is this right? Suggest the correct bone age"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { style: { minWidth: "120px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Correct bone age (yr)"), /* @__PURE__ */ React.createElement("input", { type: "number", step: "0.1", min: "0", max: "25", value: fbAge, onChange: (e) => setFbAge(e.target.value), placeholder: "e.g. 11.5", className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "12px" } })), /* @__PURE__ */ React.createElement("div", { style: { minWidth: "130px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Method used"), /* @__PURE__ */ React.createElement("select", { value: fbMethod, onChange: (e) => setFbMethod(e.target.value), className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "12px" } }, /* @__PURE__ */ React.createElement("option", { value: "tw3-rus" }, "TW3-RUS"), /* @__PURE__ */ React.createElement("option", { value: "greulich-pyle" }, "Greulich\u2013Pyle"), /* @__PURE__ */ React.createElement("option", { value: "clinical" }, "Clinical judgement"), /* @__PURE__ */ React.createElement("option", { value: "other" }, "Other"))), /* @__PURE__ */ React.createElement("div", { style: { minWidth: "110px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Confidence"), /* @__PURE__ */ React.createElement("select", { value: fbConfidence, onChange: (e) => setFbConfidence(e.target.value), className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "12px" } }, /* @__PURE__ */ React.createElement("option", { value: "high" }, "High"), /* @__PURE__ */ React.createElement("option", { value: "medium" }, "Medium"), /* @__PURE__ */ React.createElement("option", { value: "low" }, "Low"))), /* @__PURE__ */ React.createElement("div", { style: { minWidth: "120px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Your initials / ID"), /* @__PURE__ */ React.createElement("input", { value: fbRater, onChange: (e) => setFbRater(e.target.value), placeholder: "e.g. DR", className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "12px" } })), /* @__PURE__ */ React.createElement("button", { onClick: submitFeedback, disabled: fbBusy, style: { padding: "8px 14px", background: "#7c3aed", color: "white", border: "none", borderRadius: "8px", fontSize: "12px", fontWeight: "700", cursor: fbBusy ? "wait" : "pointer" } }, fbBusy ? "Saving\u2026" : "Submit suggestion")), /* @__PURE__ */ React.createElement("input", { value: fbNote, onChange: (e) => setFbNote(e.target.value), placeholder: "Optional note (e.g. which bones drove the difference)", className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "11px", marginTop: "8px" } }), fbMsg && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px", fontSize: "11px", fontWeight: "700", color: fbMsg.type === "ok" ? "#16a34a" : "#b45309" } }, fbMsg.text), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px", fontSize: "10px", color: "#a78bfa", lineHeight: 1.5 } }, "Your correction is logged as training evidence to improve accuracy over time. It does ", /* @__PURE__ */ React.createElement("strong", null, "not"), " change this patient's reported result.")), tw3Config && !tw3Config.ai_estimate_available && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#94a3b8" } }, "Bone-age model not installed yet. To enable: ", /* @__PURE__ */ React.createElement("code", null, "python -m backend.ai.train_boneage")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#7c3aed", lineHeight: "1.5" } }, "Whole-image AI estimate \u2014 the clinician verifies each result. The full doctor-graded 20-bone TW3 workflow (grading, licensed tables, scores) is built and can be re-enabled when needed.")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "18px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "10px" } }, "2 \xB7 Bone Age Report"), (() => {
-      const L = letterResult || assessment && assessment.letters;
-      const rusAge = L && L.rus ? L.rus.twiii_age_years : null;
-      const carpalAge = L && L.carpal ? L.carpal.twiii_age_years : null;
-      const aiYears = aiEstimate && aiEstimate.bone_age_years != null ? aiEstimate.bone_age_years : null;
-      if (rusAge != null) return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#0f766e", textTransform: "uppercase", letterSpacing: ".05em" } }, "TW3 bone age \xB7 TWIII-RUS"), /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "900", color: "#0f766e", lineHeight: 1.1 } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "34px" } }, rusAge), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "14px" } }, "yr"), carpalAge != null && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#475569", fontWeight: "700" } }, "  \xB7  carpal ", carpalAge, " yr")));
-      if (aiYears != null) return (
-        // Secondary treatment: the whole-image AI is screening
-        /* triage only, so it renders smaller and boxed -- clearly
-           subordinate to the authoritative TW3 age above. */
-        /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px", background: "#faf5ff", border: "1px dashed #d8b4fe", borderRadius: "10px", padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "9px", fontWeight: "800", color: "white", background: "#a78bfa", borderRadius: "99px", padding: "2px 7px", textTransform: "uppercase", letterSpacing: ".05em" } }, "AI screening"), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", fontWeight: "700", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em" } }, "Bone age \xB7 from X-ray")), /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "900", color: "#6b21a8", lineHeight: 1.1, marginTop: "4px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "26px" } }, aiYears), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "13px" } }, "yr")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#7c3aed", marginTop: "2px" } }, "Whole-image estimate", aiEstimate.ci_low_years != null ? ` \xB7 ${aiEstimate.interval_kind === "conformal" ? Math.round(parseFloat(aiEstimate.interval_coverage) * 100) + "% " : ""}${aiEstimate.ci_low_years}\u2013${aiEstimate.ci_high_years} yr` : "", " \u2014 not TW3; the clinician verifies. Grade the bones for the authoritative age."))
-      );
-      return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px", fontSize: "12px", color: "#94a3b8" } }, "Attach a left\u2011hand X\u2011ray above to get the bone age.");
-    })(), (() => {
-      const Lc = letterResult || assessment && assessment.letters;
-      if (!Lc) return null;
-      const rows = [
-        ["TWIII \xB7 RUS", Lc.rus && Lc.rus.twiii_age_years, "#0f766e"],
-        ["TWII \xB7 RUS", Lc.rus && Lc.rus.twii_age_years, "#0f766e"],
-        ["TWII'20 \xB7 20-bone", Lc.tw20 && Lc.tw20.age_years, "#5b21b6"],
-        ["TWIII \xB7 carpal", Lc.carpal && Lc.carpal.twiii_age_years, "#b45309"]
-      ].filter((r) => r[1] != null);
-      if (rows.length < 2) return null;
-      return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "12px 14px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "8px" } }, "Standard comparison \xB7 same staging"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "8px" } }, rows.map(([label, age2, color]) => /* @__PURE__ */ React.createElement("div", { key: label, style: { background: "white", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px 10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "9px", fontWeight: "800", color, textTransform: "uppercase", letterSpacing: ".04em" } }, label), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "20px", fontWeight: "900", color, lineHeight: 1.15 } }, age2, " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700" } }, "yr"))))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "Differences reflect the scoring ", /* @__PURE__ */ React.createElement("strong", null, "standard / reference tables"), ", not the child's radiograph. RUS and carpal bone ages are reported separately \u2014 never averaged."));
-    })(), (() => {
-      const L = letterResult || assessment && assessment.letters;
-      const tw3 = L && L.rus && L.rus.twiii_age_years != null ? L.rus.twiii_age_years : boneAge !== "" ? parseFloat(boneAge) : null;
-      const gp = aiEstimate && aiEstimate.bone_age_years != null ? aiEstimate.bone_age_years : null;
-      const carpal = L && L.carpal && L.carpal.twiii_age_years != null ? L.carpal.twiii_age_years : null;
-      const rows = [
-        ["TW3-RUS", tw3, "#0f766e"],
-        ["GP model estimate", gp, "#6b21a8"],
-        ["TW3 carpal", carpal, "#b45309"]
-      ].filter((r) => r[1] != null && !isNaN(r[1]));
-      if (rows.length < 2) return null;
-      const vals = rows.map((r) => Number(r[1]));
-      const spread = Math.max(...vals) - Math.min(...vals);
-      const agree = spread <= 1;
-      return /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px", background: "#ffffff", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "14px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "8px" } }, "Cross-check \xB7 independent methods"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "8px" } }, rows.map(([label, age2, color], i) => /* @__PURE__ */ React.createElement("div", { key: label, style: { background: i === 0 ? "#f0fdfa" : "#faf5ff", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px 10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "9px", fontWeight: "800", color, textTransform: "uppercase", letterSpacing: ".04em" } }, label, i === 0 ? " \xB7 default" : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: i === 0 ? "22px" : "18px", fontWeight: "900", color, lineHeight: 1.15 } }, Number(age2).toFixed(1), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700" } }, "yr"))))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", fontWeight: "700", color: agree ? "#16a34a" : "#b45309" } }, agree ? `\u2713 Methods agree \u2014 within ${spread.toFixed(1)} yr` : `\u26A0 Methods differ by ${spread.toFixed(1)} yr \u2014 re-check staging or image quality`), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "4px", fontSize: "10px", color: "#94a3b8", lineHeight: 1.5 } }, "TW3-RUS is the authoritative result. The others are an independent cross-check \u2014 agreement builds trust; disagreement usually means a mis-staged bone or a low-quality film."));
-    })(), radiograph && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "12px", background: "#f0fdfa", border: "1px solid #99f6e4", borderRadius: "10px", padding: "10px 12px", fontSize: "11px", color: "#0f766e", lineHeight: "1.75" } }, /* @__PURE__ */ React.createElement("div", { style: { fontWeight: "800", textTransform: "uppercase", fontSize: "10px", letterSpacing: ".05em", marginBottom: "4px" } }, "Automated film analysis"), /* @__PURE__ */ React.createElement("div", null, "Image \xB7 ", radiograph.source_format || "\u2014", radiograph.width && radiograph.height ? ` \xB7 ${radiograph.width}\xD7${radiograph.height}` : "", " \xB7 laterality ", radiograph.laterality || "n/a", " \xB7 quality ", String(radiograph.quality_status || "\u2014").replace(/_/g, " "), radiograph.source_domain ? ` \xB7 ${String(radiograph.source_domain).replace(/_/g, " ")}` : ""), aiEstimate && aiEstimate.bone_age_years != null && /* @__PURE__ */ React.createElement("div", null, "AI whole-image estimate ", /* @__PURE__ */ React.createElement("span", { style: { color: "#64748b" } }, "(screening, not TW3)"), " \xB7 ", /* @__PURE__ */ React.createElement("strong", null, aiEstimate.bone_age_years, " yr"), aiEstimate.val_mae_months ? ` \xB7 \xB1~${Math.round(aiEstimate.val_mae_months)} mo` : ""), /* @__PURE__ */ React.createElement("div", null, "Bones auto-located \xB7 ", Object.keys(boxes).length, "/20", Object.keys(boxes).length === 0 ? " \u2014 draw boxes below, or train the localizer (backend/ai/LOCALIZE.md)" : ""), /* @__PURE__ */ React.createElement("div", null, "Per-bone TW3 stages \xB7 ", /* @__PURE__ */ React.createElement("strong", null, "doctor-graded below"), " ", /* @__PURE__ */ React.createElement("span", { style: { color: "#64748b" } }, "(automatic staging is the next AI step \u2014 needs the staging model)"))), /* @__PURE__ */ React.createElement("details", { style: { marginTop: "4px" }, open: true }, /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontSize: "11px", fontWeight: "700", color: "#7c3aed", listStyle: "none", padding: "4px 0" } }, "\u25B8 Detailed 20-bone report (per-bone staging \xB7 RUS & carpal kept separate)"), (() => {
-      const rep = boneReport;
-      const yrs = (v) => v === null || v === void 0 ? "\u2014" : v + " yr";
-      const num = (v) => v === null || v === void 0 ? "\u2014" : v;
-      const visChip = (v) => {
-        const map = { STAGED: ["#dcfce7", "#166534"], NOT_VISIBLE: ["#fef3c7", "#92400e"], NOT_SCORABLE: ["#fee2e2", "#991b1b"], NOT_STAGED: ["#f1f5f9", "#94a3b8"] };
-        const [bg, fg] = map[v] || map.NOT_STAGED;
-        return /* @__PURE__ */ React.createElement("span", { style: { background: bg, color: fg, fontSize: "9px", fontWeight: "800", padding: "1px 6px", borderRadius: "999px", letterSpacing: "0.02em" } }, v.replace("_", " "));
-      };
-      const rows = rep ? rep.per_bone_results : [];
-      return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "11px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { textAlign: "left", color: "#64748b", borderBottom: "1px solid #e2e8f0" } }, /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "#"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Bone"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Sys"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Stage"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Visibility"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700", textAlign: "right" } }, "Points"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700", textAlign: "right" } }, "% of max"))), /* @__PURE__ */ React.createElement("tbody", null, rows.map((b) => /* @__PURE__ */ React.createElement("tr", { key: b.bone_id, style: { borderBottom: "1px solid #f1f5f9", background: b.system === "CARPAL" ? "#fafafa" : "white" } }, /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", color: "#94a3b8" } }, b.display_order), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", fontWeight: "600", color: "#1e293b" } }, b.anatomical_name), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", color: "#64748b" } }, b.system === "CARPAL" ? "Carpal" : "RUS"), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", fontWeight: "700", color: "#5b21b6" } }, b.stage && !b.stage.startsWith("NOT_") ? b.stage : "\u2014"), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px" } }, visChip(b.visibility)), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", textAlign: "right", color: "#475569" } }, num(b.points)), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", textAlign: "right", color: "#475569" } }, b.pct_of_bone_max != null ? b.pct_of_bone_max + "%" : "\u2014"))), rows.length === 0 && /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { colSpan: "7", style: { padding: "10px 6px", color: "#94a3b8" } }, "Grade the bones below to build the report."))))), rep && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: "10px", padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.05em" } }, "RUS (13 bones)"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginTop: "4px" } }, "Staged ", rep.completeness.rus_staged, "/13 \xB7 score ", num(rep.rus.total_score)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "800", color: "#5b21b6", marginTop: "2px" } }, "TWIII age ", yrs(rep.rus.twiii_age_years), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", fontWeight: "600", color: "#94a3b8" } }, "\xB7 TWII ", yrs(rep.rus.twii_age_years)))), /* @__PURE__ */ React.createElement("div", { style: { background: "#fafafa", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" } }, "Carpal (7 bones) \xB7 separate"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginTop: "4px" } }, "Staged ", rep.completeness.carpal_staged, "/7 \xB7 score ", num(rep.carpal.total_score)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "800", color: "#334155", marginTop: "2px" } }, "TWIII age ", yrs(rep.carpal.twiii_age_years), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", fontWeight: "600", color: "#94a3b8" } }, "\xB7 never averaged with RUS")))), rep && rep.scoring_note && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "10px", color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "8px 10px", lineHeight: "1.5" } }, rep.scoring_note), rep && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, rep.mandatory_disclaimer));
-    })())), /* @__PURE__ */ React.createElement("details", { style: { marginTop: "16px", display: "none" } }, /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontWeight: "800", fontSize: "12px", color: "#7c3aed", padding: "8px 0", listStyle: "none" } }, "\u2699 Advanced \xB7 manual grading, save & approve, adult-height"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "800", color: "#6b21a8", textTransform: "uppercase", letterSpacing: "0.05em" } }, "Manual TW3 grading \xB7 left hand\u2013wrist \xB7 stages A\u2013I"), /* @__PURE__ */ React.createElement("button", { onClick: () => {
-      setRusStages({});
-      setCarpalStages({});
-    }, style: { padding: "5px 12px", background: "white", color: "#7c3aed", border: "1.5px solid #ddd6fe", borderRadius: "8px", fontSize: "11px", fontWeight: "700", cursor: "pointer" } }, "Clear grades")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#7c3aed", marginBottom: "6px", textTransform: "uppercase", letterSpacing: ".04em" } }, "RUS bones (13)"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "8px" } }, REPORT_RUS.map(([code, label]) => /* @__PURE__ */ React.createElement("div", { key: code }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#7c3aed", display: "block", marginBottom: "3px" } }, label), /* @__PURE__ */ React.createElement("select", { value: rusStages[code] || "", onChange: (e) => setRusStages((s) => {
-      const n = { ...s };
-      if (e.target.value) n[code] = e.target.value;
-      else delete n[code];
-      return n;
-    }), className: "input-field", style: { padding: "7px 8px", width: "100%" } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 stage \u2014"), LETTER_STAGES.map((st) => /* @__PURE__ */ React.createElement("option", { key: st, value: st }, st)))))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#7c3aed", margin: "14px 0 6px", textTransform: "uppercase", letterSpacing: ".04em" } }, "Carpal bones (7)"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "8px" } }, REPORT_CARPALS.map((name) => /* @__PURE__ */ React.createElement("div", { key: name }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#7c3aed", display: "block", marginBottom: "3px" } }, name), /* @__PURE__ */ React.createElement("select", { value: carpalStages[name] || "", onChange: (e) => setCarpalStages((s) => {
-      const n = { ...s };
-      if (e.target.value) n[name] = e.target.value;
-      else delete n[name];
-      return n;
-    }), className: "input-field", style: { padding: "7px 8px", width: "100%" } }, /* @__PURE__ */ React.createElement("option", { value: "" }, "\u2014 stage \u2014"), LETTER_STAGES.map((st) => /* @__PURE__ */ React.createElement("option", { key: st, value: st }, st)))))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "These letter grades appear in the report above. The RUS/carpal scores and the TWII / TWIII / TWII'20 bone ages compute once the clinic's licensed TW3 tables are supplied \u2014 no values are guessed.")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em", marginBottom: "4px" } }, "Annotation record"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginBottom: "10px", lineHeight: "1.5" } }, "Saves the doctor-confirmed 20-bone letter staging to the local database (for review and to build the training dataset). Sex and age come from Demographics."), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 180px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#64748b", display: "block", marginBottom: "3px" } }, "Patient code"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: patientCode,
-        onChange: (e) => setPatientCode(e.target.value),
-        placeholder: "e.g. CASE-001",
-        className: "input-field",
-        style: { padding: "7px 8px", width: "100%" },
-        disabled: lcLocked
-      }
-    )), /* @__PURE__ */ React.createElement("button", { onClick: saveDraft, disabled: lcBusy, style: lcBtn("#7c3aed", lcBusy) }, lcBusy ? "Saving\u2026" : assessment && !lcLocked ? "Update annotation" : "Save annotation"), /* @__PURE__ */ React.createElement("button", { onClick: async () => {
-      if (!patientCode.trim()) {
-        setLcMsg({ type: "err", text: "Enter a patient code to load." });
-        return;
-      }
-      setLcBusy(true);
-      setLcMsg(null);
-      try {
-        const r = await fetch(`${LC_API}?patient_code=${encodeURIComponent(patientCode.trim())}`);
-        const list = await r.json();
-        if (!r.ok || !Array.isArray(list) || list.length === 0) {
-          setLcMsg({ type: "err", text: "No saved annotation for that code." });
-          return;
-        }
-        const d = list[0];
-        bonesIntoGrids(d.bones);
-        setAssessment(d);
-        setShowAudit(false);
-        setLcMsg({ type: "ok", text: `Loaded #${d.id} rev ${d.revision} \xB7 ${d.assessment_status}` });
-      } catch (e) {
-        setLcMsg({ type: "err", text: String(e.message || e) });
-      } finally {
-        setLcBusy(false);
-      }
-    }, disabled: lcBusy, style: lcBtn("#475569", lcBusy) }, "Load saved"), assessment && lcLocked && /* @__PURE__ */ React.createElement("button", { onClick: reviseAssessment, disabled: lcBusy, style: lcBtn("#0891b2", lcBusy) }, "Open revision"), assessment && /* @__PURE__ */ React.createElement("button", { onClick: toggleAudit, disabled: lcBusy, style: lcBtn("#64748b", lcBusy) }, showAudit ? "Hide audit" : "Audit")), assessment && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "11px", color: "#475569" } }, "Record #", assessment.id, " \xB7 rev ", assessment.revision, " \xB7 ", /* @__PURE__ */ React.createElement("strong", { style: { textTransform: "uppercase" } }, assessment.assessment_status), " ", "\xB7 ", assessment.rus_staged_count, "/13 RUS + ", assessment.carpal_staged_count, "/7 carpal staged"), lcMsg && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", fontWeight: "700", color: lcMsg.type === "ok" ? "#059669" : "#dc2626" } }, lcMsg.text), showAudit && assessment && assessment.audit && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", maxHeight: "160px", overflowY: "auto", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "8px", fontFamily: "ui-monospace, Menlo, Consolas, monospace", fontSize: "10px", color: "#475569" } }, assessment.audit.map((e, i) => /* @__PURE__ */ React.createElement("div", { key: i }, e.timestamp ? e.timestamp.slice(0, 19).replace("T", " ") : "", " \xB7 ", e.event_type, " \xB7 ", e.actor, e.reason ? " \xB7 " + e.reason : ""))), assessment && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px", flexWrap: "wrap", alignItems: "flex-end" } }, /* @__PURE__ */ React.createElement("label", { style: { ...lcBtn("#0f766e", lcBusy || lcLocked), display: "inline-block" } }, radiograph ? "Replace film" : "Attach film", /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        type: "file",
-        accept: ".dcm,image/*",
-        style: { display: "none" },
-        disabled: lcBusy || lcLocked,
-        onChange: (e) => {
-          const f = e.target.files && e.target.files[0];
-          if (f) attachImage(f);
-          e.target.value = "";
-        }
-      }
-    )), radiograph && /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 200px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#64748b", display: "block", marginBottom: "3px" } }, "Image source (confirm)"), /* @__PURE__ */ React.createElement(
-      "select",
-      {
-        value: radiograph.source_domain || "unknown",
-        onChange: (e) => setImageDomain(e.target.value),
-        className: "input-field",
-        style: { padding: "7px 8px", width: "100%" },
-        disabled: lcLocked
-      },
-      IMAGE_DOMAINS.map(([v, label]) => /* @__PURE__ */ React.createElement("option", { key: v, value: v }, label))
-    ))), radiograph && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", color: "#475569" } }, "Film #", radiograph.radiograph_id, " \xB7 ", radiograph.source_format, " \xB7 quality ", String(radiograph.quality_status || "").replace(/_/g, " "), radiograph.duplicate_of ? ` \xB7 duplicate of #${radiograph.duplicate_of}` : ""), radiograph && LOW_TRUST_DOMAINS.includes(radiograph.source_domain) && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "8px 10px", fontSize: "10.5px", color: "#92400e", lineHeight: "1.5" } }, "\u26A0 ", radiograph.source_domain === "film_photo" ? "Photograph of a film" : "Compressed image", ": reduced reliability. Any future AI suggestion must be treated with lower confidence and every bone confirmed manually \u2014 this domain is evaluated separately from digital images.")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "Scoring, bone-age calculation and doctor approval unlock automatically once the clinic's licensed TW3 point/age tables are installed. Until then this record captures verified staging only.")), radiograph && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em" } }, "Bone localization"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "2px" } }, "Auto-box the bones (or draw them), drag to correct, save. Confirmed boxes become training crops.")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px" } }, /* @__PURE__ */ React.createElement("button", { onClick: localizeBones, disabled: locBusy || lcLocked, style: lcBtn("#0f766e", locBusy || lcLocked) }, locBusy ? "\u2026" : "Auto-locate"), /* @__PURE__ */ React.createElement("button", { onClick: saveBoxes, disabled: locBusy || lcLocked || Object.keys(boxes).length === 0, style: lcBtn("#7c3aed", locBusy || lcLocked || Object.keys(boxes).length === 0) }, "Save boxes"))), analysisUrl && /* @__PURE__ */ React.createElement(
-      "div",
-      {
-        ref: locRef,
-        onMouseMove: onLocMove,
-        onMouseUp: endLocDrag,
-        onMouseLeave: endLocDrag,
-        style: { position: "relative", width: "100%", maxWidth: "420px", margin: "12px auto 0", userSelect: "none" }
-      },
-      /* @__PURE__ */ React.createElement(
-        "img",
-        {
-          src: analysisUrl,
-          alt: "radiograph",
-          draggable: false,
-          onLoad: (e) => {
-            if (!locImg) setLocImg({ width: e.target.naturalWidth, height: e.target.naturalHeight });
-          },
-          style: { width: "100%", display: "block", borderRadius: "8px", border: "1px solid #e2e8f0" }
-        }
-      ),
-      locImg && Object.entries(boxes).map(([bone, b]) => {
-        const sel = selBone === bone;
-        const st = {
-          position: "absolute",
-          left: `${b[0] / locImg.width * 100}%`,
-          top: `${b[1] / locImg.height * 100}%`,
-          width: `${(b[2] - b[0]) / locImg.width * 100}%`,
-          height: `${(b[3] - b[1]) / locImg.height * 100}%`,
-          border: `2px solid ${sel ? "#f59e0b" : "#0ea5e9"}`,
-          background: sel ? "rgba(245,158,11,0.12)" : "rgba(14,165,233,0.08)",
-          cursor: "move",
-          boxSizing: "border-box"
-        };
-        return /* @__PURE__ */ React.createElement("div", { key: bone, onMouseDown: (e) => startBoxDrag(bone, "move", e), style: st }, /* @__PURE__ */ React.createElement("span", { style: { position: "absolute", top: "-14px", left: "-1px", fontSize: "8px", fontWeight: "700", color: sel ? "#b45309" : "#0369a1", background: "white", padding: "0 2px", borderRadius: "2px", whiteSpace: "nowrap" } }, bone), /* @__PURE__ */ React.createElement(
-          "div",
-          {
-            onMouseDown: (e) => startBoxDrag(bone, "resize", e),
-            style: { position: "absolute", right: "-5px", bottom: "-5px", width: "10px", height: "10px", background: "white", border: `2px solid ${sel ? "#f59e0b" : "#0ea5e9"}`, borderRadius: "2px", cursor: "nwse-resize" }
-          }
-        ));
-      })
-    ), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "10px", fontWeight: "700", color: "#64748b" } }, "Bones \u2014 click to add/select a box (\xD7 to remove):"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "4px" } }, [...REPORT_RUS.map(([c]) => c), ...REPORT_CARPALS.map(carpalCode)].map((code) => {
-      const has = !!boxes[code];
-      const sel = selBone === code;
-      return /* @__PURE__ */ React.createElement(
-        "span",
-        {
-          key: code,
-          style: {
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "2px",
-            padding: "3px 6px",
-            borderRadius: "6px",
-            fontSize: "10px",
-            fontWeight: "700",
-            cursor: "pointer",
-            border: `1px solid ${has ? "#0ea5e9" : "#e2e8f0"}`,
-            background: sel ? "#fef3c7" : has ? "#e0f2fe" : "white",
-            color: has ? "#0369a1" : "#94a3b8"
-          },
-          onClick: () => addOrSelectBox(code)
-        },
-        code,
-        has && /* @__PURE__ */ React.createElement("span", { onClick: (e) => {
-          e.stopPropagation();
-          clearBox(code);
-        }, style: { color: "#ef4444", fontWeight: "800" } }, "\xD7")
-      );
-    })), locMsg && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", fontWeight: "700", color: locMsg.type === "ok" ? "#059669" : "#dc2626" } }, locMsg.text), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "Auto-locate needs a trained localizer model (see backend/ai/LOCALIZE.md); until then you can draw boxes manually and they still save + export as crops.")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em" } }, "Dataset coverage"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "2px" } }, "Unique patients per bone \xD7 stage across all saved annotations. Drives when AI suggestions could be trained.")), /* @__PURE__ */ React.createElement("button", { onClick: loadCoverage, disabled: covBusy, style: lcBtn("#475569", covBusy) }, covBusy ? "Loading\u2026" : coverage ? "Refresh" : "Load coverage")), coverage && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginBottom: "8px" } }, coverage.n_patients, " patients \xB7 ", coverage.n_assessments, " assessments.", Object.entries(coverage.summary).map(([sys, s]) => /* @__PURE__ */ React.createElement("span", { key: sys, style: { marginLeft: "8px" } }, "\xB7 ", /* @__PURE__ */ React.createElement("strong", null, sys), ": ", s.unique_patients, " pt / ", s.cells_covered, " cells / ", s.annotations, " anno"))), coverage.cells.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8" } }, "No confirmed staging yet \u2014 save an annotation above.") : /* @__PURE__ */ React.createElement("div", { style: { maxHeight: "220px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "8px" } }, /* @__PURE__ */ React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "11px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { background: "#f8fafc", color: "#64748b", textAlign: "left" } }, /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "Bone"), /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "Stage"), /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "\u2642"), /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "\u2640"), /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "w/img"), /* @__PURE__ */ React.createElement("th", { style: { padding: "5px 8px" } }, "Support"))), /* @__PURE__ */ React.createElement("tbody", null, [...coverage.cells].sort((a, b) => a.unique_total - b.unique_total).map((c, i) => {
-      const col = { empty: "#dc2626", minimal: "#d97706", experimental: "#d97706", limited: "#2563eb", candidate: "#059669" }[c.support] || "#64748b";
-      return /* @__PURE__ */ React.createElement("tr", { key: i, style: { borderTop: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px", color: "#334155" } }, c.bone_code, /* @__PURE__ */ React.createElement("span", { style: { color: "#cbd5e1" } }, " \xB7 ", c.stage_system.replace("tw3", ""))), /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px", fontWeight: "700" } }, c.stage), /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px" } }, c.unique_boys), /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px" } }, c.unique_girls), /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px" } }, c.n_with_image), /* @__PURE__ */ React.createElement("td", { style: { padding: "5px 8px", color: col, fontWeight: "700" } }, c.support));
-    })))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "Bands (unique patients): minimal 1\u20139 \xB7 experimental 10\u201324 \xB7 limited 25\u201349 \xB7 candidate \u226550. Engineering thresholds only \u2014 not proof of clinical validity."))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em" } }, "Monitoring & drift"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "2px" } }, "AI-vs-clinician error over time, input-quality drift, and a soft external plausibility check. Watch-the-gap only \u2014 this never changes a model or a reported age.")), /* @__PURE__ */ React.createElement("button", { onClick: loadMonitoring, disabled: monBusy, style: lcBtn("#475569", monBusy) }, monBusy ? "Loading\u2026" : monitoring ? "Refresh" : "Load monitoring")), monitoring && (() => {
-      const st = monitoring.stats || {};
-      const tr = st.trend || {};
-      const dr = monitoring.input_drift || {};
-      const pl = monitoring.plausibility || {};
-      const pct = (v) => v == null ? "\u2014" : `${Math.round(v * 100)}%`;
-      const yr = (v) => v == null ? "\u2014" : `${v} yr`;
-      return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "10px", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 150px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b" } }, "AI vs clinician MAE"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "18px", fontWeight: "800", color: "#334155" } }, yr(st.ai_vs_human_mae_years)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8" } }, st.paired_with_ai || 0, " paired \xB7 ", st.total_feedback || 0, " total")), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 150px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b" } }, "Trend (recent vs older)"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "18px", fontWeight: "800", color: tr.improving ? "#059669" : "#334155" } }, yr(tr.recent_mae_years), " ", tr.improving ? "\u2193" : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8" } }, "was ", yr(tr.older_mae_years))), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 150px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b" } }, "Low-trust input share"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "18px", fontWeight: "800", color: dr.worsening ? "#d97706" : "#334155" } }, pct(dr.recent_low_trust_share), " ", dr.worsening ? "\u2191" : ""), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8" } }, "was ", pct(dr.older_low_trust_share), " \xB7 compressed/photo"))), pl.vs_cpp && /* @__PURE__ */ React.createElement("div", { style: { background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#92400e" } }, "External plausibility (soft \xB7 non-gating)"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#334155", marginTop: "4px" } }, "Observed bone-age distribution vs published cohorts \u2014 TV distance: CPP ", pl.vs_cpp.tv_distance ?? "\u2014", " \xB7 control ", pl.vs_control?.tv_distance ?? "\u2014", "."), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#b45309", marginTop: "6px", lineHeight: "1.5" } }, "\u26A0 ", pl.vs_cpp.caveat)));
-    })()), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em" } }, "Adjudication queue"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "2px" } }, "Bones where independent reads disagree are queued for a senior read \u2014 resolved to one stage, never silently averaged.")), /* @__PURE__ */ React.createElement("button", { onClick: loadAdjudication, disabled: adjBusy, style: lcBtn("#475569", adjBusy) }, adjBusy ? "Loading\u2026" : adjItems ? "Refresh" : "Load queue")), adjItems && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "11px", color: "#475569" } }, "Reviewing clinician"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        value: adjReviewer,
-        onChange: (e) => setAdjReviewer(e.target.value),
-        placeholder: "e.g. Dr Rao",
-        style: { fontSize: "11px", padding: "4px 8px", border: "1px solid #cbd5e1", borderRadius: "6px" }
-      }
-    )), adjItems.length === 0 ? /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8" } }, "No disputed bones open. Multi-reader disagreements appear here for resolution.") : /* @__PURE__ */ React.createElement("div", { style: { maxHeight: "240px", overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: "8px" } }, adjItems.map((it) => /* @__PURE__ */ React.createElement("div", { key: it.id, style: { padding: "8px 10px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#334155" } }, /* @__PURE__ */ React.createElement("strong", null, it.bone_code), " ", /* @__PURE__ */ React.createElement("span", { style: { color: "#cbd5e1" } }, "\xB7 ", it.film_key), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b", marginTop: "2px" } }, it.n_readers, " readers \xB7 votes ", Object.entries(it.votes).map(([s, n]) => `${s}:${n}`).join("  "))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "4px", flexWrap: "wrap" } }, Object.keys(it.votes).sort().map((stage) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: stage,
-        onClick: () => resolveAdjudication(it.id, stage),
-        disabled: adjBusy,
-        style: { fontSize: "11px", fontWeight: "700", padding: "3px 9px", border: "1px solid #cbd5e1", borderRadius: "6px", background: "#f8fafc", color: "#334155", cursor: adjBusy ? "default" : "pointer" }
-      },
-      stage
-    )))))), adjMsg && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", fontWeight: "700", color: adjMsg.type === "ok" ? "#059669" : "#dc2626" } }, adjMsg.text))), /* @__PURE__ */ React.createElement(
-      "details",
-      {
-        style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" },
-        onToggle: (e) => {
-          if (e.target.open && !ltTables) loadLetterTables();
-        }
-      },
-      /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em", listStyle: "none" } }, "\u{1F522} Licensed TW3 tables \u2014 enter once to turn scoring ON"),
-      /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", margin: "8px 0 12px", lineHeight: "1.5" } }, "Enter the point values and score\u2192age curves from your own licensed TW3 reference. Nothing is shipped or guessed. Scoring switches on only after a reference case from one of your reported films is reproduced (accuracy gate)."),
-      ltStatus && /* @__PURE__ */ React.createElement("div", { style: { marginBottom: "10px", fontSize: "11px", fontWeight: "700", color: ltStatus.scoring_ready ? "#059669" : "#b45309" } }, ltStatus.scoring_ready ? "\u2713 Scoring is ON \u2014 report fills with real numbers." : ltStatus.provenance_complete === false ? "\u25CB Scoring OFF \u2014 document the licensed source (Provenance tab)." : "\u25CB Scoring OFF \u2014 table incomplete or reference not reproduced."),
-      !ltTables ? /* @__PURE__ */ React.createElement("button", { onClick: loadLetterTables, disabled: ltBusy, style: lcBtn("#7c3aed", ltBusy) }, ltBusy ? "Loading\u2026" : "Open table editor") : /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "10px" } }, [["rus", "RUS points"], ["carpal", "Carpal points"], ["tw20", "TWII'20 points"], ["curves", "Score\u2192age curves"], ["ref", "Reference case"], ["prov", "Provenance"]].map(([k, label]) => /* @__PURE__ */ React.createElement("button", { key: k, onClick: () => setLtSection(k), style: { padding: "5px 10px", borderRadius: "8px", fontSize: "11px", fontWeight: "700", cursor: "pointer", border: "1px solid #ddd6fe", background: ltSection === k ? "#7c3aed" : "white", color: ltSection === k ? "white" : "#7c3aed" } }, label)), ltSection !== "ref" && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", display: "flex", gap: "4px" } }, ["boys", "girls"].map((s) => /* @__PURE__ */ React.createElement("button", { key: s, onClick: () => setLtSex(s), style: { padding: "5px 10px", borderRadius: "8px", fontSize: "11px", fontWeight: "700", cursor: "pointer", border: "1px solid #cbd5e1", background: ltSex === s ? "#334155" : "white", color: ltSex === s ? "white" : "#334155" } }, s === "boys" ? "Boys" : "Girls")))), (ltSection === "rus" || ltSection === "carpal" || ltSection === "tw20") && (() => {
-        const group = ltSection === "rus" ? "rus_stage_to_score" : ltSection === "carpal" ? "carpal_stage_to_score" : "tw20_stage_to_score";
-        const carpalRows = REPORT_CARPALS.map((n) => [carpalCode(n), n]);
-        const rows = ltSection === "carpal" ? carpalRows : ltSection === "tw20" ? [...REPORT_RUS, ...carpalRows] : REPORT_RUS;
-        const cell = (bone, L) => ((ltTables[group][ltSex] || {})[bone] || {})[L];
-        return /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ React.createElement("table", { style: { borderCollapse: "collapse", fontSize: "11px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("th", { style: { padding: "3px 6px", textAlign: "left", color: "#64748b" } }, ltSex, " \xB7 bone"), LETTER_STAGES.map((L) => /* @__PURE__ */ React.createElement("th", { key: L, style: { padding: "3px 4px", color: "#64748b" } }, L)))), /* @__PURE__ */ React.createElement("tbody", null, rows.map(([code, label]) => /* @__PURE__ */ React.createElement("tr", { key: code }, /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", whiteSpace: "nowrap", color: "#334155" } }, label), LETTER_STAGES.map((L) => /* @__PURE__ */ React.createElement("td", { key: L, style: { padding: "1px" } }, /* @__PURE__ */ React.createElement(
-          "input",
-          {
-            type: "number",
-            value: cell(code, L) ?? "",
-            onChange: (e) => setLtPoint(group, ltSex, code, L, e.target.value),
-            style: { width: "42px", padding: "3px 2px", fontSize: "11px", textAlign: "center", border: "1px solid #e2e8f0", borderRadius: "4px" }
-          }
-        ))))))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "6px" } }, "Leave a cell blank if that letter is not defined for that bone. Enter both Boys and Girls."));
-      })(), ltSection === "curves" && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "12px", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" } }, [["rus_score_to_age", "RUS"], ["carpal_score_to_age", "Carpal"]].flatMap(
-        ([grp, gl]) => ["twii", "twiii"].map((cv) => /* @__PURE__ */ React.createElement("div", { key: grp + cv }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#7c3aed", display: "block", marginBottom: "3px" } }, gl, " \xB7 ", cv.toUpperCase(), " \xB7 ", ltSex), /* @__PURE__ */ React.createElement(
-          "textarea",
-          {
-            value: curveToText((ltTables[grp][cv] || {})[ltSex]),
-            onChange: (e) => setLtCurve(grp, cv, ltSex, e.target.value),
-            placeholder: "score, age\n300, 8\n450, 10",
-            rows: 4,
-            style: { width: "100%", fontFamily: "ui-monospace, monospace", fontSize: "11px", padding: "6px", border: "1px solid #e2e8f0", borderRadius: "6px" }
-          }
-        )))
-      ), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#7c3aed", display: "block", marginBottom: "3px" } }, "TWII'20 (20-bone) \xB7 ", ltSex), /* @__PURE__ */ React.createElement(
-        "textarea",
-        {
-          value: curveToText((ltTables.tw20_score_to_age || {})[ltSex]),
-          onChange: (e) => setLtSexCurve("tw20_score_to_age", ltSex, e.target.value),
-          placeholder: "score, age\n300, 8\n450, 10",
-          rows: 4,
-          style: { width: "100%", fontFamily: "ui-monospace, monospace", fontSize: "11px", padding: "6px", border: "1px solid #e2e8f0", borderRadius: "6px" }
-        }
-      )), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1/-1", fontSize: "10px", color: "#94a3b8" } }, `One "score, age" pair per line (ascending score). \u22652 points per curve. Carpal / TWII'20 curves optional if you only report RUS.`)), ltSection === "prov" && /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "8px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" } }, [["book_title", "Book title *"], ["edition", "Edition / year *"], ["isbn", "ISBN"], ["licensed_owner", "Licensed owner *"], ["pages", "Pages"], ["entered_by", "Entered by *"], ["verified_by", "Verified by *"], ["verification_date", "Verification date *"]].map(([k, label]) => /* @__PURE__ */ React.createElement("div", { key: k }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#64748b", display: "block", marginBottom: "2px" } }, label), /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          type: k === "verification_date" ? "date" : "text",
-          value: (ltTables.provenance || {})[k] || "",
-          onChange: (e) => setLtTables((t) => ({ ...t, provenance: { ...t.provenance || {}, [k]: e.target.value } })),
-          style: { width: "100%", padding: "5px 7px", fontSize: "11px", border: "1px solid #e2e8f0", borderRadius: "6px" }
-        }
-      ))), /* @__PURE__ */ React.createElement("div", { style: { gridColumn: "1/-1", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, "* required. Licensed TW3 values may not drive scoring without a documented, legally-owned source.", ltStatus && ltStatus.missing_provenance && ltStatus.missing_provenance.length > 0 ? ` Still missing: ${ltStatus.missing_provenance.join(", ")}.` : "")), ltSection === "ref" && (() => {
-        const ref = ltTables.reference_cases && ltTables.reference_cases[0] || null;
-        const nRus = ref ? Object.keys(ref.rus_stages || {}).length : 0;
-        const nCar = ref ? Object.keys(ref.carpal_stages || {}).length : 0;
-        return /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginBottom: "8px", lineHeight: "1.5" } }, "Pick one of your own previously-reported films: grade its bones in the grid above, then capture them here and type the score/age you reported. Scoring turns on only when these values reproduce."), /* @__PURE__ */ React.createElement("button", { onClick: useGridAsReference, style: { ...lcBtn("#0891b2", false), marginBottom: "8px" } }, "Capture reference stages from grid"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginBottom: "8px" } }, "Captured: ", nRus, "/13 RUS + ", nCar, "/7 carpal \xB7 sex ", ref ? ref.sex : "\u2014"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gap: "8px", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#64748b" } }, "Reported RUS score"), /* @__PURE__ */ React.createElement("input", { type: "number", value: (ref && ref.expected && ref.expected.rus_score) ?? "", onChange: (e) => setRefExpected("rus_score", e.target.value), className: "input-field", style: { padding: "6px 8px", width: "100%" } })), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#64748b" } }, "Reported TWIII-RUS age (yr)"), /* @__PURE__ */ React.createElement("input", { type: "number", step: "0.1", value: (ref && ref.expected && ref.expected.twiii_rus_age_years) ?? "", onChange: (e) => setRefExpected("twiii_rus_age_years", e.target.value), className: "input-field", style: { padding: "6px 8px", width: "100%" } }))));
-      })(), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" } }, /* @__PURE__ */ React.createElement("button", { onClick: saveLetterTables, disabled: ltBusy, style: lcBtn("#7c3aed", ltBusy) }, ltBusy ? "Saving\u2026" : "Validate & save tables"), ltMsg && /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700", color: ltMsg.type === "ok" ? "#059669" : "#dc2626" } }, ltMsg.text)))
-    ), /* @__PURE__ */ React.createElement("div", { className: "split-grid", style: { marginTop: "12px" } }, /* @__PURE__ */ React.createElement(
-      InputWithUnit,
-      {
-        label: "TW3 Bone Age (used for prediction)",
-        value: boneAge,
-        onChange: (e) => {
-          setBoneAge(e.target.value === "" ? "" : parseFloat(e.target.value));
-          setBoneAgeSource("manual");
-        },
-        placeholder: "e.g. 10.5",
-        step: "0.1",
-        unit: "yrs",
-        accent: "#7c3aed"
-      }
-    ), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Source"), /* @__PURE__ */ React.createElement("div", { style: { padding: "10px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "9px", fontSize: "12px", fontWeight: "700", color: "#475569" } }, boneAge === "" ? "Not set" : boneAgeSource === "rus" ? "From RUS staging" : "Manual entry"))), /* @__PURE__ */ React.createElement("div", { className: "split-grid", style: { marginTop: "12px" } }, /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Father's Height", value: fatherHeight, onChange: (e) => setFatherHeight(e.target.value === "" ? "" : parseFloat(e.target.value)), placeholder: "cm (optional)", unit: "cm" }), /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Mother's Height", value: motherHeight, onChange: (e) => setMotherHeight(e.target.value === "" ? "" : parseFloat(e.target.value)), placeholder: "cm (optional)", unit: "cm" })), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px", background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "10px", padding: "12px 14px", fontSize: "11px", color: "#64748b", lineHeight: "1.6" } }, "The TW3 bone age is derived only from the 20 doctor-confirmed bone stages above (RUS + carpal) via the licensed TW3 tables \u2014 never from the whole-image AI, which is a rough screening triage only. Automatic per-bone staging from the X-ray is not yet available (it needs stage-labelled training data the clinic is now collecting)."), !boneMetrics ? /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flex: 1, gap: "12px", padding: "36px 0", textAlign: "center" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "52px", height: "52px", borderRadius: "50%", background: "#f5f3ff", display: "flex", alignItems: "center", justifyContent: "center" } }, /* @__PURE__ */ React.createElement("svg", { width: "22", height: "22", viewBox: "0 0 24 24", fill: "none", stroke: "#a78bfa", strokeWidth: "2", strokeLinecap: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M18 8a6 6 0 0 0-9.33-5" }), /* @__PURE__ */ React.createElement("path", { d: "M6 16a6 6 0 0 0 9.33 5" }), /* @__PURE__ */ React.createElement("line", { x1: "12", y1: "2", x2: "12", y2: "22" }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "700", color: "#64748b" } }, "Set a TW3 bone age or both parents' heights"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", maxWidth: "320px", lineHeight: "1.6" } }, "Stage the left hand\u2013wrist film above (TW3 RUS), or enter a TW3 bone age manually. Add parents' heights for the genetic target. Current height is taken from Demographics.")) : /* @__PURE__ */ React.createElement("div", null, boneMetrics.mph !== null ? /* @__PURE__ */ React.createElement("div", { className: "hero-result", style: { background: "linear-gradient(135deg,#f5f3ff,#eef2ff)", border: "1.5px solid #ddd6fe", borderRadius: "16px", padding: "24px", marginTop: "16px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", textTransform: "uppercase", letterSpacing: "0.08em", color: "#7c3aed", marginBottom: "8px" } }, "Mid-Parental Target Height"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "10px" } }, /* @__PURE__ */ React.createElement("span", { className: "hero-value", style: { fontWeight: "900", color: "#5b21b6", lineHeight: 1 } }, boneMetrics.mph.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "13px", color: "#7c3aed", fontWeight: "600" } }, "cm")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#8b5cf6", marginTop: "4px" } }, "\u2248 ", Math.floor(boneMetrics.mph / 30.48), "\u2032", Math.round(boneMetrics.mph / 2.54 % 12), "\u2033 \xB7 genetic target from parents (Tanner) \xB7 range ", boneMetrics.mphLow.toFixed(0), "\u2013", boneMetrics.mphHigh.toFixed(0), " cm")), /* @__PURE__ */ React.createElement("div", { style: { textAlign: "right" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: "Genetic target \u2014 not a prediction", variant: "info" }), boneMetrics.mphPct !== null && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "12px", color: "#7c3aed", fontWeight: "700" } }, boneMetrics.mphPct.toFixed(1), "th centile (Khadilkar)"))) : /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "12px", padding: "16px", fontSize: "13px", fontWeight: "700", color: "#7c3aed", lineHeight: "1.6" } }, "Add both parents' heights for the mid-parental (genetic target) height and its \xB18.5 cm range."), boneMetrics.mph !== null && (() => {
-      const lo = boneMetrics.mphLow, hi = boneMetrics.mphHigh, span = hi - lo;
-      const marker = boneMetrics.predictedPah !== null ? boneMetrics.predictedPah : boneMetrics.mph;
-      const pos = Math.min(Math.max((marker - lo) / span * 100, 1), 99);
-      return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "14px", background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e2e8f0" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "relative", height: "10px", borderRadius: "99px", background: "#e9d5ff" } }, /* @__PURE__ */ React.createElement("div", { style: { position: "absolute", top: "-3px", left: `${pos}%`, width: "16px", height: "16px", borderRadius: "50%", background: "white", border: "3px solid #7c3aed", transform: "translateX(-50%)", boxShadow: "0 1px 4px rgba(0,0,0,0.2)" } })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "10px", fontWeight: "700", color: "#94a3b8" } }, /* @__PURE__ */ React.createElement("span", null, lo.toFixed(0), " cm"), /* @__PURE__ */ React.createElement("span", { style: { color: "#7c3aed" } }, "target range \xB18.5 cm", boneMetrics.predictedPah !== null ? " \xB7 marker = skeletal prediction" : ""), /* @__PURE__ */ React.createElement("span", null, hi.toFixed(0), " cm")));
-    })(), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? "#f8fafc" : "#fffbeb", border: boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? "1px solid #e2e8f0" : "1px solid #fde68a", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "700", letterSpacing: "0.05em", textTransform: "uppercase", color: "#64748b" } }, "Predicted Adult Height \xB7 TW3 skeletal"), boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "24px", fontWeight: "900", color: "#1e293b" } }, boneMetrics.predictedPah.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", color: "#94a3b8", marginLeft: "5px" } }, "cm"))), boneMetrics.skeletalCalibrated && boneMetrics.predictedPah !== null ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.predPct !== null ? `${boneMetrics.predPct.toFixed(1)}th centile \xB7 ` : "", boneMetrics.pct.toFixed(1), "% of adult height attained at bone age ", boneMetrics.ba.toFixed(1), " yr", boneMetrics.remaining !== null ? ` \xB7 ${boneMetrics.remaining.toFixed(1)} cm left to grow` : ""), boneMetrics.predVsTarget !== null && /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "700", marginTop: "8px", color: boneMetrics.withinTarget ? "#059669" : "#d97706" } }, boneMetrics.predVsTarget >= 0 ? "+" : "", boneMetrics.predVsTarget.toFixed(1), " cm vs genetic target \xB7 ", boneMetrics.withinTarget ? "within" : "outside", " mid-parental channel")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#92400e", lineHeight: "1.7", marginTop: "4px" } }, /* @__PURE__ */ React.createElement("strong", null, "Calibration required \u2014 no value shown by design."), " A skeletal prediction needs the licensed TW3 \u201C% of adult height attained by bone age\u201D reference (or another validated method) in ", /* @__PURE__ */ React.createElement("code", null, "TW3_CONFIG.pctAdultHeight"), ". The mid-parental target above is a ", /* @__PURE__ */ React.createElement("em", null, "genetic target"), ", not a prediction, and is never substituted here.")), /* @__PURE__ */ React.createElement("div", { className: "secondary-grid", style: { marginTop: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Bone Age vs Chronological"), boneMetrics.hasBone ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "26px", fontWeight: "900", color: Math.abs(boneMetrics.diff) > 2 ? "#d97706" : "#1e293b", lineHeight: 1 } }, boneMetrics.diff >= 0 ? "+" : "", boneMetrics.diff.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "yr")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.diff > 1 ? "Advanced maturation" : boneMetrics.diff < -1 ? "Delayed maturation" : "Concordant with age")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8" } }, "No bone age set")), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Genetic Target on Khadilkar"), boneMetrics.mph !== null && boneMetrics.mphZ !== null ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "26px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, boneMetrics.mphZ >= 0 ? "+" : "", boneMetrics.mphZ.toFixed(2)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "SDS")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#94a3b8", marginTop: "4px" } }, boneMetrics.mphPct.toFixed(1), "th percentile \xB7 target vs ", evalGender === "boys" ? "male" : "female", " adult (", boneMetrics.adult[0], " cm)")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8" } }, "Add parents' heights for target SDS"))), /* @__PURE__ */ React.createElement(MetricRow, { label: "Current Height", value: evalHeight.toFixed(1), unit: "cm", sub: `Chronological age ${evalAge.toFixed(1)} yr` })), /* @__PURE__ */ React.createElement("details", { className: "clinical-notes" }, /* @__PURE__ */ React.createElement("summary", null, "Clinical notes \xB7 TW3 workflow & Indian-population context"), /* @__PURE__ */ React.createElement("div", { className: "clinical-notes-body" }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#4338ca", lineHeight: "1.7", marginBottom: "10px" } }, /* @__PURE__ */ React.createElement("strong", null, "TW3 workflow:"), " use a ", /* @__PURE__ */ React.createElement("strong", null, "left"), " hand\u2013wrist PA radiograph. Stage all ", /* @__PURE__ */ React.createElement("strong", null, "20 bones"), " \u2014 13 RUS (radius, ulna, metacarpals 1\xB73\xB75, proximal/middle/distal phalanges 1\xB73\xB75) and 7 carpals \u2014 with the original TW3 letters A\u2192I. RUS and carpal maturity scores convert to ", /* @__PURE__ */ React.createElement("strong", null, "separate"), " bone ages (never averaged). Two independent reads within \xB10.5 yr is acceptable. Bayley\u2013Pinneau and Greulich\u2013Pyle are ", /* @__PURE__ */ React.createElement("strong", null, "not"), " used."), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#92400e", lineHeight: "1.7" } }, /* @__PURE__ */ React.createElement("strong", null, "Indian-population note:"), " No India-specific TW3 reference exists. In validation on Indian children, ", /* @__PURE__ */ React.createElement("strong", null, "TW3 was the most accurate"), " of the common methods (Shah et al., 2021, 851 children), which is why it is used here. However, skeletal maturation in Indian children differs from Western standards: boys run roughly ", /* @__PURE__ */ React.createElement("strong", null, "~6 months behind"), " and girls vary (delayed pre-puberty, sometimes advanced in early puberty) (Patel 2012; Khadilkar 2022). Scoring uses ", /* @__PURE__ */ React.createElement("strong", null, "TW3-C (Chinese)"), " tables as the closest freely-available reference \u2014 ", /* @__PURE__ */ React.createElement("strong", null, "no numeric correction is applied automatically"), ". Interpret borderline results, and ", /* @__PURE__ */ React.createElement("strong", null, "pubertal boys especially"), ", with clinical correlation."))), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "auto", paddingTop: "18px", borderTop: "1px solid #f1f5f9", fontSize: "11px", color: "#94a3b8", lineHeight: "1.7" } }, "TW3: Tanner, Healy, Goldstein & Cameron (2001) \u2014 licensed reference values required for scoring & skeletal height prediction. Mid-parental target: Tanner (open). Adult-height SDS/centile vs Khadilkar (WHO\u2013IAP) 18-yr reference. Clinician must verify \u2014 not a diagnostic device."))), activeTab === "renal" && /* @__PURE__ */ React.createElement(RenalPanel, null), activeTab === "liver" && /* @__PURE__ */ React.createElement(LiverPanel, null), activeTab === "frax" && /* @__PURE__ */ React.createElement(FraxPanel, null), activeTab === "qrisk" && /* @__PURE__ */ React.createElement(QriskPanel, null), activeTab === "timeline" && /* @__PURE__ */ React.createElement(LedgerPanel, null)), /* @__PURE__ */ React.createElement("div", { className: "card no-print", style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#0891b2", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "General Health Indicators")), /* @__PURE__ */ React.createElement("div", { className: "general-grid" }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Body Mass Index"), height !== "" && weight !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.bmi.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "kg/m\xB2")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.bmiCat, variant: generalMetrics.bmiVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Asian cutoffs: Normal < 23, OW \u2265 23, Obese \u2265 27.5")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter height & weight")), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Mean Arterial Pressure"), systolic !== "" && diastolic !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.map.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "mmHg")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.mapCat, variant: generalMetrics.mapVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Normal range: 70\u2013100 mmHg")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter systolic & diastolic BP")))))), /* @__PURE__ */ React.createElement("footer", { className: "clinical-footer" }, "Reference: Khadilkar V et al. (2015) Indian Pediatrics \xB7 TW3 (Tanner-Whitehouse 3, 2001) \xB7 QRISK3-2017 (Hippisley-Cox, BMJ 2017; ClinRisk LGPL) \xB7 CKD-EPI 2021 \xB7 Modified Bedside Schwartz (2009) \xB7 FRAX India Asian \xB7 FIB-4 (Sterling et al.) \xB7 For clinical decision support only.")));
+    )))), /* @__PURE__ */ React.createElement("div", { className: "card-lg result-panel" }, activeTab === "overview" && /* @__PURE__ */ React.createElement(OverviewPanel, null), activeTab === "growth" && /* @__PURE__ */ React.createElement(GrowthPanel, null), activeTab === "boneage" && /* @__PURE__ */ React.createElement(BoneAgePanel, null), activeTab === "renal" && /* @__PURE__ */ React.createElement(RenalPanel, null), activeTab === "liver" && /* @__PURE__ */ React.createElement(LiverPanel, null), activeTab === "frax" && /* @__PURE__ */ React.createElement(FraxPanel, null), activeTab === "qrisk" && /* @__PURE__ */ React.createElement(QriskPanel, null), activeTab === "timeline" && /* @__PURE__ */ React.createElement(LedgerPanel, null)), /* @__PURE__ */ React.createElement("div", { className: "card no-print", style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#0891b2", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "General Health Indicators")), /* @__PURE__ */ React.createElement("div", { className: "general-grid" }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Body Mass Index"), height !== "" && weight !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.bmi.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "kg/m\xB2")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.bmiCat, variant: generalMetrics.bmiVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Asian cutoffs: Normal < 23, OW \u2265 23, Obese \u2265 27.5")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter height & weight")), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Mean Arterial Pressure"), systolic !== "" && diastolic !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.map.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "mmHg")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.mapCat, variant: generalMetrics.mapVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Normal range: 70\u2013100 mmHg")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter systolic & diastolic BP")))))), /* @__PURE__ */ React.createElement("footer", { className: "clinical-footer" }, "Reference: Khadilkar V et al. (2015) Indian Pediatrics \xB7 TW3 (Tanner-Whitehouse 3, 2001) \xB7 QRISK3-2017 (Hippisley-Cox, BMJ 2017; ClinRisk LGPL) \xB7 CKD-EPI 2021 \xB7 Modified Bedside Schwartz (2009) \xB7 FRAX India Asian \xB7 FIB-4 (Sterling et al.) \xB7 For clinical decision support only.")));
   }
   var root = ReactDOM.createRoot(document.getElementById("root"));
   root.render(/* @__PURE__ */ React.createElement(App, null));
