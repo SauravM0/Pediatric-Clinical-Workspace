@@ -164,3 +164,51 @@ def test_app_is_smaller_than_before_the_split():
     opening all of it."""
     lines = len((SRC_DIR / "app.jsx").read_text(encoding="utf-8").splitlines())
     assert lines < 3200, f"app.jsx is {lines} lines; the extraction did not land"
+
+
+# ── context-based state (M6 state refactor) ─────────────────────────────────
+
+def test_clinical_state_context_exists_with_grouped_selectors():
+    """Panels read a narrow slice, not the whole store. A single god-hook would
+    let any panel reach any value and make the sharing surface unreviewable."""
+    body = (SRC_DIR / "state.jsx").read_text(encoding="utf-8")
+    for hook in ("usePatient", "useLiver", "useRenal", "useFrax"):
+        assert f"function {hook}(" in body, f"{hook} selector is missing"
+    assert "ClinicalStateProvider" in body
+
+
+def test_using_state_outside_the_provider_fails_loudly():
+    """A panel rendered outside the provider would otherwise crash on an
+    undefined field somewhere deeper, pointing at the wrong place entirely."""
+    body = (SRC_DIR / "state.jsx").read_text(encoding="utf-8")
+    assert "throw new Error" in body
+    assert "must be used inside" in body
+
+
+@pytest.mark.parametrize("panel", ["LiverPanel", "RenalPanel", "FraxPanel"])
+def test_extracted_panels_consume_context_not_props(panel):
+    body = (SRC_DIR / "panels" / f"{panel}.jsx").read_text(encoding="utf-8")
+    assert 'from "../state.jsx"' in body, f"{panel} does not read from context"
+    assert f"function {panel}()" in body, (
+        f"{panel} takes props -- the point of the context is that it does not have to"
+    )
+
+
+def test_app_renders_panels_as_elements_not_inline_jsx():
+    app = (SRC_DIR / "app.jsx").read_text(encoding="utf-8")
+    for panel in ("LiverPanel", "RenalPanel", "FraxPanel"):
+        assert f"<{panel} />" in app, f"app.jsx does not render <{panel} />"
+    assert "<ClinicalStateProvider" in app, "App does not provide the context"
+    # The old inline blocks must be gone, not merely bypassed.
+    assert "activeTab === 'liver' && (" not in app
+    assert "Liver Fibrosis · FIB-4 Index" not in app, (
+        "the liver panel markup is still in app.jsx as well as its own file"
+    )
+
+
+def test_context_value_is_explicit_rather_than_a_spread():
+    """A spread would silently widen what panels can reach as App grows; the
+    explicit list doubles as the record of what is genuinely cross-panel."""
+    app = (SRC_DIR / "app.jsx").read_text(encoding="utf-8")
+    start = app.index("const clinicalState = useMemo")
+    assert "..." not in app[start:start + 700], "clinicalState is built with a spread"

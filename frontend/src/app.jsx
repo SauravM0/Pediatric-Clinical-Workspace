@@ -38,6 +38,10 @@ import { SDSBar, MEASURE_META, GENDER_THEME, COMBINED_CHART_YMAX,
 import { ProbBar, StatusBadge, MetricRow, SectionHeader, FraxToggleRow,
          InputWithUnit, EmptyState, heroTone, variantToState,
          computeAgeParts } from "./ui.jsx";
+import { ClinicalStateProvider } from "./state.jsx";
+import { RenalPanel } from "./panels/RenalPanel.jsx";
+import { LiverPanel } from "./panels/LiverPanel.jsx";
+import { FraxPanel } from "./panels/FraxPanel.jsx";
 
         function App() {
           const [activeTab, setActiveTab] = useState('overview');
@@ -1230,7 +1234,25 @@ import { ProbBar, StatusBadge, MetricRow, SectionHeader, FraxToggleRow,
           const labsRelevant = ['renal','liver','qrisk','timeline','overview'].includes(activeTab);
           const fraxRelevant = ['frax','overview'].includes(activeTab);
 
+          // The slice the extracted panels read. Deliberately explicit rather
+          // than spreading everything: a panel should not be able to reach a
+          // value nobody decided to share with it, and the list doubles as the
+          // record of what is genuinely cross-panel.
+          const clinicalState = useMemo(() => ({
+            age, dob, gender, height, weight,
+            evalAge, evalHeight, evalWeight,
+            patientName, patientMrn, examDate,
+            liverMetrics, hasManualLiver, platelets,
+            renalMetrics, hasManualRenal, creatinine, monitoring,
+            fraxMetrics, hasManualFrax,
+          }), [age, dob, gender, height, weight, evalAge, evalHeight, evalWeight,
+               patientName, patientMrn, examDate,
+               liverMetrics, hasManualLiver, platelets,
+               renalMetrics, hasManualRenal, creatinine, monitoring,
+               fraxMetrics, hasManualFrax]);
+
           return (
+            <ClinicalStateProvider value={clinicalState}>
             <div className="app-shell">
 
               {/* ── HEADER ── */}
@@ -2554,202 +2576,9 @@ import { ProbBar, StatusBadge, MetricRow, SectionHeader, FraxToggleRow,
                     )}
 
                     {/* ══ RENAL TAB ══ */}
-                    {activeTab === 'renal' && (
-                      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
-                        <SectionHeader
-                          title="Renal Workspace · eGFR"
-                          subtitle={`Multi-equation clearance monitoring · ${renalMetrics.formulaName}`}
-                          badge={hasManualRenal ? `Stage ${renalMetrics.ckdStage}` : null}
-                          badgeVariant={hasManualRenal ? renalMetrics.stageVariant : 'info'}
-                        />
-
-                        {!hasManualRenal ? (
-                          <EmptyState title="Enter serum creatinine"
-                            hint="Serum creatinine — plus age, sex and height — is required to estimate GFR. No value is shown until it is entered." />
-                        ) : (<React.Fragment>
-                        {/* eGFR hero */}
-                        <div className="hero-result" style={{ ...heroTone(renalMetrics.stageVariant), borderRadius:'16px', padding:'24px', marginTop:'16px' }}>
-                          <div>
-                            <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.08em', color:'#64748b', marginBottom:'8px' }}>Estimated GFR</div>
-                            <div style={{ display:'flex', alignItems:'baseline', gap:'10px' }}>
-                              <span className="hero-value" style={{ fontWeight:'900', color: renalMetrics.stageVariant === 'high' ? '#b91c1c' : renalMetrics.stageVariant === 'mid' ? '#b45309' : '#15803d', lineHeight:1 }}>{renalMetrics.egfr.toFixed(1)}</span>
-                              <span style={{ fontSize:'13px', color:'#6366f1', fontWeight:'600' }}>mL/min/1.73 m²</span>
-                            </div>
-                            <div style={{ fontSize:'11px', color:'#818cf8', marginTop:'4px' }}>via {renalMetrics.formulaName}</div>
-                          </div>
-                          <div style={{ textAlign:'right' }}>
-                            <StatusBadge text={`Stage ${renalMetrics.ckdStage} · ${renalMetrics.ckdStageDesc}`} variant={renalMetrics.stageVariant} />
-                            <div style={{ marginTop:'10px', fontSize:'11px', color:'#6366f1', fontWeight:'600' }}>
-                              {renalMetrics.isPediatric ? '▸ Pediatric Mode' : '▸ Adult Mode'}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* CKD Stage chips */}
-                        <div style={{ marginTop:'16px' }}>
-                          <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'8px' }}>KDIGO CKD Stage Map</div>
-                          <div className="ckd-stage">
-                            {[
-                              ['G1','≥ 90','Normal'],
-                              ['G2','60–89','Mild ↓'],
-                              ['G3','30–59','Mod ↓'],
-                              ['G4','15–29','Severe ↓'],
-                              ['G5','< 15','Failure'],
-                            ].map(([stage, range, desc]) => (
-                              <div key={stage} className={`ckd-chip ${renalMetrics.ckdStage === stage ? `ckd-active-${stage.toLowerCase()}` : 'ckd-inactive'}`}>
-                                <div style={{ fontWeight:'900', fontSize:'11px' }}>{stage}</div>
-                                <div style={{ fontSize:'9px', marginTop:'2px', fontWeight:'600', opacity:0.85 }}>{range}</div>
-                                <div style={{ fontSize:'9px', marginTop:'1px', opacity:0.7 }}>{desc}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Alternate equations */}
-                        {!renalMetrics.isPediatric && (
-                          <div className="secondary-grid" style={{ marginTop:'16px' }}>
-                            <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px', border:'1px solid #e2e8f0' }}>
-                              <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'6px' }}>Cockcroft-Gault CrCl</div>
-                              <div style={{ fontSize:'22px', fontWeight:'900', color:'#334155' }}>{renalMetrics.cg ? renalMetrics.cg.toFixed(1) : '—'}</div>
-                              <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>mL/min</div>
-                            </div>
-                            <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px', border:'1px solid #e2e8f0' }}>
-                              <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:'6px' }}>MDRD Clearance</div>
-                              <div style={{ fontSize:'22px', fontWeight:'900', color:'#334155' }}>{renalMetrics.mdrd ? renalMetrics.mdrd.toFixed(1) : '—'}</div>
-                              <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>mL/min/1.73 m²</div>
-                            </div>
-                          </div>
-                        )}
-
-                        </React.Fragment>)}
-
-                        <div style={{ marginTop:'auto', paddingTop:'20px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
-                          KDIGO G1 ≥ 90 · G2 60–89 · G3 30–59 · G4 15–29 · G5 &lt; 15 mL/min/1.73 m²
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ══ LIVER TAB ══ */}
-                    {activeTab === 'liver' && (
-                      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
-                        <SectionHeader
-                          title="Liver Fibrosis · FIB-4 Index"
-                          subtitle="Non-invasive hepatic fibrosis staging — Age · AST · ALT · Platelets"
-                          badge={hasManualLiver ? liverMetrics.interpretation : null}
-                          badgeVariant={hasManualLiver ? liverMetrics.variant : 'info'}
-                        />
-
-                        {!hasManualLiver ? (
-                          <EmptyState title="Enter AST, ALT & platelets"
-                            hint="FIB-4 needs AST, ALT and platelet count (plus age). No score is shown until all three are entered." />
-                        ) : (<React.Fragment>
-                        {/* FIB-4 hero */}
-                        <div className="hero-result" style={{ ...heroTone(liverMetrics.variant), borderRadius:'16px', padding:'24px', marginTop:'16px' }}>
-                          <div>
-                            <div style={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.08em', color:'#64748b', marginBottom:'8px' }}>FIB-4 Score</div>
-                            <div style={{ display:'flex', alignItems:'baseline', gap:'10px' }}>
-                              <span className="hero-value" style={{ fontWeight:'900', color: liverMetrics.variant === 'high' ? '#b91c1c' : liverMetrics.variant === 'mid' ? '#b45309' : '#15803d', lineHeight:1 }}>{liverMetrics.fib4.toFixed(2)}</span>
-                              <span style={{ fontSize:'13px', color:'#64748b', fontWeight:'600' }}>index</span>
-                            </div>
-                            <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'4px' }}>Formula: (Age × AST) / (Platelets × √ALT)</div>
-                          </div>
-                          <div>
-                            <StatusBadge text={liverMetrics.interpretation} variant={liverMetrics.variant} />
-                            <div style={{ fontSize:'12px', color:'#64748b', marginTop:'10px', maxWidth:'200px', lineHeight:'1.5' }}>{liverMetrics.details}</div>
-                          </div>
-                        </div>
-
-                        {/* FIB-4 scale bar */}
-                        <div style={{ marginTop:'20px', background:'#f8fafc', borderRadius:'12px', padding:'16px', border:'1px solid #e2e8f0' }}>
-                          <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'12px' }}>Risk Scale</div>
-                          <div style={{ position:'relative', height:'10px', borderRadius:'99px', background:'linear-gradient(to right, #22c55e 0%, #22c55e 48%, #eab308 48%, #eab308 74%, #ef4444 74%, #ef4444 100%)' }}>
-                            {/* marker at FIB-4 value (max ~5) */}
-                            <div style={{ position:'absolute', top:'-4px', left:`${Math.min(Math.max((liverMetrics.fib4/5)*100,1),99)}%`, width:'18px', height:'18px', borderRadius:'50%', background:'white', border:'3px solid #334155', transform:'translateX(-50%)', boxShadow:'0 1px 4px rgba(0,0,0,0.2)' }}></div>
-                          </div>
-                          <div style={{ display:'flex', justifyContent:'space-between', marginTop:'8px', fontSize:'10px', fontWeight:'700', color:'#94a3b8' }}>
-                            <span>0</span>
-                            <span style={{ color:'#16a34a' }}>Low &lt; 1.30</span>
-                            <span style={{ color:'#d97706' }}>Indeterminate 1.30–2.67</span>
-                            <span style={{ color:'#dc2626' }}>High &gt; 2.67</span>
-                          </div>
-                        </div>
-
-                        {evalAge < 18 && (
-                          <div style={{ marginTop:'12px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#92400e', lineHeight:'1.6' }}>
-                            ⚠ FIB-4 is not validated in pediatric cohorts (age &lt; 18). Interpret with caution.
-                          </div>
-                        )}
-
-                        </React.Fragment>)}
-
-                        <div style={{ marginTop:'auto', paddingTop:'20px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
-                          FIB-4 ranges — Low: &lt; 1.30 · Indeterminate: 1.30–2.67 · High: ≥ 2.67
-                          {evalAge > 65 ? '  (Age > 65 — indeterminate threshold adjusted to 2.0)' : ''}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ══ FRAX TAB ══ */}
-                    {activeTab === 'frax' && (
-                      <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
-                        <SectionHeader
-                          title="FRAX Plus · 10-Year Fracture Risk"
-                          subtitle="India (Asian) · No femoral neck BMD · Sheffield intervention thresholds"
-                          badge={hasManualFrax ? (fraxMetrics.isHighMof || fraxMetrics.isHighHf ? 'High Risk' : 'Low Risk') : null}
-                          badgeVariant={hasManualFrax ? (fraxMetrics.isHighMof || fraxMetrics.isHighHf ? 'high' : 'low') : 'info'}
-                        />
-
-                        {!hasManualFrax ? (
-                          <EmptyState title="Enter age, sex, height & weight"
-                            hint="FRAX estimates 10-year fracture risk from demographics plus the risk factors on the left. No probability is shown until the core measurements are entered." />
-                        ) : (<React.Fragment>
-                        {evalAge < 40 && (
-                          <div style={{ marginTop:'12px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'10px', padding:'12px 14px', fontSize:'12px', color:'#92400e', lineHeight:'1.6' }}>
-                            ⚠ FRAX is calibrated for ages 40–90. Current age adjusted to the age-40 baseline model.
-                          </div>
-                        )}
-
-                        {/* MOF card */}
-                        <div style={{ ...heroTone(fraxMetrics.isHighMof ? 'high' : 'low'), borderRadius:'16px', padding:'22px', marginTop:'16px' }}>
-                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'16px', flexWrap:'wrap', gap:'8px' }}>
-                            <div>
-                              <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'6px' }}>Major Osteoporotic Fracture</div>
-                              <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
-                                <span className="hero-value" style={{ fontSize:'44px', fontWeight:'900', color: fraxMetrics.isHighMof ? '#dc2626' : '#16a34a', lineHeight:1 }}>{fraxMetrics.mofProb.toFixed(1)}</span>
-                                <span style={{ fontSize:'18px', fontWeight:'700', color:'#64748b' }}>%</span>
-                              </div>
-                              <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'3px' }}>10-yr probability — spine, hip, forearm, shoulder</div>
-                            </div>
-                            <StatusBadge text={fraxMetrics.isHighMof ? 'High Risk ≥ 20%' : 'Low Risk < 20%'} variant={fraxMetrics.isHighMof ? 'high' : 'low'} />
-                          </div>
-                          <ProbBar prob={fraxMetrics.mofProb} maxProb={40} threshold={20} />
-                        </div>
-
-                        {/* HF card */}
-                        <div style={{ ...heroTone(fraxMetrics.isHighHf ? 'high' : 'low'), borderRadius:'16px', padding:'22px', marginTop:'12px' }}>
-                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'16px', flexWrap:'wrap', gap:'8px' }}>
-                            <div>
-                              <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:'6px' }}>Hip Fracture</div>
-                              <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
-                                <span className="hero-value" style={{ fontSize:'44px', fontWeight:'900', color: fraxMetrics.isHighHf ? '#dc2626' : '#16a34a', lineHeight:1 }}>{fraxMetrics.hfProb.toFixed(1)}</span>
-                                <span style={{ fontSize:'18px', fontWeight:'700', color:'#64748b' }}>%</span>
-                              </div>
-                              <div style={{ fontSize:'11px', color:'#94a3b8', marginTop:'3px' }}>10-yr probability of hip fracture</div>
-                            </div>
-                            <StatusBadge text={fraxMetrics.isHighHf ? 'High Risk ≥ 3%' : 'Low Risk < 3%'} variant={fraxMetrics.isHighHf ? 'high' : 'low'} />
-                          </div>
-                          <ProbBar prob={fraxMetrics.hfProb} maxProb={15} threshold={3} />
-                        </div>
-
-                        </React.Fragment>)}
-
-                        <div style={{ marginTop:'auto', paddingTop:'20px', borderTop:'1px solid #f1f5f9', fontSize:'11px', color:'#94a3b8', lineHeight:'1.7' }}>
-                          Sheffield thresholds: Treatment recommended when MOF ≥ 20% or Hip Fracture ≥ 3% (10-year absolute risk).
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ══ QRISK3 CVD TAB ══ */}
+                    {activeTab === 'renal' && <RenalPanel />}
+                    {activeTab === 'liver' && <LiverPanel />}
+                    {activeTab === 'frax' && <FraxPanel />}
                     {activeTab === 'qrisk' && (
                       <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
                         <SectionHeader
@@ -3025,6 +2854,7 @@ import { ProbBar, StatusBadge, MetricRow, SectionHeader, FraxToggleRow,
               </footer>
 
             </div>
+            </ClinicalStateProvider>
           );
         }
 
