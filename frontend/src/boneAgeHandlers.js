@@ -33,6 +33,7 @@ function useBoneAgeHandlers(s) {
     setBoneAgeSource, setBoxes, setCarpalStages, setCovBusy, setCoverage,
     setDeclaredFlags, setFbAge, setFbBusy, setFbMsg, setFbNote,
     setLastFilm, setLcBusy, setLcMsg, setLocBusy, setLocImg, setLocMsg,
+    setLcohBusy, setLocalCohort,
     setLtBusy, setLtMsg, setLtStatus, setLtTables, setMonBusy,
     setMonitoring, setRadiograph, setRusStages, setSelBone, setShowAudit,
     showAudit,
@@ -229,6 +230,15 @@ function useBoneAgeHandlers(s) {
       if (r.ok) setMonitoring(await r.json());
     } catch {}
     finally { setMonBusy(false); }
+  };
+
+  const loadLocalCohort = async () => {
+    setLcohBusy(true);
+    try {
+      const r = await fetch('/api/bone-age/local-cohort');
+      if (r.ok) setLocalCohort(await r.json());
+    } catch {}
+    finally { setLcohBusy(false); }
   };
 
   const loadAdjudication = async () => {
@@ -445,7 +455,7 @@ function useBoneAgeHandlers(s) {
     LC_API, lcLocked, saveDraft, bonesIntoGrids, calculateAssessment,
     approveAssessment, reviseAssessment, toggleAudit, submitFeedback,
     runEstimate, toggleDeclaredFlag, attachImage, loadCoverage,
-    loadMonitoring, loadAdjudication, resolveAdjudication, _emptyLt,
+    loadMonitoring, loadLocalCohort, loadAdjudication, resolveAdjudication, _emptyLt,
     loadLetterTables, setLtPoint, curveToText, parseCurve, setLtCurve,
     setLtSexCurve, useGridAsReference, setRefExpected, saveLetterTables,
     setImageDomain, analysisUrl, localizeBones, addOrSelectBox, clearBox,

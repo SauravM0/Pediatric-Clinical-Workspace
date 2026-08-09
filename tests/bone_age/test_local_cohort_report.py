@@ -433,6 +433,65 @@ def test_the_critical_subgroup_is_called_out_when_absent(db, registry_dir,
                for line in report["interpretation"])
 
 
+# ── the API surface the panel reads ─────────────────────────────────────────
+
+def test_endpoint_returns_the_survey_even_when_nothing_is_frozen(db, registry_dir):
+    """The panel's normal state for almost this cohort's whole life is "here is
+    what is still missing", so the endpoint must answer that rather than error."""
+    from fastapi.testclient import TestClient
+
+    from backend.server import app
+
+    r = TestClient(app).get("/api/bone-age/local-cohort")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["survey"]["ready_to_freeze"] is False
+    assert body["evaluation"]["available"] is False
+    assert len(body["evaluation"]["reason"]) > 20, "a blank reason renders as a blank panel"
+    assert body["target_size"] == carve.TARGET_SIZE
+    assert body["strata"] == ["boys:prepubertal", "boys:pubertal",
+                              "girls:prepubertal", "girls:pubertal"]
+
+
+def test_endpoint_carries_the_result_and_the_reader_floor_together(db, populated,
+                                                                   registry_dir,
+                                                                   stub_model):
+    """They must arrive in the same payload. A panel that has to make a second
+    call for the floor is a panel that will render the error without it."""
+    from fastapi.testclient import TestClient
+
+    from backend.server import app
+
+    carve.freeze(db, force=True)
+    body = TestClient(app).get("/api/bone-age/local-cohort").json()
+
+    ev = body["evaluation"]
+    assert ev["available"] is True
+    assert ev["headline"]["mae_months"] is not None
+    assert ev["reader_disagreement"]["mean_spread_months"] is not None
+    assert ev["interpretation"], "the panel renders these verbatim"
+    assert ev["by_stratum"]["subgroups"]
+
+
+def test_endpoint_does_not_500_when_the_cohort_cannot_be_evaluated(db, populated,
+                                                                    registry_dir,
+                                                                    stub_model,
+                                                                    tmp_path):
+    """A missing image file is an ordinary state. The panel should say so, not
+    show a server error."""
+    from fastapi.testclient import TestClient
+
+    from backend.server import app
+
+    carve.freeze(db, force=True)
+    (tmp_path / "film.png").unlink()
+
+    r = TestClient(app).get("/api/bone-age/local-cohort")
+    assert r.status_code == 200
+    assert r.json()["evaluation"]["available"] is False
+    assert "no_image" in r.json()["evaluation"]["reason"]
+
+
 def test_the_report_never_calls_the_consensus_ground_truth(db, populated,
                                                            registry_dir, stub_model):
     carve.freeze(db, force=True)

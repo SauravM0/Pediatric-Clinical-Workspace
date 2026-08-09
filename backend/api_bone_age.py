@@ -650,6 +650,44 @@ def _tw3_band(years: float) -> str:
     return f"{lo}-{lo + 1}"
 
 
+@router.get("/local-cohort")
+def local_cohort(db: Session = Depends(get_db)) -> dict:
+    """Local Indian dual-read cohort: how far off it is, and its result if frozen.
+
+    Always returns the survey, because "what is still missing" is the useful
+    answer for almost the whole life of this cohort. The evaluation is attached
+    only when one can honestly be produced; every failure to produce it comes
+    back as a reason string rather than a 500, so the panel can say what is
+    needed instead of showing an error.
+    """
+    from backend.ai.validation import carve_local_cohort as carve
+    from backend.ai.validation import local_cohort_report as lcr
+    from backend.ai.validation.leak_guard import LeakError
+
+    survey = carve.survey(db).to_dict()
+    survey["min_readers"] = carve.MIN_READERS
+
+    evaluation: dict[str, Any] = {"available": False, "reason": ""}
+    try:
+        report = lcr.run(db)
+        evaluation = {
+            "available": True,
+            "headline": report.get("headline", {}),
+            "reader_disagreement": report.get("reader_disagreement", {}),
+            "interpretation": report.get("interpretation", []),
+            "by_stratum": (report.get("subgroups") or {}).get("by_stratum", {}),
+            "provenance": report.get("provenance", {}),
+        }
+    except (lcr.CohortReportError, LeakError) as exc:
+        evaluation["reason"] = str(exc)
+
+    return {"survey": survey, "evaluation": evaluation,
+            "target_size": carve.TARGET_SIZE,
+            "min_per_stratum": carve.MIN_PER_STRATUM,
+            "strata": [f"{s}:{p}" for s in ("boys", "girls")
+                       for p in carve.PUBERTAL_STRATA]}
+
+
 @router.get("/monitoring")
 def monitoring(db: Session = Depends(get_db)) -> dict:
     """Monitoring dashboard payload: AI-vs-human trend + input drift + soft CPP priors."""

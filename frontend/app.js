@@ -785,7 +785,10 @@
       loadAdjudication: s.loadAdjudication,
       loadCoverage: s.loadCoverage,
       loadLetterTables: s.loadLetterTables,
+      loadLocalCohort: s.loadLocalCohort,
       loadMonitoring: s.loadMonitoring,
+      localCohort: s.localCohort,
+      lcohBusy: s.lcohBusy,
       locBusy: s.locBusy,
       locImg: s.locImg,
       locMsg: s.locMsg,
@@ -902,6 +905,8 @@
       setLocBusy,
       setLocImg,
       setLocMsg,
+      setLcohBusy,
+      setLocalCohort,
       setLtBusy,
       setLtMsg,
       setLtStatus,
@@ -1183,6 +1188,16 @@
       } catch {
       } finally {
         setMonBusy(false);
+      }
+    };
+    const loadLocalCohort = async () => {
+      setLcohBusy(true);
+      try {
+        const r = await fetch("/api/bone-age/local-cohort");
+        if (r.ok) setLocalCohort(await r.json());
+      } catch {
+      } finally {
+        setLcohBusy(false);
       }
     };
     const loadAdjudication = async () => {
@@ -1496,6 +1511,7 @@
       attachImage,
       loadCoverage,
       loadMonitoring,
+      loadLocalCohort,
       loadAdjudication,
       resolveAdjudication,
       _emptyLt,
@@ -1787,7 +1803,10 @@
       loadAdjudication,
       loadCoverage,
       loadLetterTables,
+      loadLocalCohort,
       loadMonitoring,
+      localCohort,
+      lcohBusy,
       locBusy,
       locImg,
       locMsg,
@@ -1944,7 +1963,25 @@
       };
       const rows = rep ? rep.per_bone_results : [];
       return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement("div", { style: { overflowX: "auto" } }, /* @__PURE__ */ React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "11px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { textAlign: "left", color: "#64748b", borderBottom: "1px solid #e2e8f0" } }, /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "#"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Bone"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Sys"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Stage"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700" } }, "Visibility"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700", textAlign: "right" } }, "Points"), /* @__PURE__ */ React.createElement("th", { style: { padding: "4px 6px", fontWeight: "700", textAlign: "right" } }, "% of max"))), /* @__PURE__ */ React.createElement("tbody", null, rows.map((b) => /* @__PURE__ */ React.createElement("tr", { key: b.bone_id, style: { borderBottom: "1px solid #f1f5f9", background: b.system === "CARPAL" ? "#fafafa" : "white" } }, /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", color: "#94a3b8" } }, b.display_order), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", fontWeight: "600", color: "#1e293b" } }, b.anatomical_name), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", color: "#64748b" } }, b.system === "CARPAL" ? "Carpal" : "RUS"), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", fontWeight: "700", color: "#5b21b6" } }, b.stage && !b.stage.startsWith("NOT_") ? b.stage : "\u2014"), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px" } }, visChip(b.visibility)), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", textAlign: "right", color: "#475569" } }, num(b.points)), /* @__PURE__ */ React.createElement("td", { style: { padding: "3px 6px", textAlign: "right", color: "#475569" } }, b.pct_of_bone_max != null ? b.pct_of_bone_max + "%" : "\u2014"))), rows.length === 0 && /* @__PURE__ */ React.createElement("tr", null, /* @__PURE__ */ React.createElement("td", { colSpan: "7", style: { padding: "10px 6px", color: "#94a3b8" } }, "Grade the bones below to build the report."))))), rep && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f5f3ff", border: "1px solid #ddd6fe", borderRadius: "10px", padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: "0.05em" } }, "RUS (13 bones)"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginTop: "4px" } }, "Staged ", rep.completeness.rus_staged, "/13 \xB7 score ", num(rep.rus.total_score)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "800", color: "#5b21b6", marginTop: "2px" } }, "TWIII age ", yrs(rep.rus.twiii_age_years), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", fontWeight: "600", color: "#94a3b8" } }, "\xB7 TWII ", yrs(rep.rus.twii_age_years)))), /* @__PURE__ */ React.createElement("div", { style: { background: "#fafafa", border: "1px solid #e2e8f0", borderRadius: "10px", padding: "10px 12px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" } }, "Carpal (7 bones) \xB7 separate"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#475569", marginTop: "4px" } }, "Staged ", rep.completeness.carpal_staged, "/7 \xB7 score ", num(rep.carpal.total_score)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "13px", fontWeight: "800", color: "#334155", marginTop: "2px" } }, "TWIII age ", yrs(rep.carpal.twiii_age_years), " ", /* @__PURE__ */ React.createElement("span", { style: { fontSize: "10px", fontWeight: "600", color: "#94a3b8" } }, "\xB7 never averaged with RUS")))), rep && rep.scoring_note && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "10px", color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "8px 10px", lineHeight: "1.5" } }, rep.scoring_note), rep && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.5" } }, rep.mandatory_disclaimer));
-    })())), /* @__PURE__ */ React.createElement("details", { style: { marginTop: "16px", display: "none" } }, /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontWeight: "800", fontSize: "12px", color: "#7c3aed", padding: "8px 0", listStyle: "none" } }, "\u2699 Advanced \xB7 manual grading, save & approve, adult-height"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "800", color: "#6b21a8", textTransform: "uppercase", letterSpacing: "0.05em" } }, "Manual TW3 grading \xB7 left hand\u2013wrist \xB7 stages A\u2013I"), /* @__PURE__ */ React.createElement("button", { onClick: () => {
+    })())), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "white", border: "1px solid #e2e8f0", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155", textTransform: "uppercase", letterSpacing: ".05em" } }, "Local validation cohort"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "2px" } }, "Films read independently by two clinicians, frozen and never used for training. This is the only measurement that describes accuracy on ", /* @__PURE__ */ React.createElement("em", null, "your"), " patients \u2014 published figures describe someone else's.")), /* @__PURE__ */ React.createElement("button", { onClick: loadLocalCohort, disabled: lcohBusy, style: lcBtn("#475569", lcohBusy) }, lcohBusy ? "Loading\u2026" : localCohort ? "Refresh" : "Load cohort")), localCohort && (() => {
+      const sv = localCohort.survey || {};
+      const ev = localCohort.evaluation || {};
+      const strata = sv.strata || {};
+      const target = localCohort.target_size || 0;
+      const perStratum = localCohort.min_per_stratum || 0;
+      const eligible = sv.n_eligible || 0;
+      const pct = target ? Math.min(100, Math.round(eligible / target * 100)) : 0;
+      const mo = (v) => v == null ? "\u2014" : `${v} mo`;
+      return /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: "6px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#334155" } }, "Eligible films"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", color: "#64748b" } }, eligible, " of ", target, " \xB7 at least ", sv.min_readers || 2, " independent reads each")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px", height: "8px", background: "#e2e8f0", borderRadius: "999px", overflow: "hidden" } }, /* @__PURE__ */ React.createElement("div", { style: { width: `${pct}%`, height: "100%", background: pct >= 100 ? "#059669" : "#6366f1" } })), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "10px" } }, (localCohort.strata || []).map((name) => {
+        const have = strata[name] || 0;
+        const ok = have >= perStratum;
+        return /* @__PURE__ */ React.createElement("div", { key: name, style: { flex: "1 1 120px", background: "white", border: `1px solid ${ok ? "#a7f3d0" : "#fecaca"}`, borderRadius: "8px", padding: "8px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b" } }, name.replace(":", " \xB7 ")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "16px", fontWeight: "800", color: ok ? "#059669" : "#b91c1c" } }, have, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "600", color: "#94a3b8" } }, " / ", perStratum)));
+      })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "8px", lineHeight: "1.5" } }, "Every stratum needs its minimum before the cohort can be frozen. Published Indian data show TW3 is ", /* @__PURE__ */ React.createElement("strong", null, "worst of three methods in pubertal boys"), ", so a cohort thin in any stratum hides the subgroup that matters most.")), !sv.ready_to_freeze && (sv.reasons || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "800", color: "#92400e" } }, "Not ready to freeze"), /* @__PURE__ */ React.createElement("ul", { style: { margin: "6px 0 0 16px", padding: 0, fontSize: "10px", color: "#78350f", lineHeight: "1.6" } }, sv.reasons.map((r, i) => /* @__PURE__ */ React.createElement("li", { key: i }, r)))), sv.rejected && Object.values(sv.rejected).some((n) => n > 0) && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", fontSize: "10px", color: "#64748b" } }, "Excluded: ", Object.entries(sv.rejected).filter(([, n]) => n > 0).map(([k, n]) => `${k.replace(/_/g, " ")} ${n}`).join(" \xB7 ")), ev.available ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 160px", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#4338ca" } }, "Model error on your films"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "20px", fontWeight: "800", color: "#3730a3" } }, mo((ev.headline || {}).mae_months)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#6366f1" } }, (ev.provenance || {}).n_evaluated || 0, " films evaluated")), /* @__PURE__ */ React.createElement("div", { style: { flex: "1 1 160px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b" } }, "Disagreement between your readers"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "20px", fontWeight: "800", color: "#334155" } }, mo((ev.reader_disagreement || {}).mean_spread_months)), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8" } }, "the floor this should be read against"))), (ev.interpretation || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", padding: "10px" } }, ev.interpretation.map((line, i) => /* @__PURE__ */ React.createElement("div", { key: i, style: { fontSize: "11px", color: "#14532d", lineHeight: "1.6", marginTop: i ? "6px" : 0 } }, line))), ((ev.by_stratum || {}).subgroups || []).length > 0 && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", overflowX: "auto" } }, /* @__PURE__ */ React.createElement("table", { style: { width: "100%", borderCollapse: "collapse", fontSize: "11px" } }, /* @__PURE__ */ React.createElement("thead", null, /* @__PURE__ */ React.createElement("tr", { style: { background: "#f8fafc" } }, /* @__PURE__ */ React.createElement("th", { style: { textAlign: "left", padding: "6px 8px", color: "#64748b", fontWeight: "700" } }, "Stratum"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", padding: "6px 8px", color: "#64748b", fontWeight: "700" } }, "Films"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", padding: "6px 8px", color: "#64748b", fontWeight: "700" } }, "MAE"), /* @__PURE__ */ React.createElement("th", { style: { textAlign: "right", padding: "6px 8px", color: "#64748b", fontWeight: "700" } }, "Bias"))), /* @__PURE__ */ React.createElement("tbody", null, ev.by_stratum.subgroups.map((row, i) => {
+        const name = (row.group || {}).stratum || "\u2014";
+        const thin = (row.n || 0) < perStratum;
+        return /* @__PURE__ */ React.createElement("tr", { key: i, style: { borderTop: "1px solid #e2e8f0" } }, /* @__PURE__ */ React.createElement("td", { style: { padding: "6px 8px", color: "#334155" } }, name.replace(":", " \xB7 ")), /* @__PURE__ */ React.createElement("td", { style: { padding: "6px 8px", textAlign: "right", color: thin ? "#b91c1c" : "#64748b" } }, row.n, thin ? " \u26A0" : ""), /* @__PURE__ */ React.createElement("td", { style: { padding: "6px 8px", textAlign: "right", fontWeight: "700", color: "#334155" } }, mo(row.mae_months)), /* @__PURE__ */ React.createElement("td", { style: { padding: "6px 8px", textAlign: "right", color: "#64748b" } }, row.signed_bias_months == null ? "\u2014" : `${row.signed_bias_months > 0 ? "+" : ""}${row.signed_bias_months} mo`));
+      }))), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "6px", lineHeight: "1.5" } }, "\u26A0 marks a stratum below the minimum count \u2014 its figure is too imprecise to support a claim. The reference standard is a consensus of independent expert reads, ", /* @__PURE__ */ React.createElement("strong", null, "not ground truth"), "; a model inside the readers' own spread is within the band where the reference is uncertain, not better than the readers."))) : /* @__PURE__ */ React.createElement("div", { style: { marginTop: "10px", background: "#f8fafc", border: "1px dashed #cbd5e1", borderRadius: "8px", padding: "10px" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "11px", fontWeight: "700", color: "#475569" } }, "No local accuracy figure yet"), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#64748b", marginTop: "4px", lineHeight: "1.5" } }, ev.reason || "Freeze the cohort once every stratum is complete.")));
+    })()), /* @__PURE__ */ React.createElement("details", { style: { marginTop: "16px", display: "none" } }, /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontWeight: "800", fontSize: "12px", color: "#7c3aed", padding: "8px 0", listStyle: "none" } }, "\u2699 Advanced \xB7 manual grading, save & approve, adult-height"), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "16px", background: "#faf5ff", border: "1px solid #e9d5ff", borderRadius: "12px", padding: "16px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "11px", fontWeight: "800", color: "#6b21a8", textTransform: "uppercase", letterSpacing: "0.05em" } }, "Manual TW3 grading \xB7 left hand\u2013wrist \xB7 stages A\u2013I"), /* @__PURE__ */ React.createElement("button", { onClick: () => {
       setRusStages({});
       setCarpalStages({});
     }, style: { padding: "5px 12px", background: "white", color: "#7c3aed", border: "1.5px solid #ddd6fe", borderRadius: "8px", fontSize: "11px", fontWeight: "700", cursor: "pointer" } }, "Clear grades")), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#7c3aed", marginBottom: "6px", textTransform: "uppercase", letterSpacing: ".04em" } }, "RUS bones (13)"), /* @__PURE__ */ React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "8px" } }, REPORT_RUS.map(([code, label]) => /* @__PURE__ */ React.createElement("div", { key: code }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "10px", fontWeight: "700", color: "#7c3aed", display: "block", marginBottom: "3px" } }, label), /* @__PURE__ */ React.createElement("select", { value: rusStages[code] || "", onChange: (e) => setRusStages((s) => {
@@ -2249,6 +2286,8 @@
     const [covBusy, setCovBusy] = useState(false);
     const [monitoring, setMonitoring] = useState(null);
     const [monBusy, setMonBusy] = useState(false);
+    const [localCohort, setLocalCohort] = useState(null);
+    const [lcohBusy, setLcohBusy] = useState(false);
     const [adjItems, setAdjItems] = useState(null);
     const [adjBusy, setAdjBusy] = useState(false);
     const [adjReviewer, setAdjReviewer] = useState("");
@@ -2825,7 +2864,8 @@
       startBoxDrag,
       onLocMove,
       endLocDrag,
-      lcBtn
+      lcBtn,
+      loadLocalCohort
     } = useBoneAgeHandlers({
       adjReviewer,
       age,
@@ -2878,6 +2918,8 @@
       setLocBusy,
       setLocImg,
       setLocMsg,
+      setLcohBusy,
+      setLocalCohort,
       setLtBusy,
       setLtMsg,
       setLtStatus,
@@ -3287,6 +3329,9 @@
       locImg,
       locMsg,
       locRef,
+      localCohort,
+      lcohBusy,
+      loadLocalCohort,
       localizeBones,
       ltBusy,
       ltMsg,

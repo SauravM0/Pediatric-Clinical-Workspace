@@ -232,6 +232,52 @@ def test_app_is_now_mostly_state_and_handlers():
     assert lines < 1500, f"app.jsx is {lines} lines; the panel extraction regressed"
 
 
+def test_every_name_in_clinical_state_is_defined_in_app():
+    """A name listed in clinicalState but never bound is a ReferenceError at
+    MOUNT — the whole app renders nothing, not just one panel.
+
+    Not hypothetical: adding `loadLocalCohort` to the context without also
+    destructuring it from useBoneAgeHandlers took the entire workspace down to a
+    blank page. esbuild cannot see it (the name could legally come from an
+    import or an outer scope), so nothing else catches it.
+    """
+    app = (SRC_DIR / "app.jsx").read_text(encoding="utf-8")
+    start = app.index("const clinicalState = {")
+    depth, end = 0, start
+    for i in range(app.index("{", start), len(app)):
+        if app[i] == "{":
+            depth += 1
+        elif app[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    listed = set(re.findall(r"^\s*([a-zA-Z_$][\w$]*)\s*,\s*$",
+                            app[start:end], re.M))
+
+    before = app[:start]
+    bound = set()
+    # const/let/var bindings, destructured names, function params and imports.
+    bound |= set(re.findall(r"\b(?:const|let|var)\s+([a-zA-Z_$][\w$]*)", before))
+    for block in re.findall(r"(?:const|let|var)\s*\{([^}]*)\}\s*=", before, re.S):
+        bound |= {n.strip().split(":")[-1].strip().split("=")[0].strip()
+                  for n in block.split(",") if n.strip()}
+    # const [value, setValue] = useState(...) — how nearly all of this state is
+    # bound, and the case the first version of this guard missed entirely.
+    for block in re.findall(r"(?:const|let|var)\s*\[([^\]]*)\]\s*=", before, re.S):
+        bound |= {n.strip().split("=")[0].strip()
+                  for n in block.split(",") if n.strip()}
+    for block in re.findall(r"import\s*\{([^}]*)\}", before, re.S):
+        bound |= {n.strip().split(" as ")[-1].strip() for n in block.split(",") if n.strip()}
+    bound |= set(re.findall(r"function\s+([a-zA-Z_$][\w$]*)", before))
+
+    missing = sorted(n for n in listed if n not in bound)
+    assert not missing, (
+        f"clinicalState lists {missing}, which app.jsx never binds — the app "
+        "will throw at mount and render a blank page"
+    )
+
+
 def test_context_value_is_explicit_rather_than_a_spread():
     """A spread would silently widen what panels can reach as App grows; the
     explicit list doubles as the record of what is genuinely cross-panel."""

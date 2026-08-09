@@ -115,6 +115,8 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
           const [covBusy, setCovBusy] = useState(false);
           const [monitoring, setMonitoring] = useState(null); // /api/bone-age/monitoring
           const [monBusy, setMonBusy] = useState(false);
+          const [localCohort, setLocalCohort] = useState(null); // /api/bone-age/local-cohort
+          const [lcohBusy, setLcohBusy] = useState(false);
           const [adjItems, setAdjItems] = useState(null);     // /api/bone-age/adjudication (open)
           const [adjBusy, setAdjBusy] = useState(false);
           const [adjReviewer, setAdjReviewer] = useState(""); // the resolving clinician
@@ -582,7 +584,7 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             useGridAsReference, setRefExpected, saveLetterTables,
             setImageDomain, analysisUrl, localizeBones, addOrSelectBox,
             clearBox, saveBoxes, startBoxDrag, onLocMove, endLocDrag,
-            lcBtn,
+            lcBtn, loadLocalCohort,
           } = useBoneAgeHandlers({
             adjReviewer, age, aiEstimate, approverName, assessment, boxes,
             boxesRef, carpalStages, coverage, declaredFlags,
@@ -594,7 +596,8 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             setBoxes, setCarpalStages, setCovBusy, setCoverage,
             setDeclaredFlags, setFbAge, setFbBusy, setFbMsg, setFbNote,
             setLastFilm, setLcBusy, setLcMsg, setLocBusy, setLocImg,
-            setLocMsg, setLtBusy, setLtMsg, setLtStatus, setLtTables,
+            setLocMsg, setLcohBusy, setLocalCohort, setLtBusy, setLtMsg,
+            setLtStatus, setLtTables,
             setMonBusy, setMonitoring, setRadiograph, setRusStages,
             setSelBone, setShowAudit, showAudit,
           });
@@ -928,6 +931,9 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             locImg,
             locMsg,
             locRef,
+            localCohort,
+            lcohBusy,
+            loadLocalCohort,
             localizeBones,
             ltBusy,
             ltMsg,

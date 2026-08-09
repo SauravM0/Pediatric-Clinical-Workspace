@@ -26,7 +26,8 @@ function BoneAgePanel() {
     evalGender, evalHeight, fatherHeight, fbAge, fbBusy, fbConfidence,
     fbMethod, fbMsg, fbNote, fbRater, height, lcBtn, lcBusy, lcLocked,
     lcMsg, letterResult, loadAdjudication, loadCoverage, loadLetterTables,
-    loadMonitoring, locBusy, locImg, locMsg, locRef, localizeBones,
+    loadLocalCohort, loadMonitoring, localCohort, lcohBusy,
+    locBusy, locImg, locMsg, locRef, localizeBones,
     ltBusy, ltMsg, ltSection, ltSex, ltStatus, ltTables, monBusy,
     monitoring, motherHeight, onLocMove, patientCode, radiograph,
     resolveAdjudication, reviseAssessment, runEstimate, rusStages,
@@ -339,6 +340,149 @@ function BoneAgePanel() {
           );
         })()}
         </details>
+      </div>
+
+      {/* Local validation cohort — the only number that describes THIS clinic's
+          films. Deliberately OUTSIDE the hidden Advanced block below: the
+          monitoring and adjudication views live in there and are switched off,
+          but "how accurate is this on my patients" is the question a clinician
+          should not have to go looking for. */}
+      <div style={{ marginTop:'16px', background:'white', border:'1px solid #e2e8f0', borderRadius:'12px', padding:'16px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'8px' }}>
+          <div>
+            <div style={{ fontSize:'11px', fontWeight:'800', color:'#334155', textTransform:'uppercase', letterSpacing:'.05em' }}>Local validation cohort</div>
+            <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'2px' }}>Films read independently by two clinicians, frozen and never used for training. This is the only measurement that describes accuracy on <em>your</em> patients — published figures describe someone else's.</div>
+          </div>
+          <button onClick={loadLocalCohort} disabled={lcohBusy} style={lcBtn('#475569', lcohBusy)}>{lcohBusy ? 'Loading…' : (localCohort ? 'Refresh' : 'Load cohort')}</button>
+        </div>
+
+        {localCohort && (() => {
+          const sv = localCohort.survey || {};
+          const ev = localCohort.evaluation || {};
+          const strata = sv.strata || {};
+          const target = localCohort.target_size || 0;
+          const perStratum = localCohort.min_per_stratum || 0;
+          const eligible = sv.n_eligible || 0;
+          const pct = target ? Math.min(100, Math.round((eligible / target) * 100)) : 0;
+          const mo = v => (v == null ? '—' : `${v} mo`);
+
+          return (
+            <div style={{ marginTop:'12px' }}>
+              {/* Progress toward a cohort that can support a claim at all */}
+              <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'12px' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', flexWrap:'wrap', gap:'6px' }}>
+                  <div style={{ fontSize:'11px', fontWeight:'800', color:'#334155' }}>Eligible films</div>
+                  <div style={{ fontSize:'11px', color:'#64748b' }}>{eligible} of {target} · at least {sv.min_readers || 2} independent reads each</div>
+                </div>
+                <div style={{ marginTop:'6px', height:'8px', background:'#e2e8f0', borderRadius:'999px', overflow:'hidden' }}>
+                  <div style={{ width:`${pct}%`, height:'100%', background: pct >= 100 ? '#059669' : '#6366f1' }} />
+                </div>
+
+                <div style={{ display:'flex', flexWrap:'wrap', gap:'8px', marginTop:'10px' }}>
+                  {(localCohort.strata || []).map(name => {
+                    const have = strata[name] || 0;
+                    const ok = have >= perStratum;
+                    return (
+                      <div key={name} style={{ flex:'1 1 120px', background:'white', border:`1px solid ${ok ? '#a7f3d0' : '#fecaca'}`, borderRadius:'8px', padding:'8px' }}>
+                        <div style={{ fontSize:'10px', color:'#64748b' }}>{name.replace(':', ' · ')}</div>
+                        <div style={{ fontSize:'16px', fontWeight:'800', color: ok ? '#059669' : '#b91c1c' }}>{have}<span style={{ fontSize:'11px', fontWeight:'600', color:'#94a3b8' }}> / {perStratum}</span></div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'8px', lineHeight:'1.5' }}>
+                  Every stratum needs its minimum before the cohort can be frozen. Published Indian data show TW3 is <strong>worst of three methods in pubertal boys</strong>, so a cohort thin in any stratum hides the subgroup that matters most.
+                </div>
+              </div>
+
+              {/* Why it cannot be frozen yet */}
+              {!sv.ready_to_freeze && (sv.reasons || []).length > 0 && (
+                <div style={{ marginTop:'10px', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'10px' }}>
+                  <div style={{ fontSize:'11px', fontWeight:'800', color:'#92400e' }}>Not ready to freeze</div>
+                  <ul style={{ margin:'6px 0 0 16px', padding:0, fontSize:'10px', color:'#78350f', lineHeight:'1.6' }}>
+                    {sv.reasons.map((r, i) => <li key={i}>{r}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {/* Films that did not qualify, and why — never silently dropped */}
+              {sv.rejected && Object.values(sv.rejected).some(n => n > 0) && (
+                <div style={{ marginTop:'10px', fontSize:'10px', color:'#64748b' }}>
+                  Excluded: {Object.entries(sv.rejected).filter(([, n]) => n > 0)
+                    .map(([k, n]) => `${k.replace(/_/g, ' ')} ${n}`).join(' · ')}
+                </div>
+              )}
+
+              {/* The result, if one can honestly be produced */}
+              {ev.available ? (
+                <div style={{ marginTop:'12px' }}>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:'10px' }}>
+                    <div style={{ flex:'1 1 160px', background:'#eef2ff', border:'1px solid #c7d2fe', borderRadius:'8px', padding:'10px' }}>
+                      <div style={{ fontSize:'10px', color:'#4338ca' }}>Model error on your films</div>
+                      <div style={{ fontSize:'20px', fontWeight:'800', color:'#3730a3' }}>{mo((ev.headline || {}).mae_months)}</div>
+                      <div style={{ fontSize:'10px', color:'#6366f1' }}>{(ev.provenance || {}).n_evaluated || 0} films evaluated</div>
+                    </div>
+                    {/* Deliberately adjacent and the same size: a model error shown
+                        without the readers' own spread invites the consensus to be
+                        read as truth. Bone age has no ground truth. */}
+                    <div style={{ flex:'1 1 160px', background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'10px' }}>
+                      <div style={{ fontSize:'10px', color:'#64748b' }}>Disagreement between your readers</div>
+                      <div style={{ fontSize:'20px', fontWeight:'800', color:'#334155' }}>{mo((ev.reader_disagreement || {}).mean_spread_months)}</div>
+                      <div style={{ fontSize:'10px', color:'#94a3b8' }}>the floor this should be read against</div>
+                    </div>
+                  </div>
+
+                  {(ev.interpretation || []).length > 0 && (
+                    <div style={{ marginTop:'10px', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'8px', padding:'10px' }}>
+                      {ev.interpretation.map((line, i) => (
+                        <div key={i} style={{ fontSize:'11px', color:'#14532d', lineHeight:'1.6', marginTop: i ? '6px' : 0 }}>{line}</div>
+                      ))}
+                    </div>
+                  )}
+
+                  {((ev.by_stratum || {}).subgroups || []).length > 0 && (
+                    <div style={{ marginTop:'10px', overflowX:'auto' }}>
+                      <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'11px' }}>
+                        <thead>
+                          <tr style={{ background:'#f8fafc' }}>
+                            <th style={{ textAlign:'left', padding:'6px 8px', color:'#64748b', fontWeight:'700' }}>Stratum</th>
+                            <th style={{ textAlign:'right', padding:'6px 8px', color:'#64748b', fontWeight:'700' }}>Films</th>
+                            <th style={{ textAlign:'right', padding:'6px 8px', color:'#64748b', fontWeight:'700' }}>MAE</th>
+                            <th style={{ textAlign:'right', padding:'6px 8px', color:'#64748b', fontWeight:'700' }}>Bias</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ev.by_stratum.subgroups.map((row, i) => {
+                            const name = (row.group || {}).stratum || '—';
+                            const thin = (row.n || 0) < perStratum;
+                            return (
+                              <tr key={i} style={{ borderTop:'1px solid #e2e8f0' }}>
+                                <td style={{ padding:'6px 8px', color:'#334155' }}>{name.replace(':', ' · ')}</td>
+                                <td style={{ padding:'6px 8px', textAlign:'right', color: thin ? '#b91c1c' : '#64748b' }}>{row.n}{thin ? ' ⚠' : ''}</td>
+                                <td style={{ padding:'6px 8px', textAlign:'right', fontWeight:'700', color:'#334155' }}>{mo(row.mae_months)}</td>
+                                <td style={{ padding:'6px 8px', textAlign:'right', color:'#64748b' }}>{row.signed_bias_months == null ? '—' : `${row.signed_bias_months > 0 ? '+' : ''}${row.signed_bias_months} mo`}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'6px', lineHeight:'1.5' }}>
+                        ⚠ marks a stratum below the minimum count — its figure is too imprecise to support a claim. The reference standard is a consensus of independent expert reads, <strong>not ground truth</strong>; a model inside the readers' own spread is within the band where the reference is uncertain, not better than the readers.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ marginTop:'10px', background:'#f8fafc', border:'1px dashed #cbd5e1', borderRadius:'8px', padding:'10px' }}>
+                  <div style={{ fontSize:'11px', fontWeight:'700', color:'#475569' }}>No local accuracy figure yet</div>
+                  <div style={{ fontSize:'10px', color:'#64748b', marginTop:'4px', lineHeight:'1.5' }}>
+                    {ev.reason || 'Freeze the cohort once every stratum is complete.'}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Advanced TW3 workflow — HIDDEN per request (all code kept intact;
