@@ -51,22 +51,50 @@ same limitation M1.2 had to correct on the distance charts.
 
 ## Installing it
 
-1. Put the values in `backend/growth/data/indian_height_velocity.csv` following
-   `indian_height_velocity.template.csv` — one row per (sex, age).
-2. Run the gate:
+Use the ingestion tool rather than editing the CSV. Save whatever arrives as
+CSV, then:
 
 ```bash
-python -m pytest tests/growth/test_velocity_reference.py -v
+python -m backend.growth.ingest_velocity_reference received.csv
 ```
 
-3. Record provenance in `PROVENANCE.md`.
+That reports only. It absorbs the supplier's header spelling (`Gender`,
+`Age (years)`, `lambda`/`mu`/`sigma`), skips `#` comment lines, and reports
+coverage, structure and curve shape **before** judging any number. When it
+passes:
 
-Nothing to switch on. The path activates only when the installed table **peaks
-where the paper says it does** — boys 6.8 cm/yr at 13.5y, girls 6.6 at 10.5y.
-That check exists because a velocity reference has a distinctive shape (a
-mid-childhood trough, then a pubertal peak), so a table that does not peak there
-is not this reference — most likely the sex columns are swapped, or distance
-values were entered in place of velocities.
+```bash
+python -m backend.growth.ingest_velocity_reference received.csv --install --supplied-by "Dr V Khadilkar, HCJMRI" --received 2026-08-09
+```
+
+Provenance is written to `indian_height_velocity_provenance.json`. Add a line to
+`PROVENANCE.md` too, describing the form it arrived in. Then:
+
+```bash
+python -m pytest tests/growth/test_velocity_reference.py tests/growth/test_velocity_ingestion.py -v
+```
+
+### What the checks actually are
+
+Three, in order, and a file must clear all of them:
+
+1. **Coverage** — enough ages, and the range must *span the pubertal peak*. A
+   count alone looks healthy for a table that stops at 12y, and the peak is the
+   part the rule depends on.
+2. **Structure** — S in (0,1), plausible L, and a median velocity under
+   15 cm/year. There is deliberately **no lower bound** beyond positive: by
+   17.5y the median genuinely approaches zero because growth stops, and an
+   early draft of this tool rejected a good table for exactly that.
+3. **Shape and peak** — the table must peak where the paper reports (boys
+   6.8 cm/yr at 13.5y, girls 6.6 at 10.5y) *and* fall away after the peak. The
+   peak alone is not enough — a flat table peaks at the right value everywhere.
+   Together these catch the failures that actually happen: swapped sex columns,
+   an off-by-one age column, or distance values entered as velocities.
+
+This is a **shape** gate, not a reproduction gate. Unlike M1.1 there is no
+published table in the repo to regenerate, so it cannot certify precision — it
+can only reject a file that is not this reference. Record who supplied it;
+provenance carries what the gate cannot.
 
 ## What changes on the day it lands
 
@@ -74,6 +102,23 @@ values were entered in place of velocities.
 - M5's `LOW_HEIGHT_VELOCITY` switches from the 4 cm/yr floor to a real centile
   and stops reporting at `confidence: low`.
 - A velocity chart becomes drawable (`velocity_at_centile`).
+
+The consumption path already exists and is exercised —
+`growth_service.velocities_for` scores height intervals and the rule reads the
+result — so installing the file genuinely changes the output. (That was worth
+checking: the same claim was false for M1.1, where the reference was wired to a
+status endpoint and nothing else.)
+
+### One defect this milestone made reachable, now fixed
+
+Velocity SDS is per-interval, and not every interval can be scored: a 4-month
+follow-up yields a rate but no centile. The snapshot carried a single
+`latest_velocity_sds` — the most recent **scorable** interval — while the rule
+reported on the most recent interval *period*. Whenever those differed, the
+rule stated one interval's rate with another interval's centile, and chose
+urgent-vs-attention from the stale number. Dormant while the field is always
+None; live the moment this file is installed. Each interval now carries its own
+SDS. See `test_an_unscorable_recent_interval_is_not_labelled_with_an_older_sds`.
 
 ## One limitation that will remain
 

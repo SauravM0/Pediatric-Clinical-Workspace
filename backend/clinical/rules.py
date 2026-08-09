@@ -165,22 +165,26 @@ def _velocity(s: PatientSnapshot) -> Optional[Finding]:
     usable = [v for v in s.height_velocities if v[0] >= T("velocity_rule_min_age_years")]
     if not usable:
         return None
-    from_age, to_age, rate = usable[-1]
+    latest = usable[-1]
+    from_age, to_age, rate = latest[0], latest[1], latest[2]
+    # This interval's OWN SDS, never the snapshot's "latest scorable" one --
+    # see PatientSnapshot.height_velocities. Absent when the reference is not
+    # installed or when this interval falls outside the band it can score.
+    sds = latest[3] if len(latest) > 3 else None
 
-    if s.latest_velocity_sds is not None:
+    if sds is not None:
         # Real centile available. -0.674 SD is the 25th centile.
-        if s.latest_velocity_sds > T("low_velocity_sds"):
+        if sds > T("low_velocity_sds"):
             return None
-        severe = s.latest_velocity_sds <= T("severe_low_velocity_sds")
+        severe = sds <= T("severe_low_velocity_sds")
         return Finding(
             "LOW_HEIGHT_VELOCITY", URGENT if severe else ATTENTION,
             "Low height velocity",
             f"Height velocity was {rate:.1f} cm/year between ages {from_age:.1f} and "
-            f"{to_age:.1f} — {s.latest_velocity_sds:+.2f} SD against the Indian "
-            "velocity reference"
+            f"{to_age:.1f} — {sds:+.2f} SD against the Indian velocity reference"
             f"{', below the 3rd centile' if severe else ', below the 25th centile'}.",
             {"velocity_cm_per_year": round(rate, 2),
-             "velocity_sds": round(s.latest_velocity_sds, 2),
+             "velocity_sds": round(sds, 2),
              "from_age_years": round(from_age, 2), "to_age_years": round(to_age, 2),
              "threshold_sds": T("low_velocity_sds")},
             SRC("low_velocity_sds"), CONF("low_velocity_sds"),

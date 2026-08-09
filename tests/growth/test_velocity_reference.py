@@ -197,11 +197,17 @@ def test_rule_uses_the_coarse_floor_without_a_reference():
     assert "threshold_cm_per_year" in f.inputs_used
 
 
+# These three used to pass the SDS as the snapshot-level `latest_velocity_sds`.
+# That field is the SDS of the most recent SCORABLE interval, which is often a
+# DIFFERENT interval from the one being reported, so reading it to characterise
+# a specific interval mislabels the finding -- see
+# tests/growth/test_velocity_ingestion.py. The SDS now travels as the interval's
+# own fourth element, and that is what these assert against.
+
 def test_rule_uses_a_real_centile_when_sds_is_available():
     """The upgrade M1.3 delivers: the same 4.5 cm/year is unremarkable at 7 and
     alarming mid-puberty, and only a centile can tell those apart."""
-    s = PatientSnapshot(sex="boys", height_velocities=((13.0, 14.0, 4.5),),
-                        latest_velocity_sds=-1.2)
+    s = PatientSnapshot(sex="boys", height_velocities=((13.0, 14.0, 4.5, -1.2),))
     f = next(x for x in rules.evaluate(s) if x.rule_id == "LOW_HEIGHT_VELOCITY")
     assert f.confidence == "high"
     assert f.severity == ATTENTION
@@ -210,15 +216,20 @@ def test_rule_uses_a_real_centile_when_sds_is_available():
 
 
 def test_rule_escalates_below_the_third_centile():
-    s = PatientSnapshot(sex="boys", height_velocities=((13.0, 14.0, 2.0),),
-                        latest_velocity_sds=-2.4)
+    s = PatientSnapshot(sex="boys", height_velocities=((13.0, 14.0, 2.0, -2.4),))
     f = next(x for x in rules.evaluate(s) if x.rule_id == "LOW_HEIGHT_VELOCITY")
     assert f.severity == URGENT and "3rd centile" in f.rationale
 
 
 def test_rule_stays_silent_for_a_normal_velocity_sds():
-    s = PatientSnapshot(sex="boys", height_velocities=((13.0, 14.0, 8.0),),
-                        latest_velocity_sds=0.4)
+    """A slow rate with a NORMAL centile must stay silent.
+
+    Deliberately 3.5 cm/year, which is below the 4 cm/year coarse floor. The
+    earlier version used 8.0, which clears the floor too — so it passed whether
+    or not the centile was read at all, and proved nothing about the centile
+    path. This one is silent only if the SDS is genuinely consulted.
+    """
+    s = PatientSnapshot(sex="boys", height_velocities=((13.0, 14.0, 3.5, 0.4),))
     assert not any(x.rule_id == "LOW_HEIGHT_VELOCITY" and x.severity in (ATTENTION, URGENT)
                    for x in rules.evaluate(s))
 

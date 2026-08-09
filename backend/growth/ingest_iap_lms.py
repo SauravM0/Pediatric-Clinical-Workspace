@@ -71,12 +71,16 @@ class IngestError(ValueError):
     """The supplied file cannot be turned into a usable LMS table."""
 
 
-def _header_key(name: str) -> str:
+def header_key(name: str) -> str:
     """Reduce a header to a comparable key.
 
     Real headers carry units and punctuation -- 'Age (years)', 'M (median)',
     'S / sigma'. Stripping a parenthesised tail and then all non-alphanumerics
     absorbs those without needing an alias per spelling.
+
+    Public because ``ingest_velocity_reference`` shares it: both tools face the
+    same problem of absorbing whatever spelling an author's export happens to
+    use, and two copies would drift.
     """
     base = re.sub(r"\(.*?\)", " ", (name or ""))
     return re.sub(r"[^a-z0-9]+", "_", base.strip().lower()).strip("_")
@@ -84,7 +88,7 @@ def _header_key(name: str) -> str:
 
 def _resolve_columns(fieldnames: Iterable[str]) -> dict[str, str]:
     """Map canonical name -> the header actually present."""
-    present = {_header_key(f): f for f in fieldnames}
+    present = {header_key(f): f for f in fieldnames}
     resolved: dict[str, str] = {}
     for canonical, aliases in _COLUMN_ALIASES.items():
         for alias in aliases:

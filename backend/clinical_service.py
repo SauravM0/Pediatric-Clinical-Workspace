@@ -58,12 +58,16 @@ def build_snapshot(db: Session, patient_id: int) -> PatientSnapshot:
     )
 
     raw_velocities = growth_service.velocities_for(db, patient_id, "height")
+    # Each interval carries its OWN SDS (M1.3). A 4-month follow-up produces a
+    # rate but no centile, so "the latest SDS" and "the latest interval" are
+    # routinely different intervals -- see PatientSnapshot.height_velocities.
     velocities = tuple(
-        (v["from_age_years"], v["to_age_years"], v["velocity_per_year"])
+        (v["from_age_years"], v["to_age_years"], v["velocity_per_year"],
+         v.get("velocity_sds"))
         for v in raw_velocities
         if v["available"] and v["velocity_per_year"] is not None
     )
-    # SDS for the most recent interval that could actually be scored (M1.3).
+    # Kept for display: the most recent interval that could actually be scored.
     scored = [v for v in raw_velocities if v.get("velocity_sds") is not None]
     latest_velocity_sds = scored[-1]["velocity_sds"] if scored else None
 

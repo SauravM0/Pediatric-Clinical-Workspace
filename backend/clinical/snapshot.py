@@ -53,11 +53,22 @@ class PatientSnapshot:
 
     # Ascending history, used for trajectory rules.
     height_history: tuple[Measurement, ...] = ()
-    # cm/year for each consecutive usable interval, most recent last.
-    height_velocities: tuple[tuple[float, float, float], ...] = ()  # (from_age, to_age, cm_per_year)
-    # Velocity SDS for the most recent scorable interval, when a published
-    # velocity reference is installed (M1.3). None means no reference, or an
-    # interval outside the band it can score -- never 'normal'.
+    # cm/year for each consecutive usable interval, most recent last. Each entry
+    # is (from_age, to_age, cm_per_year) with an OPTIONAL fourth element, the
+    # velocity SDS for that same interval (M1.3).
+    #
+    # The SDS travels with its own interval rather than living in one
+    # snapshot-level field, and that is a correctness requirement, not tidiness.
+    # Not every interval is scorable: the velocity reference is built on ~annual
+    # measurements, so a 4-month follow-up yields a rate but no centile. A single
+    # "latest SDS" field therefore holds the SDS of the most recent SCORABLE
+    # interval, which is routinely a different interval from the most recent one
+    # -- and pairing one interval's rate with another's centile is a mislabelled
+    # clinical statement, plus a severity decision driven by stale data.
+    height_velocities: tuple[tuple[float, ...], ...] = ()
+    # Velocity SDS of the most recent scorable interval. Retained for display
+    # and for the timeline; rules must NOT use it to characterise a specific
+    # interval -- read the interval's own fourth element instead.
     latest_velocity_sds: Optional[float] = None
 
     mother_height_cm: Optional[float] = None
