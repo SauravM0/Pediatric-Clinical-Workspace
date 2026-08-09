@@ -44,6 +44,7 @@ from typing import Optional
 import numpy as np
 from scipy.interpolate import PchipInterpolator
 
+from . import iap_table_consistency as _consistency
 from . import measures as _measures
 from .lms_core import lms_value_at_z, lms_z_score
 
@@ -56,6 +57,14 @@ SEXES = ("boys", "girls")
 MEASURES = _measures.MEASURE_KEYS
 AGE_MIN, AGE_MAX = 5.0, 18.0
 REQUIRED_AGES = tuple(round(5.0 + 0.5 * i, 1) for i in range(27))  # 5.0 .. 18.0
+
+# The LMS path must be evaluable down to the same backward-extrapolation
+# shoulder the legacy fit uses (iap_reference.BLEND_SHOULDER_AGE). Real data
+# still starts at 5.0; the shoulder exists only so blend._quintic_bridge can
+# take a value, a slope AND a curvature at 5.0 from ONE function. Mixing two
+# references across that probe is precisely what iap_reference's guard-band
+# comment documents as having broken the seam before.
+SHOULDER_AGE = 4.5
 
 # Tolerance for "does this L,M,S reproduce the paper's own percentile table".
 # The published values are quoted to 0.1 units, so a correct LMS triplet should
@@ -78,7 +87,12 @@ class LmsSeries:
     s_fn: object
 
     def at(self, age_years: float) -> tuple[float, float, float]:
-        a = float(min(max(age_years, self.ages[0]), self.ages[-1]))
+        # Clamp to SHOULDER_AGE, not to ages[0]. Between 4.5 and 5.0 the PCHIP
+        # extrapolates its end cubic, matching how the legacy fit reaches the
+        # shoulder. Clamping at 5.0 instead would make L, M and S CONSTANT below
+        # it, so the derivative blend probes at 5.0 - 1/24y would be zero on one
+        # side and real on the other -- a self-inconsistent seam.
+        a = float(min(max(age_years, SHOULDER_AGE), self.ages[-1]))
         return float(self.l_fn(a)), float(self.m_fn(a)), float(self.s_fn(a))
 
 
@@ -163,37 +177,57 @@ def _reproduction() -> dict:
     inspection but shows up immediately as a centile that does not match the
     published number, so the reference is checked against the numbers it is
     supposed to explain before it is allowed to become the reference.
-    """
-    from . import iap_reference as legacy
 
+    Judged only against the columns those CSVs actually source. Four of the
+    seven height/weight columns were reconstructed by even z-spacing rather than
+    read from the paper (see ``iap_table_consistency``), and holding real
+    parameters to a reconstructed column would reject them for someone else's
+    interpolation. Those columns are still measured and reported under
+    ``advisory`` -- excluded from the verdict, not from view.
+    """
     series = _load()
     if series is None:
         return {"checked": 0, "worst": {}, "ok": False, "reason": "no LMS data"}
 
     worst: dict[str, float] = {}
+    advisory: dict[str, float] = {}
     checked = 0
+    excluded_checked = 0
     for sex, prefix in (("boys", "boy"), ("girls", "girl")):
         for measure in _measures.IAP_TABLE_KEYS:
-            zmap = legacy._Z_BMI if measure == "bmi" else legacy._Z_HEIGHT_WEIGHT
+            judged = set(_consistency.gate_centiles(measure))
             path = _DATA_DIR / f"{prefix}_{_measures.FILE_PART[measure]}_IAP_5_18.csv"
             with open(path, newline="", encoding="utf-8") as f:
                 for row in csv.DictReader(f):
                     age = float(row["age_years"])
                     l, m, s = series[(sex, measure)].at(age)
-                    for centile, z in zmap.items():
+                    for centile in _measures.PUBLISHED_CENTILES[measure]:
                         col = f"p{centile}"
                         if col not in row:
                             continue
-                        got = lms_value_at_z(l, m, s, z)
+                        got = lms_value_at_z(l, m, s, _consistency.Z_FOR_CENTILE[centile])
                         err = abs(got - float(row[col]))
-                        worst[measure] = max(worst.get(measure, 0.0), err)
-                        checked += 1
+                        if centile in judged:
+                            worst[measure] = max(worst.get(measure, 0.0), err)
+                            checked += 1
+                        else:
+                            advisory[measure] = max(advisory.get(measure, 0.0), err)
+                            excluded_checked += 1
 
-    ok = all(worst.get(k, 0.0) <= REPRODUCTION_TOL[k] for k in MEASURES)
+    ok = all(worst.get(k, 0.0) <= REPRODUCTION_TOL[k] for k in _measures.IAP_TABLE_KEYS)
     return {
         "checked": checked,
         "worst": {k: round(v, 4) for k, v in worst.items()},
         "tolerance": REPRODUCTION_TOL,
+        "gate_centiles": {k: list(_consistency.gate_centiles(k))
+                          for k in _measures.IAP_TABLE_KEYS},
+        "advisory_checked": excluded_checked,
+        "advisory_worst": {k: round(v, 4) for k, v in advisory.items()},
+        "advisory_note": (
+            "Columns excluded from the verdict because the CSVs reconstructed "
+            "them by even z-spacing rather than sourcing them; a large deviation "
+            "here is expected and is evidence about the CSVs, not the LMS."
+        ),
         "ok": ok,
         "reason": "ok" if ok else "LMS does not reproduce the published percentile table",
     }
@@ -245,7 +279,14 @@ def lms_status() -> dict:
 # ── the reference itself ────────────────────────────────────────────────────
 
 def covers(age_years: float) -> bool:
-    return AGE_MIN <= age_years <= AGE_MAX
+    """Evaluable range, including the backward-extrapolation shoulder.
+
+    Matches ``iap_reference.iap_covers`` exactly. If this were narrower, the
+    legacy fit would serve the shoulder while the LMS served everything above
+    it, and the WHO/IAP bridge would take its endpoint value from one model and
+    its slope from the other.
+    """
+    return SHOULDER_AGE <= age_years <= AGE_MAX
 
 
 def lms_at(measure: str, sex: str, age_years: float) -> Optional[tuple[float, float, float]]:

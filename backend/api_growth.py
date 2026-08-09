@@ -11,8 +11,8 @@ from typing import Any
 from fastapi import Depends, APIRouter, HTTPException, Query
 
 from backend.growth import (
-    blend, curve_builder, iap_lms_reference, lms_core, measures,
-    reference_data, validation, velocity_reference,
+    blend, curve_builder, iap_lms_reference, iap_table_consistency, lms_core,
+    measures, reference_data, validation, velocity_reference,
 )
 
 from backend.security.deps import clinical_access
@@ -174,6 +174,12 @@ def get_validation_report() -> dict[str, Any]:
         # reviewer needs, and the answer is currently "a fit, not the paper's
         # own parameters".
         "iap_lms": iap_lms_reference.lms_status(),
+        # Whether the IAP CSV columns are mutually consistent with one Cole
+        # distribution (M1.1). They are not: four of the seven height/weight
+        # columns are reconstructed by even z-spacing rather than sourced, so
+        # the drawn 25th centile is the 26.5th. Surfaced here because a reviewer
+        # asking "how accurate is this chart" needs it before any other number.
+        "iap_table_consistency": iap_table_consistency.consistency_report(),
         # Whether the published Indian velocity reference is live (M1.3). Until
         # it is, M5's low-velocity rule runs on a coarse floor at low confidence.
         "velocity_reference": velocity_reference.reference_status(),

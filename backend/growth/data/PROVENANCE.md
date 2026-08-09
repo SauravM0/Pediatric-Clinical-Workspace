@@ -36,6 +36,58 @@ second source — never copied from the CSVs). Every entered cell is enforced
 against the CSV by the source test, and the file cannot be marked `VERIFIED`
 until all 1134 numeric cells are covered.
 
+### Finding (2026-08-09): four height/weight columns are reconstructed, not sourced
+
+This raises the priority of the verification step below from "good practice" to
+"there is a known defect".
+
+Fitting L,M,S per age against p3/p50/p97 and inverting every column back to the
+z it implies gives the same result in all four height/weight CSVs, at all 27
+ages, with a standard deviation across ages of ~0.006 in z:
+
+| column | implied centile | implied z | nominal z |
+|---|---|---|---|
+| p3 | 3.0 | −1.88079 | anchor |
+| p10 | 10.5 | −1.2529 | −1.28155 |
+| p25 | **26.5** | −0.6270 | −0.67449 |
+| p50 | 50.0 | 0.0 | anchor |
+| p75 | **73.5** | +0.6273 | +0.67449 |
+| p90 | 89.5 | +1.2544 | +1.28155 |
+| p97 | 97.0 | +1.88079 | anchor |
+
+The implied z values are the p3–p97 range divided into six equal steps
+(±1.88079/3 = ±0.62693, ±1.88079×2/3 = ±1.25386). Reading the interior columns
+at those values reproduces them to 0.057–0.095 units; reading them at their
+nominal centile z misses by 0.27–0.77. So p10, p25, p75 and p90 appear to have
+been **filled in by even z-spacing between p3 and p97** during transcription.
+Only p3, p50 and p97 carry independent information.
+
+Controls run before concluding this:
+
+- The same probe applied to WHO — a genuine LMS reference, rounded to the same
+  0.1 unit — recovers 25.00, 75.00, 10.00, 90.00 (worst error 0.07 centile).
+- BMI is unaffected: its five columns imply 3.0/4.94/10.0/24.97/50.0. It came
+  from a different paper and was evidently transcribed differently. So this is
+  not "p25 is unreliable", it is these four files.
+- An earlier hypothesis that p25/p75 were arithmetic means of their neighbours
+  was measured and **rejected** (holds for most height cells, misses weight by
+  up to 0.9 kg, and WHO fails it too).
+
+**Clinical effect:** a child on the drawn 25th centile is at the 26.5th; on the
+10th, the 10.5th. In value terms 0.27–0.48 cm and 0.30–0.77 kg. Small,
+systematic, one-directional, and removed entirely by real L,M,S.
+
+**Cause is inferred, not confirmed at source.** The paper states LMS was used and
+that 3rd/10th/25th/50th/75th/90th/97th percentiles were generated, so the
+published table should sit at nominal z — which points at reconstruction here
+rather than at the publication. Settling it requires the verification below.
+
+Code: `backend/growth/iap_table_consistency.py`. Live at
+`GET /api/growth/validate` under `iap_table_consistency`. The M1.1 reproduction
+gate and `validation.check_source_reproduction` both exclude these columns from
+their verdicts and report them separately, because holding real L,M,S to a
+reconstructed column would reject the real values.
+
 ### How to complete verification (the pending human step)
 
 1. Two people independently read the paper's tables.

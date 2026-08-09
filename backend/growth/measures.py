@@ -73,6 +73,13 @@ class Measure:
     who_seam_5y: bool
     """Affected by the WHO-2006-child / WHO-2007-child table handoff (~5.08y)."""
 
+    plausible_median_range: tuple[float, float]
+    """Range a 5-18y median (Cole's M) can credibly fall in, in this measure's
+    own unit. Not a clinical limit — a structural one, used by
+    ``ingest_iap_lms`` to catch a supplied file whose columns are mapped the
+    wrong way round or whose units are off, and to say WHICH column is wrong
+    rather than emitting an opaque 'does not reproduce'."""
+
     @property
     def who_backed(self) -> bool:
         return self.who_measurement_method is not None
@@ -93,6 +100,7 @@ _ALL: Final[tuple[Measure, ...]] = (
         who_measurement_method="height",
         who_seam_2y=True,
         who_seam_5y=True,
+        plausible_median_range=(80.0, 200.0),
     ),
     Measure(
         key="weight",
@@ -104,6 +112,7 @@ _ALL: Final[tuple[Measure, ...]] = (
         who_measurement_method="weight",
         who_seam_2y=False,  # weight does not depend on the length/height convention
         who_seam_5y=True,
+        plausible_median_range=(10.0, 120.0),
     ),
     Measure(
         key="bmi",
@@ -115,6 +124,7 @@ _ALL: Final[tuple[Measure, ...]] = (
         who_measurement_method="bmi",
         who_seam_2y=True,  # derived from height, so it inherits the 2y seam
         who_seam_5y=True,
+        plausible_median_range=(10.0, 40.0),
     ),
 )
 
@@ -133,6 +143,9 @@ REQUIRE_MONOTONIC: Final[dict[str, bool]] = {m.key: m.monotonic for m in _ALL}
 FILE_PART: Final[dict[str, str]] = {m.key: m.file_part for m in _ALL if m.file_part}
 PUBLISHED_CENTILES: Final[dict[str, tuple[int, ...]]] = {
     m.key: m.published_centiles for m in _ALL
+}
+PLAUSIBLE_MEDIAN_RANGE: Final[dict[str, tuple[float, float]]] = {
+    m.key: m.plausible_median_range for m in _ALL
 }
 
 

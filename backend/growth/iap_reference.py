@@ -56,6 +56,7 @@ import numpy as np
 from scipy.interpolate import CubicSpline, PchipInterpolator, UnivariateSpline
 from scipy.optimize import curve_fit
 
+from . import iap_lms_reference as _lms
 from .lms_core import lms_value_at_z, lms_z_score
 
 _DATA_DIR = Path(__file__).resolve().parent / "data"
@@ -229,6 +230,18 @@ def _centile_for_z(measure: str, z: float) -> int | None:
 def iap_value_at_z(measure: str, sex: str, age_years: float, z: float) -> float | None:
     if not iap_covers(age_years):
         return None
+
+    # M1.1 strangler seam. When the authors' real L,M,S are installed and have
+    # passed the reproduction gate, the whole three-path construction below is
+    # replaced by one closed-form Cole transform. Swapping it HERE rather than at
+    # the call sites means blend, curve_builder, velocity, the clinical rules and
+    # the API all inherit it unchanged -- the alternative was editing every
+    # consumer, which is how half of them would have kept the old path.
+    if _lms.lms_available():
+        v = _lms.iap_lms_value_at_z(measure, sex, age_years, z)
+        if v is not None:
+            return v
+
     series = _SERIES[(sex, measure)]
 
     # Exact-reproduction path (see module docstring): only comfortably past
@@ -321,6 +334,17 @@ def _z_from_display_anchors(measure: str, sex: str, age_years: float, value: flo
 def iap_z_for_value(measure: str, sex: str, age_years: float, value: float) -> float | None:
     if not iap_covers(age_years):
         return None
+
+    # Same seam as iap_value_at_z, and they must flip TOGETHER: scoring a value
+    # on one model while drawing the curve from another is the display-vs-scoring
+    # mismatch that _z_from_display_anchors exists to prevent (audit GC-3/GC-4).
+    # With real parameters the inverse is exact everywhere including the tails,
+    # which is what removes M1.2's residual rather than merely shrinking it.
+    if _lms.lms_available():
+        z = _lms.iap_lms_z_for_value(measure, sex, age_years, value)
+        if z is not None:
+            return z
+
     # In the exact-table region, invert the drawn centiles directly so a plotted
     # value is scored on the SAME curve it visually sits on (GC-3/GC-4). Below the
     # guard band every drawn centile is already LMS, so the exact LMS inverse is

@@ -37,6 +37,23 @@ _STANDARD_Z = (-1.88079, -1.28155, -0.67449, 0.0, 0.67449, 1.28155, 1.88079)
 _AGES = [round(5.0 + 0.25 * i, 2) for i in range(53)]   # 5.0 .. 18.0, 0.25y
 
 
+def _expected_judged_cells() -> int:
+    """How many cells the gate should examine, derived rather than hardcoded.
+
+    Was a flat "at least 1,000 of the 1,134 published". That became wrong when
+    M1.1 excluded the four reconstructed height/weight columns (594 cells now),
+    and a magic number cannot tell "the gate was narrowed for a reason" from
+    "the gate stopped looking". Deriving it from the same registry the gate uses
+    means this tracks a deliberate change and still catches an accidental one.
+    """
+    from backend.growth import iap_table_consistency as tc
+    from backend.growth import measures as m
+
+    return len(lms.REQUIRED_AGES) * len(lms.SEXES) * sum(
+        len(tc.gate_centiles(k)) for k in m.IAP_TABLE_KEYS
+    )
+
+
 # ── always run: the path must stay inert and honest without data ────────────
 
 def test_path_is_inactive_without_data():
@@ -131,7 +148,9 @@ def test_lms_reproduces_every_published_cell():
     """THE gate. If the LMS cannot regenerate the paper's own percentile table,
     the transcription is wrong -- and a wrong L,M,S is undetectable by eye."""
     report = lms._reproduction()
-    assert report["checked"] >= 1000, "far fewer cells checked than the 1,134 published"
+    assert report["checked"] == _expected_judged_cells(), (
+        f"gate examined {report['checked']} cells, expected {_expected_judged_cells()}"
+    )
     for measure, worst in report["worst"].items():
         assert worst <= lms.REPRODUCTION_TOL[measure], (
             f"{measure}: worst deviation {worst} exceeds {lms.REPRODUCTION_TOL[measure]}"
@@ -238,6 +257,11 @@ def test_gate_runs_end_to_end_and_rejects_an_approximate_table(tmp_path, monkeyp
     That is the correct answer: a fit that lands within ~0.4-0.65 units of the
     published table is not the published table, and accepting it would defeat
     the point of asking the authors for the real values.
+
+    Note this refit is fitted to ALL seven columns, so it is a compromise across
+    them and misses p3/p97 by ~0.2 — which the gate still judges. A refit of
+    only p3/p50/p97 would pass, and that limitation is pinned separately in
+    test_iap_lms_ingestion.py.
     """
     synthetic = tmp_path / "iap_2015_lms.csv"
     n = _synthetic_lms_file(synthetic)
@@ -249,7 +273,7 @@ def test_gate_runs_end_to_end_and_rejects_an_approximate_table(tmp_path, monkeyp
         assert lms._load() is not None, "a complete, well-formed file failed to parse"
 
         report = lms._reproduction()
-        assert report["checked"] >= 1000, "the gate did not examine the published cells"
+        assert report["checked"] == _expected_judged_cells()
         assert set(report["worst"]) == {"height", "weight", "bmi"}
 
         assert report["ok"] is False, (

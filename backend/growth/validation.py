@@ -39,7 +39,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from . import blend, curve_builder, iap_reference, measures
+from . import blend, curve_builder, iap_reference, iap_table_consistency, measures
 
 SLOPE_ATOL = {"height": 0.3, "weight": 0.15, "bmi": 0.18}  # units/year, absolute floor
 SLOPE_RTOL = 0.15  # + 15% of the outside slope magnitude
@@ -334,35 +334,68 @@ def check_source_reproduction() -> dict:
     pass everywhere, not just at the boundary). Age 5.0 itself stays inside
     the guard band on purpose (it's also where blend.py's bridge anchors and
     probes a derivative -- see iap_reference._EXACT_TABLE_GUARD) and is
-    reported separately, not gated on the tight tolerance."""
+    reported separately, not gated on the tight tolerance.
+
+    Which columns count (M1.1)
+    --------------------------
+    Only the columns the CSVs actually source. Four of the seven height/weight
+    columns were reconstructed by even z-spacing rather than read from the paper
+    -- see ``iap_table_consistency``. While the legacy fit is live this makes no
+    difference: that fit is derived from the same CSVs, so it reproduces the
+    reconstructed columns too. The moment the real L,M,S go in it makes all the
+    difference, because a genuine reference puts the 25th centile at z=-0.674
+    and the CSV column sits at -0.627, so "the engine no longer reproduces the
+    table" becomes the CORRECT result and would fail this check.
+
+    Gating on sourced columns keeps this check meaning "the engine is faithful
+    to its reference" instead of "the engine still matches an interpolation".
+    The reconstructed columns stay measured under ``reconstructed_max_error``.
+    """
     import csv as _csv
+
+    from . import iap_lms_reference
+
+    # Which tolerance applies depends on which path is live, and the difference
+    # is a real distinction rather than a fudge. The legacy exact-table path
+    # INTERPOLATES the CSV, so it reproduces it to floating-point precision and
+    # anything less is a bug. With real L,M,S the CSV is instead a rounded
+    # RENDERING of the reference -- quoted to 0.1 units -- so agreement to
+    # within rounding is the most that can exist, and demanding 1e-6 would fail
+    # a perfect file.
+    lms_live = iap_lms_reference.lms_available()
 
     results = {}
     for sex, prefix in iap_reference._SEX_FILE.items():
-        for measure, cols in (
-            ("height", (3, 10, 25, 50, 75, 90, 97)),
-            ("weight", (3, 10, 25, 50, 75, 90, 97)),
-        ):
+        for measure in ("height", "weight"):
+            tol = iap_lms_reference.REPRODUCTION_TOL[measure] if lms_live else 1e-6
+            judged = set(iap_table_consistency.gate_centiles(measure))
             fname = f"{prefix}_{'height_cm' if measure=='height' else 'weight_kg'}_IAP_5_18.csv"
             path = iap_reference._DATA_DIR / fname
             max_err = 0.0
             boundary_err = 0.0
+            reconstructed_err = 0.0
             with open(path, newline="") as f:
                 for row in _csv.DictReader(f):
                     age = float(row["age_years"])
-                    for c in cols:
+                    for c in (3, 10, 25, 50, 75, 90, 97):
                         z = curve_builder.Z_FOR_CENTILE[c]
                         expected = float(row[f"p{c}"])
                         got = iap_reference.iap_value_at_z(measure, sex, age, z)
                         err = abs(got - expected)
-                        if age < iap_reference.IAP_MIN_AGE + iap_reference._EXACT_TABLE_GUARD:
+                        if c not in judged:
+                            reconstructed_err = max(reconstructed_err, err)
+                        elif age < iap_reference.IAP_MIN_AGE + iap_reference._EXACT_TABLE_GUARD:
                             boundary_err = max(boundary_err, err)
                         else:
                             max_err = max(max_err, err)
             results[f"{sex}|{measure}"] = {
-                "pass": max_err < 1e-6,
+                "pass": max_err < tol,
                 "max_abs_error": round(max_err, 4),
+                "tolerance": tol,
+                "reference_path": "iap_2015_lms" if lms_live else "legacy_exact_table",
                 "boundary_age_5_0_error": round(boundary_err, 4),
+                "judged_centiles": sorted(judged),
+                "reconstructed_max_error": round(reconstructed_err, 4),
             }
     return results
 
