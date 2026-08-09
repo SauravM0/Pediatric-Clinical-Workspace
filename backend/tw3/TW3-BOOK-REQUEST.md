@@ -50,10 +50,10 @@ Copies circulate second-hand; the ISBN above is the one to match.
 1. Enter RUS and carpal points into `letters_tables.json` under
    `rus_stage_to_score` / `carpal_stage_to_score`, and the score→age anchors
    under `rus_score_to_age.twiii` / `carpal_score_to_age.twiii`.
-2. Enter `pct_adult_height` (percentages, by **bone age**) to enable adult-height
-   prediction. If the licensed copy also gives TW3's **regression** equations for
-   adult height, prefer those — they are more accurate than the percentage form —
-   and record which was used.
+2. For `pct_adult_height` (percentages, by **bone age**) use the ingestion tool
+   rather than editing JSON — see below. If the licensed copy also gives TW3's
+   **regression** equations for adult height, prefer those — they are more
+   accurate than the percentage form — and record which was used.
 3. Fill `provenance`: book title, edition, ISBN, licensed owner, pages,
    who entered, who verified, date. **Scoring stays off until all are present** —
    licensed values must never drive results without a documented, legally-owned
@@ -69,6 +69,54 @@ Copies circulate second-hand; the ISBN above is the one to match.
 `letters_status()` reports each: **values entered · reference films reproduce ·
 provenance documented · checksum locked.** Scoring turns on only when all four
 pass, and a checksum mismatch disables scoring rather than 500-ing the app.
+
+## Installing the adult-height percentages (M2C)
+
+Save the transcription as CSV — any recognisable header spelling, e.g.
+`Sex, Bone Age (years), % attained` — then:
+
+```bash
+python -m backend.tw3.ingest_adult_height percentages.csv --compare second_transcription.csv
+```
+
+That reports only, and `--compare` diffs two independent transcriptions cell by
+cell. There is no published copy to check these against, so double entry is the
+only transcription check that exists here — the tool verifies shape and licence,
+not accuracy, and says so. When it passes:
+
+```bash
+python -m backend.tw3.ingest_adult_height percentages.csv --install --book-title "Assessment of Skeletal Maturity and Prediction of Adult Height" --edition 3rd --licensed-owner "Your Clinic" --entered-by "Dr A" --verified-by "Dr B" --verification-date 2026-08-09
+```
+
+`--install` writes through `save_letter_tables`, so the values land
+**checksum-locked in one step**. Hand-editing the JSON instead leaves the
+checksum stale, which correctly disables the table and looks like the tool
+failing rather than the lock working.
+
+`--status` prints whether the table is currently usable and, if not, exactly
+which gate is closed.
+
+### Two things M2C had to fix first
+
+- **The prediction reached nobody.** `backend/tw3/adult_height.py` was complete
+  and tested and called by nothing — the adult-height endpoint served only the
+  mid-parental target and Khamis-Roche. Entering the licensed table would have
+  changed no output. It is now the third, separately-labelled quantity on
+  `/api/patients/{id}/adult-height`, and the only one that responds to a child
+  being early or late maturing.
+- **It bypassed the licensing gates.** `is_calibrated()` asked only whether two
+  anchors were present. These are copyrighted values in the same file as the RUS
+  and carpal tables, under the same licence — so a clinic could paste
+  percentages in with no documented source and no tamper-lock and get
+  predictions, while RUS scoring from that same file stayed correctly disabled.
+  Prediction now requires documented provenance and a verified checksum.
+
+  Reference-case reproduction is deliberately *not* required for this table: those
+  cases exercise the RUS/carpal point tables and say nothing about percentages,
+  and demanding them would block a clinic that licensed only this part. Its own
+  accuracy check is a shape gate — monotone rising, reaching ~100% at maturity —
+  which catches fractions entered as percentages, transposed columns and a
+  swapped sex column.
 
 ## What the book does *not* solve
 

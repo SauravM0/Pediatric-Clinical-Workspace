@@ -50,6 +50,11 @@ MIN_BONE_AGE_YEARS = 6.0
 # wrong, and returning the number would be worse than returning nothing.
 MIN_PLAUSIBLE_PERCENT = 30.0
 
+# The top of a %-attained table must approach 100: that is what "attained"
+# means at skeletal maturity. A table stopping well short of it is either
+# truncated or not this quantity.
+MATURITY_PERCENT_FLOOR = 95.0
+
 
 @dataclass(frozen=True)
 class AdultHeightPrediction:
@@ -90,7 +95,79 @@ def table_for(sex: str, tables) -> list:
 
 
 def is_calibrated(sex: str, tables) -> bool:
+    """Values are present. NOT sufficient to use them -- see :func:`licensing_gate`."""
     return len(table_for(sex, tables)) >= 2
+
+
+def shape_problems(sex: str, tables) -> list[str]:
+    """Is this actually a percentage-of-adult-height curve?
+
+    The analogue of the velocity reference's shape check (M1.3). A %-attained
+    curve rises monotonically with skeletal maturity and approaches 100 at
+    maturity. A table that falls, or that tops out at 60, is a mis-entry -- most
+    often fractions entered as percentages, a sex column swapped, or the two
+    columns transposed.
+    """
+    anchors = sorted(([float(p[0]), float(p[1])] for p in table_for(sex, tables)
+                      if len(p) == 2), key=lambda p: p[0])
+    problems: list[str] = []
+    if len(anchors) < 2:
+        return ["fewer than two anchors"]
+
+    for (x0, y0), (x1, y1) in zip(anchors, anchors[1:]):
+        if y1 < y0:
+            problems.append(
+                f"{sex}: percent attained falls from {y0} at {x0}y to {y1} at {x1}y. "
+                "Skeletal maturity only increases, so the column order or the "
+                "bone-age column is wrong."
+            )
+            break
+    lo, hi = anchors[0][1], anchors[-1][1]
+    if lo < MIN_PLAUSIBLE_PERCENT:
+        problems.append(
+            f"{sex}: lowest value {lo} is below {MIN_PLAUSIBLE_PERCENT}% — these "
+            "must be percentages, not fractions"
+        )
+    if hi < MATURITY_PERCENT_FLOOR:
+        problems.append(
+            f"{sex}: highest value {hi} does not approach 100%. The table must "
+            "run to skeletal maturity, or every prediction from its top end is "
+            "an extrapolation dressed as a lookup."
+        )
+    return problems
+
+
+def licensing_gate(tables) -> dict:
+    """May these licensed values drive a prediction?
+
+    ``pct_adult_height`` is copyrighted TW3 content living in the same file as
+    the RUS and carpal point tables, under the same licence, so it is held to
+    the same bar: the source must be documented and the file checksum-locked.
+    Before M2C's ingestion step this was checked only for "are two anchors
+    present", which meant a clinic could paste percentages in with no recorded
+    source and no tamper-lock and get predictions -- while RUS scoring from the
+    very same file stayed correctly disabled.
+
+    Reference-case reproduction is deliberately NOT one of these gates. Those
+    cases re-score known films through the RUS/carpal point tables and say
+    nothing about the percentage table; requiring them would block a clinic that
+    licensed only this part. :func:`shape_problems` is this table's own accuracy
+    check instead.
+    """
+    missing = list(getattr(tables, "missing_provenance", lambda: [])())
+    checksum_verified = bool(getattr(tables, "checksum_verified", False))
+    reasons = []
+    if missing:
+        reasons.append(
+            "licensed source is not fully documented; missing " + ", ".join(missing)
+        )
+    if not checksum_verified:
+        reasons.append(
+            "the tables file is not checksum-locked, so entered values could have "
+            "been altered since they were verified (run letters_scoring --lock)"
+        )
+    return {"ok": not reasons, "reasons": reasons,
+            "missing_provenance": missing, "checksum_verified": checksum_verified}
 
 
 def predict(sex: str, current_height_cm: float, bone_age_years: Optional[float],
@@ -106,7 +183,25 @@ def predict(sex: str, current_height_cm: float, bone_age_years: Optional[float],
             "values are copyrighted (Tanner, Healy, Goldstein & Cameron, 2001) "
             "and must be entered once from the clinic's licensed copy into "
             "letters_tables.json under 'pct_adult_height'. Nothing is estimated "
-            "in their absence.",
+            "in their absence. Install with: python -m backend.tw3.ingest_adult_height",
+        )
+
+    gate = licensing_gate(tables)
+    if not gate["ok"]:
+        return AdultHeightPrediction(
+            False, None, None, bone_age_years, method,
+            "The percentage-of-adult-height values are entered but may not be "
+            "used yet: " + "; ".join(gate["reasons"]) + ". These are licensed "
+            "TW3 values and are held to the same bar as the RUS and carpal "
+            "tables in the same file.",
+        )
+
+    problems = shape_problems(sex, tables)
+    if problems:
+        return AdultHeightPrediction(
+            False, None, None, bone_age_years, method,
+            "The entered table is not a percentage-of-adult-height curve: "
+            + "; ".join(problems),
         )
     if bone_age_years is None:
         return AdultHeightPrediction(False, None, None, None, method,
@@ -130,6 +225,11 @@ def predict(sex: str, current_height_cm: float, bone_age_years: Optional[float],
             "the value is not extrapolated",
         )
     if percent < MIN_PLAUSIBLE_PERCENT:
+        # Normally unreachable since M2C: shape_problems above rejects a table
+        # whose lowest anchor is under this, and the curve is checked monotone,
+        # so an interpolated value cannot fall below it. Kept because it is the
+        # last thing standing in front of the division -- a table shape that
+        # somehow slips past the gate must still not produce a number.
         return AdultHeightPrediction(
             False, None, percent, bone_age_years, method,
             f"table returned {percent:.1f}% attained, which is implausible — check "

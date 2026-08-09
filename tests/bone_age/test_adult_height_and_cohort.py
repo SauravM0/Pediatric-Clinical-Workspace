@@ -20,10 +20,24 @@ class _FakeTables:
 
     A fixture, not a reference: the percentages are illustrative, which is why
     they live in a test and never in letters_tables.json.
+
+    Presents as fully licensed by default -- documented provenance and a verified
+    checksum -- because these tests are about the arithmetic and the refusals.
+    The licensing gate itself is exercised in test_adult_height_ingestion.py,
+    which drives this same class's inputs the other way.
     """
 
-    def __init__(self, boys=None, girls=None):
+    _PROVENANCE_OK = {f: "test" for f in (
+        "book_title", "edition", "licensed_owner", "entered_by", "verified_by",
+        "verification_date")}
+
+    def __init__(self, boys=None, girls=None, *, licensed=True):
         self.raw = {"pct_adult_height": {"boys": boys or [], "girls": girls or []}}
+        self.checksum_verified = licensed
+        self._provenance = self._PROVENANCE_OK if licensed else {}
+
+    def missing_provenance(self):
+        return [f for f in self._PROVENANCE_OK if not self._provenance.get(f)]
 
 
 # A plausible monotone %-attained curve, for exercising the arithmetic only.
@@ -132,8 +146,14 @@ def test_outside_the_table_is_not_extrapolated():
 
 def test_very_young_bone_age_is_refused():
     """Below ~6y the fraction attained is small, so dividing by it multiplies any
-    bone-age error into a large error in the prediction."""
-    r = ah.predict("boys", 100.0, 5.0, _FakeTables(boys=[[4.0, 50.0], [8.0, 70.0]]))
+    bone-age error into a large error in the prediction.
+
+    The table has to run to maturity or M2C's shape gate rejects it first, which
+    would make this pass for the wrong reason.
+    """
+    young = _FakeTables(boys=[[4.0, 50.0], [8.0, 70.0], [16.5, 99.5]])
+    assert ah.shape_problems("boys", young) == [], "fixture trips the shape gate"
+    r = ah.predict("boys", 100.0, 5.0, young)
     assert r.available is False and "multiplies any" in r.status
 
 
@@ -143,10 +163,13 @@ def test_missing_bone_age_or_height_is_refused():
     assert ah.predict("boys", 0.0, 12.0, tables).available is False
 
 
-def test_implausible_percentage_is_refused_not_returned():
+def test_fractions_entered_as_percentages_are_refused():
+    """Since M2C this is caught by the shape gate, before any interpolation --
+    the whole table is inspected rather than one looked-up value. The message
+    still has to name the actual mistake."""
     r = ah.predict("boys", 140.0, 12.0, _FakeTables(boys=[[8.0, 0.7], [16.0, 0.99]]))
     assert r.available is False
-    assert "implausible" in r.status and "fractions" in r.status
+    assert "fractions" in r.status
 
 
 # ── local validation cohort ─────────────────────────────────────────────────

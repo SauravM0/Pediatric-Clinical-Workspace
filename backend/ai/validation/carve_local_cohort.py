@@ -29,6 +29,7 @@ can quietly re-carve after seeing a result is not a test set.
 """
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional
 
@@ -241,10 +242,49 @@ def freeze(db: Session, *, content_hashes: Optional[dict[str, str]] = None,
     }
 
 
-if __name__ == "__main__":  # pragma: no cover
+def main(argv=None) -> int:  # pragma: no cover - thin CLI over survey/freeze
+    """Report readiness, or freeze.
+
+    Survey is the default and freezing needs an explicit flag, because freezing
+    is one-way: once registered, these films are off-limits to training, tuning,
+    feedback and calibration for good. ``--force`` additionally requires a
+    written rationale, so an early carve leaves a record of who decided it.
+    """
+    import argparse
     import json
 
-    from backend.db import session_scope
+    from backend.db import init_db, session_scope
+
+    p = argparse.ArgumentParser(description="Survey or freeze the local dual-read cohort.")
+    p.add_argument("--freeze", action="store_true", help="register the cohort (one-way)")
+    p.add_argument("--force", action="store_true",
+                   help="freeze despite an unready cohort; requires --rationale")
+    p.add_argument("--rationale", default="", help="recorded reason for a forced carve")
+    args = p.parse_args(argv)
+
+    # Idempotent, and required: against a fresh deployment the survey otherwise
+    # dies with a raw "no such table: tw3_assessment" traceback, when the honest
+    # answer is "no films are stored yet, here is what is still needed".
+    init_db()
 
     with session_scope() as db:
-        print(json.dumps(survey(db).to_dict(), indent=2))
+        if not args.freeze:
+            print(json.dumps(survey(db).to_dict(), indent=2))
+            return 0
+        if args.force and not args.rationale.strip():
+            print("--force requires --rationale: a deliberate early carve must "
+                  "leave a record of why.", file=sys.stderr)
+            return 2
+        try:
+            result = freeze(db, force=args.force)
+        except CohortError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        if args.rationale.strip():
+            result["forced_rationale"] = args.rationale.strip()
+        print(json.dumps(result, indent=2))
+        return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())

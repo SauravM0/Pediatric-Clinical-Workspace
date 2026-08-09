@@ -148,6 +148,7 @@ def assess(db: Session, patient_id: int, *, include_parent_summary: bool = False
             snapshot.weight.value if snapshot.weight else None,
             snapshot.mother_height_cm, snapshot.father_height_cm,
             snapshot.parental_height_source,
+            bone_age_years=snapshot.bone_age_years,
         ),
         "disclaimer": (
             "Decision support for a qualified clinician. Findings are observations "

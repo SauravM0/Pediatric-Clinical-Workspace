@@ -142,15 +142,63 @@ def predict_adult_height(sex: str, age_years: Optional[float], height_cm: Option
     return AdultHeightPrediction(True, round(predicted, 1), KR_INTERVAL_CM, method, "ok")
 
 
+def predict_from_bone_age(sex: str, height_cm: Optional[float],
+                          bone_age_years: Optional[float],
+                          bone_age_uncertainty_years: Optional[float] = None) -> dict:
+    """TW3 percentage-of-adult-height, when a radiograph and licensed table exist.
+
+    Kept behind this thin adapter so ``clinical`` does not grow a hard dependency
+    on the TW3 package's table model -- the import is local and the failure mode
+    when the table is absent is a status string, not an exception.
+    """
+    from backend.tw3 import adult_height as tw3_adult_height
+    from backend.tw3.letters_scoring import LetterTablesError, load_letter_tables
+
+    try:
+        tables = load_letter_tables()
+    except LetterTablesError as exc:
+        return {"available": False, "predicted_cm": None, "range_cm": None,
+                "method": "TW3 percentage of adult height attained",
+                "status": f"licensed tables unreadable: {exc}"}
+
+    r = tw3_adult_height.predict(sex, height_cm or 0.0, bone_age_years, tables,
+                                 bone_age_uncertainty_years=bone_age_uncertainty_years)
+    return {
+        "available": r.available,
+        "predicted_cm": r.predicted_cm,
+        "range_cm": None if r.range_cm is None else list(r.range_cm),
+        "percent_attained": r.percent_attained,
+        "bone_age_years": r.bone_age_years,
+        "method": r.method,
+        "status": r.status,
+        "caveat": r.caveat or None,
+    }
+
+
 def adult_height_summary(sex: str, age_years: Optional[float], height_cm: Optional[float],
                          weight_kg: Optional[float], mother_cm: Optional[float],
                          father_cm: Optional[float],
-                         parental_source: Optional[str] = None) -> dict:
-    """Both quantities, deliberately side by side and separately labelled."""
+                         parental_source: Optional[str] = None,
+                         bone_age_years: Optional[float] = None,
+                         bone_age_uncertainty_years: Optional[float] = None) -> dict:
+    """All three quantities, deliberately side by side and separately labelled.
+
+    The third -- prediction from skeletal maturity -- was computed by
+    ``backend/tw3/adult_height.py`` and surfaced nowhere until M2C's ingestion
+    step. It is the only one of the three that responds to a child being early
+    or late maturing, so omitting it made the licensed table pointless even once
+    a clinic entered it.
+    """
     target = mid_parental_target(sex, mother_cm, father_cm, source=parental_source)
     prediction = predict_adult_height(sex, age_years, height_cm, weight_kg,
                                       mother_cm, father_cm)
+    from_bone_age = predict_from_bone_age(sex, height_cm, bone_age_years,
+                                          bone_age_uncertainty_years)
     return {
+        "from_bone_age": {
+            "label": "Predicted adult height from skeletal maturity (TW3)",
+            **from_bone_age,
+        },
         "genetic_target": None if target is None else {
             "label": "Mid-parental target height (genetic potential)",
             "target_cm": target.target_cm,
@@ -170,8 +218,12 @@ def adult_height_summary(sex: str, age_years: Optional[float], height_cm: Option
             "method": prediction.method,
             "status": prediction.status,
         },
-        "note": "These are different quantities. The target is where genetics "
-                "point; the prediction is where this child is heading. A child "
+        "note": "These are three different quantities and must never be merged. "
+                "The target is where genetics point. The Khamis-Roche prediction "
+                "is where this child is heading, without a radiograph. The "
+                "bone-age prediction uses the child's actual skeletal maturity "
+                "and is the only one that responds to early or late maturing -- "
+                "the most informative of the three when a film exists. A child "
                 "can track perfectly toward a short target, or fall short of a "
-                "tall one -- never present one as the other.",
+                "tall one; never present one as the other.",
     }

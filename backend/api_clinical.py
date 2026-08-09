@@ -94,4 +94,5 @@ def adult_height(patient_id: int, db: Session = Depends(get_db)) -> dict[str, An
         s.height.value if s.height else None,
         s.weight.value if s.weight else None,
         s.mother_height_cm, s.father_height_cm, s.parental_height_source,
+        bone_age_years=s.bone_age_years,
     )
