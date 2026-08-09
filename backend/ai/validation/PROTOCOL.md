@@ -55,6 +55,51 @@ treated/untreated follow-up. A pilot may begin at ≥ 200 independently read fil
 larger external cohort is preferred for subgroup analysis. Do not claim accuracy for
 diagnoses or age ranges with inadequate sample size.
 
+### How it runs
+
+```bash
+python -m backend.ai.validation.carve_local_cohort            # survey: what is still missing
+python -m backend.ai.validation.carve_local_cohort --freeze   # one-way
+python -m backend.ai.validation.local_cohort_report           # the number
+```
+
+The carve writes **its own** registry (`locked_test_local_indian_bone_age_cohort.json`),
+not the shared `locked_test.json`. Both frozen sets answer different questions and
+must survive alongside each other; `leak_guard.save_registry` now refuses to write
+one dataset's registry over another's.
+
+`local_cohort_report` is the counterpart to `baseline_report`. The RSNA report reads
+label files from a dataset directory; this cohort lives in the database, where films
+are `Radiograph` rows and the label is the consensus of ≥ 2 independent
+`TW3Assessment` reads. It leak-guards first, runs the **real** inference path, and
+breaks results down by the sex × pubertal-status strata the carve enforces —
+reporting `boys:pubertal` separately because published Indian data show TW3 is worst
+of three methods there, and saying so explicitly when that stratum is absent.
+
+### Interpreting the number: the inter-reader floor
+
+Bone age has **no ground truth**. The reference standard is itself an expert reading,
+and two radiologists routinely differ by 0.5–1.0 year on the same film. A model MAE
+quoted alone therefore overstates what "good" means: if the readers disagree by 6
+months, a model at 5 months is at the noise floor of the measurement, not superior to
+the readers.
+
+So the report prints the inter-reader spread beside the model error and will state
+that a model inside that band is *within the range where the reference is itself
+uncertain* — never that it beats the readers. There is nothing to beat them against.
+
+The consensus label is a **true median**. `sorted(ages)[len//2]` returns the upper of
+two values, and two readers is both the mandated minimum and the expected case — so
+that rule made every dual-read label the higher read, biasing the reference standard
+up by half the reader disagreement and charging that bias to the model as error.
+
+### Method boundary
+
+The screening model is Greulich–Pyle; the stored consensus carries whatever method the
+readers used. Films whose consensus is on a different scale from the model's are
+**excluded and counted**, never silently compared — a GP estimate scored against a TW3
+consensus is a category error, not a measurement.
+
 ## 7. Pre-registered decisions to finalise before the run
 - Beat-incumbent margin (e.g. ≥ 0.3 mo MAE and no subgroup regression).
 - Locked-test source (carve an internal RSNA test now; keep the external Indian test separate).

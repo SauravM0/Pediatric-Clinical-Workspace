@@ -21,6 +21,26 @@ from backend.tw3 import compute_checksum  # one canonical checksum across the pr
 
 _REGISTRY_PATH = Path(__file__).with_name("locked_test.json")
 
+# The RSNA carve owns the unsuffixed filename because it was frozen first and is
+# referenced by that name; every other dataset gets its own file.
+RSNA_DATASET_PREFIX = "rsna-"
+
+
+def registry_path(dataset: str) -> Path:
+    """Where a given dataset's frozen registry lives.
+
+    One file per dataset, because there is more than one frozen test set: the
+    RSNA locked test and the local Indian dual-read cohort answer different
+    questions and must both survive. Before this, both carves called
+    save_registry with no path, so freezing the local cohort OVERWROTE the RSNA
+    registry -- destroying the record of 1,425 held-out images, and leaving every
+    later leak check to pass vacuously against the wrong set.
+    """
+    if not dataset or dataset.startswith(RSNA_DATASET_PREFIX):
+        return _REGISTRY_PATH
+    slug = "".join(c if c.isalnum() else "_" for c in dataset.lower()).strip("_")
+    return _REGISTRY_PATH.with_name(f"locked_test_{slug}.json")
+
 
 class LeakError(RuntimeError):
     """Raised when a test set overlaps a training/tuning/feedback/calibration set."""
@@ -91,8 +111,32 @@ def load_registry(path: Path = _REGISTRY_PATH) -> TestRegistry:
 
 
 def save_registry(patient_ids: Iterable[Any], image_hashes: Iterable[Any], *,
-                  dataset: str, source: str, path: Path = _REGISTRY_PATH) -> TestRegistry:
-    """Freeze a test set: write a checksum-locked registry. Sorted for reproducibility."""
+                  dataset: str, source: str, path: Optional[Path] = None,
+                  allow_replace: bool = False) -> TestRegistry:
+    """Freeze a test set: write a checksum-locked registry. Sorted for reproducibility.
+
+    Defaults to this dataset's own file (:func:`registry_path`) rather than to a
+    single shared one, and REFUSES to write over a registry that belongs to a
+    different dataset. The checksum lock exists so a frozen set cannot be
+    silently edited; overwriting the whole file would have walked straight past
+    it, which is exactly what happened when both carves shared a default path.
+    """
+    path = Path(path) if path is not None else registry_path(dataset)
+    if path.exists() and not allow_replace:
+        try:
+            existing = load_registry(path)
+        except RegistryError:
+            existing = None
+        if existing is not None and existing.dataset and existing.dataset != dataset:
+            raise RegistryError(
+                f"{path.name} already holds the frozen registry for "
+                f"{existing.dataset!r} ({len(existing.patient_ids)} patients, frozen "
+                f"{existing.frozen_at}). Refusing to overwrite it with {dataset!r} -- "
+                "a frozen test set is the record of what is off-limits to training, "
+                "and replacing it makes every later leak check pass vacuously. "
+                "Pass allow_replace=True only for a deliberate re-carve."
+            )
+
     data = {
         "dataset": dataset,
         "source": source,

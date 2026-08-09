@@ -29,6 +29,7 @@ can quietly re-carve after seeing a result is not a test set.
 """
 from __future__ import annotations
 
+import statistics
 import sys
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional
@@ -171,7 +172,12 @@ def survey(db: Session) -> CohortReport:
                 min_readers=MIN_READERS)
             disputed = tuple(getattr(result, "disputed", ()) or ())
 
-        median_months = sorted(a.bone_age_months for a in scored)[len(scored) // 2]
+        # A TRUE median. `sorted(...)[len//2]` returns the UPPER of two values,
+        # and two readers is both the mandated minimum and the expected case --
+        # so that rule made every dual-read label the higher read, biasing the
+        # reference standard up by half the reader disagreement and charging
+        # that bias to the model as error.
+        median_months = statistics.median(a.bone_age_months for a in scored)
         report.eligible.append(FilmRecord(
             film_key=key, patient_id=patient.id, sex=patient.sex_at_birth,
             stratum=stratum, n_readers=len(readers),
@@ -210,7 +216,7 @@ def freeze(db: Session, *, content_hashes: Optional[dict[str, str]] = None,
     One-way by design. ``force`` exists for a deliberate re-carve after a
     documented decision, never as a convenience.
     """
-    from .leak_guard import save_registry
+    from .leak_guard import registry_path, save_registry
 
     report = survey(db)
     if not report.ready_to_freeze and not force:
@@ -233,9 +239,14 @@ def freeze(db: Session, *, content_hashes: Optional[dict[str, str]] = None,
             "could later re-enter training undetected"
         )
 
-    save_registry(ids, hashes, dataset=DATASET, source=SOURCE)
+    # Its OWN registry file, not the shared default -- writing to the default
+    # overwrote the RSNA locked test, which is a different frozen set answering a
+    # different question and must survive alongside this one.
+    save_registry(ids, hashes, dataset=DATASET, source=SOURCE,
+                  path=registry_path(DATASET), allow_replace=force)
     return {
         "frozen": True, "n": len(ids), "dataset": DATASET, "source": SOURCE,
+        "registry_path": str(registry_path(DATASET)),
         "strata": report.strata,
         "note": "These films are now off-limits to training, tuning, feedback and "
                 "calibration. leak_guard enforces it.",
