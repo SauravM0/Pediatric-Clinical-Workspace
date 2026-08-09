@@ -187,6 +187,11 @@ def config() -> dict:
         # Which pipeline is active, which models exist, and whether each
         # model's calibrated intervals are still valid under it (M4.1).
         "inference_platform": __import__("backend.ai.registry", fromlist=["x"]).describe(),
+        # WHICH of those models actually answers a request, and whether the
+        # deployment asked for one it could not have (M4.3). Surfaced because a
+        # silent fallback to the incumbent is otherwise indistinguishable from a
+        # successful switch.
+        "active_model": __import__("backend.ai.active_model", fromlist=["x"]).describe(),
         "bones": [
             {"code": code, "label": BONE_LABELS[code], "stages": list(t.stages_for(code))}
             for code in RUS_BONES

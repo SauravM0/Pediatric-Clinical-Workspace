@@ -6,13 +6,21 @@ already uses.
 
 | | Incumbent | digiBONE |
 |---|---|---|
-| MAE | **8.99 mo** (locked RSNA test) | **4.75 mo** boys / **4.93 mo** girls (Indian validation) |
+| MAE | **8.99 mo** (locked RSNA test) | **4.7 mo** male / **4.9 mo** female, SGP (Indian validation) |
+| | | full-hand: 5.7 mo male / 5.9 mo female |
 | Trained on | RSNA (US) only | RSNA + 2,430 Indian children (HCJMRI, Pune) |
 | Method | whole-image Greulich–Pyle | **segmental** Greulich–Pyle (short bones / carpals / wrist) |
 | Licence | — | MIT |
 
 Source: `https://github.com/goellab/digiBONE` · Frontiers Endocrinol 2026,
-doi 10.3389/fendo.2026.1757571.
+doi 10.3389/fendo.2026.1757571. Inference entry point in that repo is
+`SGP_bone_age.py`; weights come from `download_models1.py` or the Releases page.
+
+**Those two columns are not comparable and the table must not be read as if they
+were.** 8.99 mo is this product's model on a frozen RSNA split; 4.7/4.9 is
+digiBONE's own number on its own Indian validation set. Step 4 below exists to
+produce the comparable figure, and the release gate refuses to treat a
+cross-method adoption as if it were a like-for-like improvement.
 
 **Not bundled.** The weights are a separate download and conversion, and the
 model is not committed here. Everything else in M4 (registry, version binding,
@@ -44,36 +52,55 @@ Verify the MIT LICENSE file travels with the artefact — attribution is require
 
 ### 2. Convert to ONNX
 
+Inspect the checkpoint first — digiBONE's architecture, input size and
+normalisation are **not** documented in its README, and this converter refuses to
+guess them:
+
 ```bash
-python -m backend.ai.convert_digibone --weights /path/to/digibone_weights.pth \
-                                      --out backend/ai/models/boneage_digibone.onnx
+python -m backend.ai.convert_digibone --weights digibone.pth --dry-run
 ```
 
-The converter asserts parity against the PyTorch model on ≥100 images
-(max abs diff < 1e-4). **A conversion that silently changes the numbers is worse
-than no conversion**, because everything downstream would be calibrated against
-a model that is not the one that was validated.
+That prints the tensor count and leading keys. Confirm the architecture and input
+size against `SGP_bone_age.py` in the digiBONE repo, then:
 
-### 3. Declare it in the registry
-
-`backend/ai/models/boneage_digibone.json`:
-
-```json
-{
-  "model_version": "digibone-sgp-<date>",
-  "kind": "screening",
-  "method_key": "segmental-greulich-pyle",
-  "population": "Indian-HCJMRI + RSNA",
-  "input_size": 224,
-  "preprocessing_version": "<the pipeline used at conversion time>",
-  "trained_on": "RSNA + HCJMRI (Pune)"
-}
+```bash
+python -m backend.ai.convert_digibone --weights digibone.pth --arch <name> --input-size <n> --parity-images /path/to/radiographs --out backend/ai/models/boneage_digibone.onnx
 ```
 
-`preprocessing_version` is **not optional**. `registry.resolve_interval_policy`
-refuses to serve conformal intervals when it does not match the active pipeline,
-which is the check that stops a preprocessing change from silently invalidating
-calibration.
+The converter asserts parity against the PyTorch model on ≥100 **real
+radiographs** (max abs diff < 1e-3 months, i.e. an arithmetic-equivalence check,
+not a clinical-agreement one). **A conversion that silently changes the numbers
+is worse than no conversion**: the published accuracy, the conformal calibration
+and the release-gate decision would all be attached to a model that is not the
+one that ran. Synthetic noise is rejected — it exercises a different part of the
+input distribution than hands do, and a bug in an interpolation or padding op can
+be invisible on noise and material on radiographs.
+
+The state dict is loaded strictly; a key mismatch is refused rather than
+tolerated, because silently-ignored keys leave layers randomly initialised and
+still produce plausible-looking bone ages.
+
+**On unpickling:** torch checkpoints are pickles, and loading one executes
+whatever it contains — here, a file from a third-party release page, on a machine
+holding patient data. The converter uses `weights_only=True`. If digiBONE's
+checkpoint needs the unsafe loader, verify the download against the published
+checksum first and pass `--allow-arbitrary-pickle` deliberately.
+
+### 3. Registry metadata — written for you
+
+The converter writes `boneage_digibone.json` beside the ONNX, carrying
+`method_key`, `population`, `input_size`, the `preprocessing_version` used at
+conversion time, the MIT licence and citation, the measured parity result, and
+digiBONE's published MAD figures (so a later reader can tell the *claimed*
+accuracy from the *measured* one).
+
+It deliberately writes **no** `conformal` block. Quantiles do not transfer
+between models, and `registry.resolve_interval_policy` withholds intervals for
+an uncalibrated model — the correct state until step 5.
+
+`preprocessing_version` is **not optional**: that same function refuses to serve
+conformal intervals when it does not match the active pipeline, which is the
+check that stops a preprocessing change from silently invalidating calibration.
 
 ### 4. Evaluate on the existing locked test set
 
@@ -108,6 +135,34 @@ was measured on **RSNA**. Requiring it to beat the incumbent on RSNA would eithe
 block a better model or force someone to loosen the gate — and a loosened gate is
 a permanent loss of a safety property. Cross-method adoption is instead held to
 absolute thresholds plus a written rationale, and is **never auto-deployed**.
+
+### 7. Switch inference to it
+
+```bash
+PCW_BONEAGE_MODEL=boneage_digibone
+```
+
+A deployment variable, not an in-app setting: which model reads a radiograph
+must be identical for every user of an installation and must not be changeable
+by someone who has not run the release gate.
+
+Selection is validated. An id that is not registered, or whose `.onnx` is
+missing, **falls back to the incumbent and says so** — visible on
+`GET /api/bone-age/config` under `active_model.fell_back`. A typo must not
+silently disable screening, nor silently promote something nobody validated.
+
+Confirm the switch took effect there rather than assuming it: `active_model`
+reports `model_id`, `method`, `population` and the reason for the current
+selection.
+
+#### What step 7 had to fix first
+
+`boneage.py` hardcoded `models/boneage_gp.onnx` and the registry's default id, so
+steps 1–6 could all be completed and **the incumbent would still have answered
+every request**. The response's `method` and `population_note` were constants
+too — an Indian-trained segmental model would have been labelled a US-trained
+whole-image one, and the note telling a clinician how far to trust the number
+would have described a different model. Both now come from the model's own spec.
 
 ---
 
