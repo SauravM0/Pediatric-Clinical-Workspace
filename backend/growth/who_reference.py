@@ -42,6 +42,7 @@ from dataclasses import dataclass
 import rcpchgrowth as rg
 
 from . import hermite
+from . import who_lms_reference as _who_lms
 from .measures import MEASURES, SEAM_2Y_KEYS, SEAM_5Y_KEYS
 
 _SEX_MAP = {"boys": rg.MALE, "girls": rg.FEMALE}
@@ -96,6 +97,16 @@ def _rg_args(measure: str, sex: str) -> tuple[str, str]:
 
 
 def _raw_who_value_at_z(measure: str, sex: str, age_years: float, z: float) -> float | None:
+    # M1.4 strangler seam. Our own WHO LMS tables answer once they are installed
+    # AND have reproduced rcpchgrowth's output across a dense grid; until then
+    # this falls through to the incumbent. Swapping HERE rather than at the
+    # public functions means the seam-smoothing above, and every caller, is
+    # unchanged -- the only thing that moves is where the raw LMS comes from.
+    if _who_lms.lms_available():
+        v = _who_lms.value_at_z(measure, sex, age_years, z)
+        if v is not None:
+            return v
+
     measurement_method, rg_sex = _rg_args(measure, sex)
     for nudge in _BOUNDARY_NUDGES_YEARS:
         try:
@@ -156,6 +167,15 @@ def who_z_for_value(measure: str, sex: str, age_years: float, value: float) -> f
     if not (value and value > 0):
         return None
     if _seam_for(measure, age_years) is None:
+        # Same seam as _raw_who_value_at_z, and they must flip together: a value
+        # scored on one model while the curve it sits on is drawn from another
+        # is the display-vs-scoring mismatch this project has already fixed once
+        # for IAP (audit GC-3/GC-4).
+        if _who_lms.lms_available():
+            z = _who_lms.z_for_value(measure, sex, age_years, value)
+            if z is not None:
+                return z
+
         measurement_method, rg_sex = _rg_args(measure, sex)
         for nudge in _BOUNDARY_NUDGES_YEARS:
             try:
