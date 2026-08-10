@@ -326,6 +326,42 @@ def test_app_is_now_mostly_state_and_handlers():
     assert lines < 1500, f"app.jsx is {lines} lines; the panel extraction regressed"
 
 
+def test_domain_state_lives_in_its_own_module():
+    """The two groups M6's ownership audit found worth relocating.
+
+    App still OWNS this state -- the hooks run in App's render -- but the
+    declarations, defaults and the comments explaining them belong with their
+    domain, not in a 60-line run inside a 1,300-line component.
+    """
+    for module, hook, sample in (
+        ("boneAgeState.js", "useBoneAgeState", "const [rusStages, setRusStages]"),
+        ("qriskState.js", "useQriskInputs", "const [qAF, setQAF]"),
+    ):
+        body = (SRC_DIR / module).read_text(encoding="utf-8")
+        assert f"function {hook}(" in body, f"{module} does not define {hook}"
+        assert f"export {{ {hook}" in body, f"{module} does not export {hook}"
+        assert sample in body, f"{module} lost {sample!r}"
+
+    app = (SRC_DIR / "app.jsx").read_text(encoding="utf-8")
+    for hook in ("useBoneAgeState", "useQriskInputs"):
+        assert f"{hook}()" in app, f"app.jsx does not call {hook}"
+    # ...and does not also declare them, which would be two independent states
+    # with the panel reading one and App writing the other.
+    for moved in ("const [rusStages,", "const [qAF,", "const [ltTables,",
+                  "const [cholRatio,", "const [aiEstimate,"):
+        assert moved not in app, (
+            f"{moved!r} is declared in app.jsx as well as its state module -- "
+            "two useState calls means two separate states"
+        )
+
+
+def test_app_no_longer_declares_most_of_the_state_inline():
+    """Started at ~97 useState declarations in one component."""
+    app = (SRC_DIR / "app.jsx").read_text(encoding="utf-8")
+    declared = len(re.findall(r"const\s*\[\s*\w+\s*,\s*\w+\s*\]\s*=\s*useState", app))
+    assert declared < 40, f"app.jsx still declares {declared} useState bindings inline"
+
+
 def test_every_name_in_clinical_state_is_defined_in_app():
     """A name listed in clinicalState but never bound is a ReferenceError at
     MOUNT — the whole app renders nothing, not just one panel.

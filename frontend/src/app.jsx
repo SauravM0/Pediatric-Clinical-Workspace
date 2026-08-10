@@ -40,6 +40,8 @@ import { ProbBar, StatusBadge, MetricRow, SectionHeader, FraxToggleRow,
          computeAgeParts } from "./ui.jsx";
 import { ClinicalStateProvider } from "./state.jsx";
 import { useBoneAgeHandlers } from "./boneAgeHandlers.js";
+import { useBoneAgeState } from "./boneAgeState.js";
+import { useQriskInputs } from "./qriskState.js";
 import { RenalPanel } from "./panels/RenalPanel.jsx";
 import { LiverPanel } from "./panels/LiverPanel.jsx";
 import { FraxPanel } from "./panels/FraxPanel.jsx";
@@ -96,85 +98,51 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
           const [secondaryOsteo, setSecondaryOsteo] = useState("no");
           const [alcohol, setAlcohol] = useState("no");
           const [timeline, setTimeline] = useState([]);
-          const [boneAge, setBoneAge] = useState("");        // TW3 bone age (RUS-derived or manual)
-          const [boneAgeSource, setBoneAgeSource] = useState("manual"); // manual | rus
-          const [rusStages, setRusStages] = useState({});    // { boneCode: 'A'..'I' }
-          const [carpalStages, setCarpalStages] = useState({}); // { carpalName: 'A'..'I' }
-          const [tw3Config, setTw3Config] = useState(null);  // /api/bone-age/config
-          const [rusResult, setRusResult] = useState(null);  // /api/bone-age/score
-          const [letterResult, setLetterResult] = useState(null); // live /letters-score (RUS+carpal)
-          const [boneReport, setBoneReport] = useState(null); // live /report (structured 20-bone)
-          const [patientCode, setPatientCode] = useState(""); // assessment lifecycle
-          const [approverName, setApproverName] = useState("");
-          const [assessment, setAssessment] = useState(null); // saved lifecycle record
-          const [lcMsg, setLcMsg] = useState(null);           // {type:'ok'|'err', text}
-          const [lcBusy, setLcBusy] = useState(false);
-          const [showAudit, setShowAudit] = useState(false);
-          const [radiograph, setRadiograph] = useState(null); // attached film metadata
-          const [coverage, setCoverage] = useState(null);     // /api/bone-age/coverage
-          const [covBusy, setCovBusy] = useState(false);
-          const [monitoring, setMonitoring] = useState(null); // /api/bone-age/monitoring
-          const [monBusy, setMonBusy] = useState(false);
-          const [localCohort, setLocalCohort] = useState(null); // /api/bone-age/local-cohort
-          const [lcohBusy, setLcohBusy] = useState(false);
-          const [adjItems, setAdjItems] = useState(null);     // /api/bone-age/adjudication (open)
-          const [adjBusy, setAdjBusy] = useState(false);
-          const [adjReviewer, setAdjReviewer] = useState(""); // the resolving clinician
-          const [adjMsg, setAdjMsg] = useState(null);
-          const [ltTables, setLtTables] = useState(null);     // licensed TW3 tables editor
-          const [ltStatus, setLtStatus] = useState(null);
-          const [ltSection, setLtSection] = useState('rus');  // rus | carpal | curves | ref
-          const [ltSex, setLtSex] = useState('boys');
-          const [ltMsg, setLtMsg] = useState(null);
-          const [ltBusy, setLtBusy] = useState(false);
-          const [boxes, setBoxes] = useState({});       // {bone_code:[x0,y0,x1,y1] in image px}
-          const [locImg, setLocImg] = useState(null);   // {width,height}
-          const [locBusy, setLocBusy] = useState(false);
-          const [locMsg, setLocMsg] = useState(null);
-          const [selBone, setSelBone] = useState(null);
-          const locDrag = useRef(null);
-          const locRef = useRef(null);
-          const boxesRef = useRef({});          // always-current boxes (avoids stale closures)
-          useEffect(() => { boxesRef.current = boxes; }, [boxes]);
-          const [aiEstimate, setAiEstimate] = useState(null); // AI screening estimate
-          const [estimateDomain, setEstimateDomain] = useState('unknown'); // quality gate for quick estimate
-          const [declaredFlags, setDeclaredFlags] = useState([]); // clinician-declared image issues (S-BA-6 gate)
-          const [lastFilm, setLastFilm] = useState(null);         // last attached film, to re-gate on flag toggle
-          // Hard quality flags the clinician can declare; any one makes the AI estimate abstain.
-          const DECLARABLE_FLAGS = [
-            ['FRACTURE', 'Fracture'], ['CAST_OR_HARDWARE', 'Cast / hardware'],
-            ['WRONG_LATERALITY', 'Wrong side'], ['CLIPPED_DIGITS', 'Clipped anatomy'],
-            ['SEVERE_DEFORMITY', 'Deformity'], ['FOREIGN_OBJECT', 'Foreign object'],
-          ];
-          // Suggestion box — clinician's corrected bone age (self-improvement flywheel).
-          const [fbAge, setFbAge] = useState('');
-          const [fbMethod, setFbMethod] = useState('tw3-rus');
-          const [fbConfidence, setFbConfidence] = useState('medium');
-          const [fbRater, setFbRater] = useState('');
-          const [fbNote, setFbNote] = useState('');
-          const [fbMsg, setFbMsg] = useState(null);
-          const [fbBusy, setFbBusy] = useState(false);
-          const [aiBusy, setAiBusy] = useState(false);
-          const [fatherHeight, setFatherHeight] = useState("");
-          const [motherHeight, setMotherHeight] = useState("");
+          // ── Bone-age workspace state (boneAgeState.js) ──
+          // Sixty-odd bindings, their two refs and the boxesRef sync effect.
+          // Destructured flat so every reference below is unchanged; App still
+          // owns the state (the hook runs in App's render), the module just
+          // groups the declarations with the domain they belong to.
+          const {
+            DECLARABLE_FLAGS,
+            boneAge, setBoneAge, boneAgeSource, setBoneAgeSource,
+            rusStages, setRusStages, carpalStages, setCarpalStages,
+            tw3Config, setTw3Config, rusResult, setRusResult,
+            letterResult, setLetterResult, boneReport, setBoneReport,
+            patientCode, setPatientCode, approverName, setApproverName,
+            assessment, setAssessment, lcMsg, setLcMsg, lcBusy, setLcBusy,
+            showAudit, setShowAudit, radiograph, setRadiograph,
+            coverage, setCoverage, covBusy, setCovBusy,
+            monitoring, setMonitoring, monBusy, setMonBusy,
+            localCohort, setLocalCohort, lcohBusy, setLcohBusy,
+            adjItems, setAdjItems, adjBusy, setAdjBusy,
+            adjReviewer, setAdjReviewer, adjMsg, setAdjMsg,
+            ltTables, setLtTables, ltStatus, setLtStatus,
+            ltSection, setLtSection, ltSex, setLtSex,
+            ltMsg, setLtMsg, ltBusy, setLtBusy,
+            boxes, setBoxes, locImg, setLocImg, locBusy, setLocBusy,
+            locMsg, setLocMsg, selBone, setSelBone,
+            locDrag, locRef, boxesRef,
+            aiEstimate, setAiEstimate, estimateDomain, setEstimateDomain,
+            declaredFlags, setDeclaredFlags, lastFilm, setLastFilm,
+            fbAge, setFbAge, fbMethod, setFbMethod,
+            fbConfidence, setFbConfidence, fbRater, setFbRater,
+            fbNote, setFbNote, fbMsg, setFbMsg, fbBusy, setFbBusy,
+            aiBusy, setAiBusy,
+            fatherHeight, setFatherHeight, motherHeight, setMotherHeight,
+          } = useBoneAgeState();
 
-          // ── QRISK3 cardiovascular inputs ──
-          const [ethnicity, setEthnicity] = useState(2);     // default Indian
-          const [smokeCat, setSmokeCat] = useState(0);
-          const [diabetes, setDiabetes] = useState(0);       // 0 none · 1 type1 · 2 type2
-          const [cholRatio, setCholRatio] = useState("");    // total cholesterol / HDL
-          const [sbpSD, setSbpSD] = useState("");            // SBP standard deviation (optional)
-          const [qAF, setQAF] = useState("no");
-          const [qTreatedHtn, setQTreatedHtn] = useState("no");
-          const [qRA, setQRA] = useState("no");
-          const [qCKD, setQCKD] = useState("no");
-          const [qMigraine, setQMigraine] = useState("no");
-          const [qSLE, setQSLE] = useState("no");
-          const [qSMI, setQSMI] = useState("no");
-          const [qAtypAntipsy, setQAtypAntipsy] = useState("no");
-          const [qCortico, setQCortico] = useState("no");
-          const [qED, setQED] = useState("no");
-          const [qFhCvd, setQFhCvd] = useState("no");
+          // ── QRISK3 cardiovascular inputs (qriskState.js) ──
+          // Destructured flat so every reference below is unchanged; App still
+          // owns the state, the hook just groups its declaration and defaults.
+          const {
+            ethnicity, setEthnicity, smokeCat, setSmokeCat, diabetes, setDiabetes,
+            cholRatio, setCholRatio, sbpSD, setSbpSD,
+            qAF, setQAF, qTreatedHtn, setQTreatedHtn, qRA, setQRA, qCKD, setQCKD,
+            qMigraine, setQMigraine, qSLE, setQSLE, qSMI, setQSMI,
+            qAtypAntipsy, setQAtypAntipsy, qCortico, setQCortico,
+            qED, setQED, qFhCvd, setQFhCvd,
+          } = useQriskInputs();
 
           const evalAge = useMemo(() => age !== "" ? parseFloat(age) : 9.0, [age]);
           const ageParts = useMemo(() => computeAgeParts(dob), [dob]);

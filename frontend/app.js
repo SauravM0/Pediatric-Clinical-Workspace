@@ -1531,6 +1531,236 @@
     };
   }
 
+  // frontend/src/boneAgeState.js
+  var { useState, useRef, useEffect } = React;
+  var DECLARABLE_FLAGS = [
+    ["FRACTURE", "Fracture"],
+    ["CAST_OR_HARDWARE", "Cast / hardware"],
+    ["WRONG_LATERALITY", "Wrong side"],
+    ["CLIPPED_DIGITS", "Clipped anatomy"],
+    ["SEVERE_DEFORMITY", "Deformity"],
+    ["FOREIGN_OBJECT", "Foreign object"]
+  ];
+  function useBoneAgeState() {
+    const [boneAge, setBoneAge] = useState("");
+    const [boneAgeSource, setBoneAgeSource] = useState("manual");
+    const [rusStages, setRusStages] = useState({});
+    const [carpalStages, setCarpalStages] = useState({});
+    const [tw3Config, setTw3Config] = useState(null);
+    const [rusResult, setRusResult] = useState(null);
+    const [letterResult, setLetterResult] = useState(null);
+    const [boneReport, setBoneReport] = useState(null);
+    const [patientCode, setPatientCode] = useState("");
+    const [approverName, setApproverName] = useState("");
+    const [assessment, setAssessment] = useState(null);
+    const [lcMsg, setLcMsg] = useState(null);
+    const [lcBusy, setLcBusy] = useState(false);
+    const [showAudit, setShowAudit] = useState(false);
+    const [radiograph, setRadiograph] = useState(null);
+    const [coverage, setCoverage] = useState(null);
+    const [covBusy, setCovBusy] = useState(false);
+    const [monitoring, setMonitoring] = useState(null);
+    const [monBusy, setMonBusy] = useState(false);
+    const [localCohort, setLocalCohort] = useState(null);
+    const [lcohBusy, setLcohBusy] = useState(false);
+    const [adjItems, setAdjItems] = useState(null);
+    const [adjBusy, setAdjBusy] = useState(false);
+    const [adjReviewer, setAdjReviewer] = useState("");
+    const [adjMsg, setAdjMsg] = useState(null);
+    const [ltTables, setLtTables] = useState(null);
+    const [ltStatus, setLtStatus] = useState(null);
+    const [ltSection, setLtSection] = useState("rus");
+    const [ltSex, setLtSex] = useState("boys");
+    const [ltMsg, setLtMsg] = useState(null);
+    const [ltBusy, setLtBusy] = useState(false);
+    const [boxes, setBoxes] = useState({});
+    const [locImg, setLocImg] = useState(null);
+    const [locBusy, setLocBusy] = useState(false);
+    const [locMsg, setLocMsg] = useState(null);
+    const [selBone, setSelBone] = useState(null);
+    const locDrag = useRef(null);
+    const locRef = useRef(null);
+    const boxesRef = useRef({});
+    useEffect(() => {
+      boxesRef.current = boxes;
+    }, [boxes]);
+    const [aiEstimate, setAiEstimate] = useState(null);
+    const [estimateDomain, setEstimateDomain] = useState("unknown");
+    const [declaredFlags, setDeclaredFlags] = useState([]);
+    const [lastFilm, setLastFilm] = useState(null);
+    const [fbAge, setFbAge] = useState("");
+    const [fbMethod, setFbMethod] = useState("tw3-rus");
+    const [fbConfidence, setFbConfidence] = useState("medium");
+    const [fbRater, setFbRater] = useState("");
+    const [fbNote, setFbNote] = useState("");
+    const [fbMsg, setFbMsg] = useState(null);
+    const [fbBusy, setFbBusy] = useState(false);
+    const [aiBusy, setAiBusy] = useState(false);
+    const [fatherHeight, setFatherHeight] = useState("");
+    const [motherHeight, setMotherHeight] = useState("");
+    return {
+      DECLARABLE_FLAGS,
+      boneAge,
+      setBoneAge,
+      boneAgeSource,
+      setBoneAgeSource,
+      rusStages,
+      setRusStages,
+      carpalStages,
+      setCarpalStages,
+      tw3Config,
+      setTw3Config,
+      rusResult,
+      setRusResult,
+      letterResult,
+      setLetterResult,
+      boneReport,
+      setBoneReport,
+      patientCode,
+      setPatientCode,
+      approverName,
+      setApproverName,
+      assessment,
+      setAssessment,
+      lcMsg,
+      setLcMsg,
+      lcBusy,
+      setLcBusy,
+      showAudit,
+      setShowAudit,
+      radiograph,
+      setRadiograph,
+      coverage,
+      setCoverage,
+      covBusy,
+      setCovBusy,
+      monitoring,
+      setMonitoring,
+      monBusy,
+      setMonBusy,
+      localCohort,
+      setLocalCohort,
+      lcohBusy,
+      setLcohBusy,
+      adjItems,
+      setAdjItems,
+      adjBusy,
+      setAdjBusy,
+      adjReviewer,
+      setAdjReviewer,
+      adjMsg,
+      setAdjMsg,
+      ltTables,
+      setLtTables,
+      ltStatus,
+      setLtStatus,
+      ltSection,
+      setLtSection,
+      ltSex,
+      setLtSex,
+      ltMsg,
+      setLtMsg,
+      ltBusy,
+      setLtBusy,
+      boxes,
+      setBoxes,
+      locImg,
+      setLocImg,
+      locBusy,
+      setLocBusy,
+      locMsg,
+      setLocMsg,
+      selBone,
+      setSelBone,
+      locDrag,
+      locRef,
+      boxesRef,
+      aiEstimate,
+      setAiEstimate,
+      estimateDomain,
+      setEstimateDomain,
+      declaredFlags,
+      setDeclaredFlags,
+      lastFilm,
+      setLastFilm,
+      fbAge,
+      setFbAge,
+      fbMethod,
+      setFbMethod,
+      fbConfidence,
+      setFbConfidence,
+      fbRater,
+      setFbRater,
+      fbNote,
+      setFbNote,
+      fbMsg,
+      setFbMsg,
+      fbBusy,
+      setFbBusy,
+      aiBusy,
+      setAiBusy,
+      fatherHeight,
+      setFatherHeight,
+      motherHeight,
+      setMotherHeight
+    };
+  }
+
+  // frontend/src/qriskState.js
+  var { useState: useState2 } = React;
+  function useQriskInputs() {
+    const [ethnicity, setEthnicity] = useState2(2);
+    const [smokeCat, setSmokeCat] = useState2(0);
+    const [diabetes, setDiabetes] = useState2(0);
+    const [cholRatio, setCholRatio] = useState2("");
+    const [sbpSD, setSbpSD] = useState2("");
+    const [qAF, setQAF] = useState2("no");
+    const [qTreatedHtn, setQTreatedHtn] = useState2("no");
+    const [qRA, setQRA] = useState2("no");
+    const [qCKD, setQCKD] = useState2("no");
+    const [qMigraine, setQMigraine] = useState2("no");
+    const [qSLE, setQSLE] = useState2("no");
+    const [qSMI, setQSMI] = useState2("no");
+    const [qAtypAntipsy, setQAtypAntipsy] = useState2("no");
+    const [qCortico, setQCortico] = useState2("no");
+    const [qED, setQED] = useState2("no");
+    const [qFhCvd, setQFhCvd] = useState2("no");
+    return {
+      ethnicity,
+      setEthnicity,
+      smokeCat,
+      setSmokeCat,
+      diabetes,
+      setDiabetes,
+      cholRatio,
+      setCholRatio,
+      sbpSD,
+      setSbpSD,
+      qAF,
+      setQAF,
+      qTreatedHtn,
+      setQTreatedHtn,
+      qRA,
+      setQRA,
+      qCKD,
+      setQCKD,
+      qMigraine,
+      setQMigraine,
+      qSLE,
+      setQSLE,
+      qSMI,
+      setQSMI,
+      qAtypAntipsy,
+      setQAtypAntipsy,
+      qCortico,
+      setQCortico,
+      qED,
+      setQED,
+      qFhCvd,
+      setQFhCvd
+    };
+  }
+
   // frontend/src/panels/RenalPanel.jsx
   function RenalPanel() {
     const { metrics, hasManual } = useRenal();
@@ -1750,7 +1980,7 @@
   // frontend/src/panels/BoneAgePanel.jsx
   function BoneAgePanel() {
     const {
-      DECLARABLE_FLAGS,
+      DECLARABLE_FLAGS: DECLARABLE_FLAGS2,
       LC_API,
       addOrSelectBox,
       adjBusy,
@@ -1882,7 +2112,7 @@
           e.target.value = "";
         }
       }
-    )), /* @__PURE__ */ React.createElement("div", { style: { minWidth: "170px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Image source"), /* @__PURE__ */ React.createElement("select", { value: estimateDomain, onChange: (e) => setEstimateDomain(e.target.value), className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "11px" } }, IMAGE_DOMAINS.map(([v, label]) => /* @__PURE__ */ React.createElement("option", { key: v, value: v }, label))), /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", margin: "8px 0 3px" } }, "Declare image issues"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "4px" } }, DECLARABLE_FLAGS.map(([code, label]) => {
+    )), /* @__PURE__ */ React.createElement("div", { style: { minWidth: "170px" } }, /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", marginBottom: "3px" } }, "Image source"), /* @__PURE__ */ React.createElement("select", { value: estimateDomain, onChange: (e) => setEstimateDomain(e.target.value), className: "input-field", style: { padding: "7px 8px", width: "100%", fontSize: "11px" } }, IMAGE_DOMAINS.map(([v, label]) => /* @__PURE__ */ React.createElement("option", { key: v, value: v }, label))), /* @__PURE__ */ React.createElement("label", { style: { fontSize: "9px", fontWeight: "800", color: "#7c3aed", textTransform: "uppercase", letterSpacing: ".05em", display: "block", margin: "8px 0 3px" } }, "Declare image issues"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexWrap: "wrap", gap: "4px" } }, DECLARABLE_FLAGS2.map(([code, label]) => {
       const on = declaredFlags.includes(code);
       return /* @__PURE__ */ React.createElement(
         "button",
@@ -2225,122 +2455,182 @@
   }
 
   // frontend/src/app.jsx
-  var { useState, useMemo, useEffect, useRef } = React;
+  var { useState: useState3, useMemo, useEffect: useEffect2, useRef: useRef2 } = React;
   function App() {
-    const [activeTab, setActiveTab] = useState("overview");
-    const [growthChartMeasure, setGrowthChartMeasure] = useState("combined");
-    const [showChart, setShowChart] = useState(false);
-    const [patientName, setPatientName] = useState("");
-    const [patientMrn, setPatientMrn] = useState("");
-    const [examDate, setExamDate] = useState(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
-    const [growthSeries, setGrowthSeries] = useState({
+    const [activeTab, setActiveTab] = useState3("overview");
+    const [growthChartMeasure, setGrowthChartMeasure] = useState3("combined");
+    const [showChart, setShowChart] = useState3(false);
+    const [patientName, setPatientName] = useState3("");
+    const [patientMrn, setPatientMrn] = useState3("");
+    const [examDate, setExamDate] = useState3(() => (/* @__PURE__ */ new Date()).toISOString().split("T")[0]);
+    const [growthSeries, setGrowthSeries] = useState3({
       boys: { height: null, weight: null, bmi: null },
       girls: { height: null, weight: null, bmi: null }
     });
-    const [growthSeriesLoading, setGrowthSeriesLoading] = useState(true);
-    const [growthPoint, setGrowthPoint] = useState({ height: null, weight: null, bmi: null });
-    const [growthBmiCutoffs, setGrowthBmiCutoffs] = useState(null);
-    const [adultHeightStats, setAdultHeightStats] = useState(null);
-    const [age, setAge] = useState("");
-    const [dob, setDob] = useState("");
-    const [gender, setGender] = useState("");
-    const [height, setHeight] = useState("");
-    const [weight, setWeight] = useState("");
-    const [creatinine, setCreatinine] = useState("");
-    const [albuminuria, setAlbuminuria] = useState("");
-    const [systolic, setSystolic] = useState("");
-    const [diastolic, setDiastolic] = useState("");
-    const [ast, setAst] = useState("");
-    const [alt, setAlt] = useState("");
-    const [platelets, setPlatelets] = useState("");
-    const [prevFracture, setPrevFracture] = useState("no");
-    const [parentHipFracture, setParentHipFracture] = useState("no");
-    const [smoking, setSmoking] = useState("no");
-    const [glucocorticoids, setGlucocorticoids] = useState("no");
-    const [rheumatoid, setRheumatoid] = useState("no");
-    const [secondaryOsteo, setSecondaryOsteo] = useState("no");
-    const [alcohol, setAlcohol] = useState("no");
-    const [timeline, setTimeline] = useState([]);
-    const [boneAge, setBoneAge] = useState("");
-    const [boneAgeSource, setBoneAgeSource] = useState("manual");
-    const [rusStages, setRusStages] = useState({});
-    const [carpalStages, setCarpalStages] = useState({});
-    const [tw3Config, setTw3Config] = useState(null);
-    const [rusResult, setRusResult] = useState(null);
-    const [letterResult, setLetterResult] = useState(null);
-    const [boneReport, setBoneReport] = useState(null);
-    const [patientCode, setPatientCode] = useState("");
-    const [approverName, setApproverName] = useState("");
-    const [assessment, setAssessment] = useState(null);
-    const [lcMsg, setLcMsg] = useState(null);
-    const [lcBusy, setLcBusy] = useState(false);
-    const [showAudit, setShowAudit] = useState(false);
-    const [radiograph, setRadiograph] = useState(null);
-    const [coverage, setCoverage] = useState(null);
-    const [covBusy, setCovBusy] = useState(false);
-    const [monitoring, setMonitoring] = useState(null);
-    const [monBusy, setMonBusy] = useState(false);
-    const [localCohort, setLocalCohort] = useState(null);
-    const [lcohBusy, setLcohBusy] = useState(false);
-    const [adjItems, setAdjItems] = useState(null);
-    const [adjBusy, setAdjBusy] = useState(false);
-    const [adjReviewer, setAdjReviewer] = useState("");
-    const [adjMsg, setAdjMsg] = useState(null);
-    const [ltTables, setLtTables] = useState(null);
-    const [ltStatus, setLtStatus] = useState(null);
-    const [ltSection, setLtSection] = useState("rus");
-    const [ltSex, setLtSex] = useState("boys");
-    const [ltMsg, setLtMsg] = useState(null);
-    const [ltBusy, setLtBusy] = useState(false);
-    const [boxes, setBoxes] = useState({});
-    const [locImg, setLocImg] = useState(null);
-    const [locBusy, setLocBusy] = useState(false);
-    const [locMsg, setLocMsg] = useState(null);
-    const [selBone, setSelBone] = useState(null);
-    const locDrag = useRef(null);
-    const locRef = useRef(null);
-    const boxesRef = useRef({});
-    useEffect(() => {
-      boxesRef.current = boxes;
-    }, [boxes]);
-    const [aiEstimate, setAiEstimate] = useState(null);
-    const [estimateDomain, setEstimateDomain] = useState("unknown");
-    const [declaredFlags, setDeclaredFlags] = useState([]);
-    const [lastFilm, setLastFilm] = useState(null);
-    const DECLARABLE_FLAGS = [
-      ["FRACTURE", "Fracture"],
-      ["CAST_OR_HARDWARE", "Cast / hardware"],
-      ["WRONG_LATERALITY", "Wrong side"],
-      ["CLIPPED_DIGITS", "Clipped anatomy"],
-      ["SEVERE_DEFORMITY", "Deformity"],
-      ["FOREIGN_OBJECT", "Foreign object"]
-    ];
-    const [fbAge, setFbAge] = useState("");
-    const [fbMethod, setFbMethod] = useState("tw3-rus");
-    const [fbConfidence, setFbConfidence] = useState("medium");
-    const [fbRater, setFbRater] = useState("");
-    const [fbNote, setFbNote] = useState("");
-    const [fbMsg, setFbMsg] = useState(null);
-    const [fbBusy, setFbBusy] = useState(false);
-    const [aiBusy, setAiBusy] = useState(false);
-    const [fatherHeight, setFatherHeight] = useState("");
-    const [motherHeight, setMotherHeight] = useState("");
-    const [ethnicity, setEthnicity] = useState(2);
-    const [smokeCat, setSmokeCat] = useState(0);
-    const [diabetes, setDiabetes] = useState(0);
-    const [cholRatio, setCholRatio] = useState("");
-    const [sbpSD, setSbpSD] = useState("");
-    const [qAF, setQAF] = useState("no");
-    const [qTreatedHtn, setQTreatedHtn] = useState("no");
-    const [qRA, setQRA] = useState("no");
-    const [qCKD, setQCKD] = useState("no");
-    const [qMigraine, setQMigraine] = useState("no");
-    const [qSLE, setQSLE] = useState("no");
-    const [qSMI, setQSMI] = useState("no");
-    const [qAtypAntipsy, setQAtypAntipsy] = useState("no");
-    const [qCortico, setQCortico] = useState("no");
-    const [qED, setQED] = useState("no");
-    const [qFhCvd, setQFhCvd] = useState("no");
+    const [growthSeriesLoading, setGrowthSeriesLoading] = useState3(true);
+    const [growthPoint, setGrowthPoint] = useState3({ height: null, weight: null, bmi: null });
+    const [growthBmiCutoffs, setGrowthBmiCutoffs] = useState3(null);
+    const [adultHeightStats, setAdultHeightStats] = useState3(null);
+    const [age, setAge] = useState3("");
+    const [dob, setDob] = useState3("");
+    const [gender, setGender] = useState3("");
+    const [height, setHeight] = useState3("");
+    const [weight, setWeight] = useState3("");
+    const [creatinine, setCreatinine] = useState3("");
+    const [albuminuria, setAlbuminuria] = useState3("");
+    const [systolic, setSystolic] = useState3("");
+    const [diastolic, setDiastolic] = useState3("");
+    const [ast, setAst] = useState3("");
+    const [alt, setAlt] = useState3("");
+    const [platelets, setPlatelets] = useState3("");
+    const [prevFracture, setPrevFracture] = useState3("no");
+    const [parentHipFracture, setParentHipFracture] = useState3("no");
+    const [smoking, setSmoking] = useState3("no");
+    const [glucocorticoids, setGlucocorticoids] = useState3("no");
+    const [rheumatoid, setRheumatoid] = useState3("no");
+    const [secondaryOsteo, setSecondaryOsteo] = useState3("no");
+    const [alcohol, setAlcohol] = useState3("no");
+    const [timeline, setTimeline] = useState3([]);
+    const {
+      DECLARABLE_FLAGS: DECLARABLE_FLAGS2,
+      boneAge,
+      setBoneAge,
+      boneAgeSource,
+      setBoneAgeSource,
+      rusStages,
+      setRusStages,
+      carpalStages,
+      setCarpalStages,
+      tw3Config,
+      setTw3Config,
+      rusResult,
+      setRusResult,
+      letterResult,
+      setLetterResult,
+      boneReport,
+      setBoneReport,
+      patientCode,
+      setPatientCode,
+      approverName,
+      setApproverName,
+      assessment,
+      setAssessment,
+      lcMsg,
+      setLcMsg,
+      lcBusy,
+      setLcBusy,
+      showAudit,
+      setShowAudit,
+      radiograph,
+      setRadiograph,
+      coverage,
+      setCoverage,
+      covBusy,
+      setCovBusy,
+      monitoring,
+      setMonitoring,
+      monBusy,
+      setMonBusy,
+      localCohort,
+      setLocalCohort,
+      lcohBusy,
+      setLcohBusy,
+      adjItems,
+      setAdjItems,
+      adjBusy,
+      setAdjBusy,
+      adjReviewer,
+      setAdjReviewer,
+      adjMsg,
+      setAdjMsg,
+      ltTables,
+      setLtTables,
+      ltStatus,
+      setLtStatus,
+      ltSection,
+      setLtSection,
+      ltSex,
+      setLtSex,
+      ltMsg,
+      setLtMsg,
+      ltBusy,
+      setLtBusy,
+      boxes,
+      setBoxes,
+      locImg,
+      setLocImg,
+      locBusy,
+      setLocBusy,
+      locMsg,
+      setLocMsg,
+      selBone,
+      setSelBone,
+      locDrag,
+      locRef,
+      boxesRef,
+      aiEstimate,
+      setAiEstimate,
+      estimateDomain,
+      setEstimateDomain,
+      declaredFlags,
+      setDeclaredFlags,
+      lastFilm,
+      setLastFilm,
+      fbAge,
+      setFbAge,
+      fbMethod,
+      setFbMethod,
+      fbConfidence,
+      setFbConfidence,
+      fbRater,
+      setFbRater,
+      fbNote,
+      setFbNote,
+      fbMsg,
+      setFbMsg,
+      fbBusy,
+      setFbBusy,
+      aiBusy,
+      setAiBusy,
+      fatherHeight,
+      setFatherHeight,
+      motherHeight,
+      setMotherHeight
+    } = useBoneAgeState();
+    const {
+      ethnicity,
+      setEthnicity,
+      smokeCat,
+      setSmokeCat,
+      diabetes,
+      setDiabetes,
+      cholRatio,
+      setCholRatio,
+      sbpSD,
+      setSbpSD,
+      qAF,
+      setQAF,
+      qTreatedHtn,
+      setQTreatedHtn,
+      qRA,
+      setQRA,
+      qCKD,
+      setQCKD,
+      qMigraine,
+      setQMigraine,
+      qSLE,
+      setQSLE,
+      qSMI,
+      setQSMI,
+      qAtypAntipsy,
+      setQAtypAntipsy,
+      qCortico,
+      setQCortico,
+      qED,
+      setQED,
+      qFhCvd,
+      setQFhCvd
+    } = useQriskInputs();
     const evalAge = useMemo(() => age !== "" ? parseFloat(age) : 9, [age]);
     const ageParts = useMemo(() => computeAgeParts(dob), [dob]);
     const handleDobChange = (e) => {
@@ -2640,7 +2930,7 @@
       }
       return { bmi, bmiCat, bmiVariant, map, mapCat, mapVariant };
     }, [evalHeight, evalWeight, evalSystolic, evalDiastolic]);
-    useEffect(() => {
+    useEffect2(() => {
       const params = new URLSearchParams(window.location.search);
       if (params.get("report") !== "1") return;
       document.body.classList.add("report-mode");
@@ -2662,11 +2952,11 @@
       setGrowthChartMeasure("combined");
       setShowChart(true);
     }, []);
-    useEffect(() => {
+    useEffect2(() => {
       fetch("/api/bone-age/config").then((r) => r.json()).then(setTw3Config).catch(() => {
       });
     }, []);
-    useEffect(() => {
+    useEffect2(() => {
       let cancelled = false;
       const sexAtFetch = evalGender;
       setGrowthSeriesLoading(true);
@@ -2691,7 +2981,7 @@
         cancelled = true;
       };
     }, [evalGender]);
-    useEffect(() => {
+    useEffect2(() => {
       let cancelled = false;
       const bmiVal = evalHeight > 0 ? evalWeight / Math.pow(evalHeight / 100, 2) : 0;
       const withValue = { height: evalHeight, weight: evalWeight, bmi: bmiVal };
@@ -2711,7 +3001,7 @@
         cancelled = true;
       };
     }, [evalAge, evalGender, evalHeight, evalWeight]);
-    useEffect(() => {
+    useEffect2(() => {
       let cancelled = false;
       fetch(`/api/growth/reference-stats?measure=height&sex=${evalGender}&age=19`).then((r) => r.json()).then((d) => {
         if (!cancelled) setAdultHeightStats(d);
@@ -2721,13 +3011,13 @@
         cancelled = true;
       };
     }, [evalGender]);
-    useEffect(() => {
+    useEffect2(() => {
       const rid = assessment && assessment.radiograph_id;
       if (rid && (!radiograph || radiograph.radiograph_id !== rid)) {
         setRadiograph((r) => ({ ...r || {}, radiograph_id: rid }));
       }
     }, [assessment]);
-    useEffect(() => {
+    useEffect2(() => {
       if (evalGender !== "boys" && evalGender !== "girls") {
         setLetterResult(null);
         setBoneReport(null);
@@ -3276,7 +3566,7 @@
       creatinine,
       fraxMetrics,
       hasManualFrax,
-      DECLARABLE_FLAGS,
+      DECLARABLE_FLAGS: DECLARABLE_FLAGS2,
       LC_API,
       addOrSelectBox,
       adjBusy,

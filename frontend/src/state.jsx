@@ -23,13 +23,32 @@
  * harder to read. One provider with GROUPED SELECTORS (usePatient, useLiver,
  * ...) gives panels a narrow view of exactly their slice without the ceremony.
  *
- * State ownership deliberately stays in App
- * -----------------------------------------
- * The provider transports state; it does not own it. Moving ~400 bindings out
- * of App would have been a large mechanical edit with a defect opportunity per
- * line, for no behavioural gain -- what blocked panel extraction was the
- * *plumbing*, not where useState lived. Panels can now be lifted one at a time;
- * relocating ownership can follow if it ever pays for itself.
+ * State ownership stays in App -- audited, not assumed
+ * -----------------------------------------------------
+ * The provider transports state; it does not own it. That was deferred with the
+ * condition that relocating ownership "follow if it ever pays for itself", and
+ * the audit that settled it found:
+ *
+ *   - 97 useState bindings in App, 156 names on the context;
+ *   - 109 of those names are read by exactly ONE panel -- which looks like the
+ *     case for pushing them down;
+ *   - but every one is ALSO read by App itself or by the handler hook App owns.
+ *     boneMetrics feeds the Overview cards, resetAll clears them, the growth
+ *     panel's adult-height projection needs the parental heights collected on
+ *     the bone-age tab, and qriskMetrics feeds the Overview grid.
+ *
+ * So moving ownership OUT of App would thread the same values straight back in.
+ * The sharing surface cannot shrink without either a second provider (weighed
+ * and rejected above -- no render saving, a harder tree to read) or inverting
+ * the data flow so panels report upward. Neither pays.
+ *
+ * What did pay was GROUPING. `boneAgeState.js` and `qriskState.js` hold those
+ * two domains' declarations, defaults and explanatory comments; App calls them
+ * during its own render, so ownership is unchanged and no consumer moved. That
+ * took 64 useState declarations out of a 1,300-line component and put the
+ * module boundary where a comment header used to be. The rest stay in App
+ * because they are the shared demographics and derived metrics -- exactly the
+ * values this context exists to transport.
  */
 const ClinicalStateContext = React.createContext(null);
 
