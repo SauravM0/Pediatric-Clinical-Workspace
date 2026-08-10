@@ -107,6 +107,56 @@ function useFrax() {
 
 
 
+/** The left-hand input column: the EDITOR for the shared measurements.
+ *
+ *  The only slice that carries setters for the shared demographics and labs,
+ *  because it is the only thing that writes them -- every panel reads the
+ *  derived metrics instead. Keeping the setters in one named slice is what
+ *  stops "the panels can now edit anything" from creeping in later.
+ */
+function useInputs() {
+  const s = useClinicalState();
+  return {
+    age: s.age, handleAgeChange: s.handleAgeChange,
+    dob: s.dob, handleDobChange: s.handleDobChange, ageParts: s.ageParts,
+    gender: s.gender, setGender: s.setGender,
+    height: s.height, setHeight: s.setHeight,
+    weight: s.weight, setWeight: s.setWeight,
+    // Which cards the active tab actually consumes -- the panel stays live and
+    // editable, irrelevant sections are only de-emphasised.
+    labsRelevant: s.labsRelevant, fraxRelevant: s.fraxRelevant,
+    creatinine: s.creatinine, setCreatinine: s.setCreatinine,
+    albuminuria: s.albuminuria, setAlbuminuria: s.setAlbuminuria,
+    systolic: s.systolic, setSystolic: s.setSystolic,
+    diastolic: s.diastolic, setDiastolic: s.setDiastolic,
+    ast: s.ast, setAst: s.setAst,
+    alt: s.alt, setAlt: s.setAlt,
+    platelets: s.platelets, setPlatelets: s.setPlatelets,
+    prevFracture: s.prevFracture, setPrevFracture: s.setPrevFracture,
+    parentHipFracture: s.parentHipFracture, setParentHipFracture: s.setParentHipFracture,
+    smoking: s.smoking, setSmoking: s.setSmoking,
+    glucocorticoids: s.glucocorticoids, setGlucocorticoids: s.setGlucocorticoids,
+    rheumatoid: s.rheumatoid, setRheumatoid: s.setRheumatoid,
+    secondaryOsteo: s.secondaryOsteo, setSecondaryOsteo: s.setSecondaryOsteo,
+    alcohol: s.alcohol, setAlcohol: s.setAlcohol,
+  };
+}
+
+/** The application chrome: header, patient identity bar and tab bar. */
+function useShell() {
+  const s = useClinicalState();
+  return {
+    resetAll: s.resetAll,
+    exportFullReport: s.exportFullReport,
+    patientName: s.patientName, setPatientName: s.setPatientName,
+    patientMrn: s.patientMrn, setPatientMrn: s.setPatientMrn,
+    examDate: s.examDate, setExamDate: s.setExamDate,
+    age: s.age, gender: s.gender,
+    TABS: s.TABS, activeTab: s.activeTab, setActiveTab: s.setActiveTab,
+    moduleStatus: s.moduleStatus, timeline: s.timeline,
+  };
+}
+
 /** Every module's derived status, for the at-a-glance grid. */
 function useOverview() {
   const s = useClinicalState();
@@ -334,4 +384,5 @@ export {
   ClinicalStateContext, ClinicalStateProvider, useClinicalState,
   usePatient, useLiver, useRenal, useFrax,
   useOverview, useGrowth, useQrisk, useLedger, useBoneAge,
+  useInputs, useShell,
 };

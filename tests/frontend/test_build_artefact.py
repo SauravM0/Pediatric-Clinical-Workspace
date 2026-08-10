@@ -177,15 +177,19 @@ def test_clinical_state_context_exists_with_grouped_selectors():
     assert "ClinicalStateProvider" in body
 
 
+# hook -> the source files that consume it, relative to src/. Not all consumers
+# live in panels/: the shell components are the frame around the tabs, not one.
 _SELECTOR_CONSUMERS = {
-    "useLiver": ["LiverPanel"],
-    "useRenal": ["RenalPanel"],
-    "useFrax": ["FraxPanel"],
-    "useOverview": ["OverviewPanel"],
-    "useGrowth": ["GrowthPanel"],
-    "useQrisk": ["QriskPanel"],
-    "useLedger": ["LedgerPanel"],
-    "useBoneAge": ["BoneAgePanel"],
+    "useLiver": ["panels/LiverPanel.jsx"],
+    "useRenal": ["panels/RenalPanel.jsx"],
+    "useFrax": ["panels/FraxPanel.jsx"],
+    "useOverview": ["panels/OverviewPanel.jsx"],
+    "useGrowth": ["panels/GrowthPanel.jsx"],
+    "useQrisk": ["panels/QriskPanel.jsx"],
+    "useLedger": ["panels/LedgerPanel.jsx"],
+    "useBoneAge": ["panels/BoneAgePanel.jsx"],
+    "useInputs": ["panels/InputColumn.jsx"],
+    "useShell": ["shell.jsx"],
 }
 
 
@@ -238,8 +242,8 @@ def _selector_fields(body: str, hook: str) -> set[str]:
     return keys
 
 
-@pytest.mark.parametrize("hook,panels", sorted(_SELECTOR_CONSUMERS.items()))
-def test_selectors_expose_nothing_the_panel_does_not_use(hook, panels):
+@pytest.mark.parametrize("hook,consumers", sorted(_SELECTOR_CONSUMERS.items()))
+def test_selectors_expose_nothing_the_panel_does_not_use(hook, consumers):
     """A slice must not carry a value its panel never reads.
 
     Not tidiness. `useRenal` exposed `monitoring` — the bone-age AI monitoring
@@ -255,19 +259,22 @@ def test_selectors_expose_nothing_the_panel_does_not_use(hook, panels):
     assert exposed, f"could not parse the fields {hook} returns"
 
     used: set[str] = set()
-    for panel in panels:
-        body = (SRC_DIR / "panels" / f"{panel}.jsx").read_text(encoding="utf-8")
-        # Everything after the destructuring line: what the panel actually reads.
-        # Prose and comments stripped first, or a field name mentioned in a
-        # subtitle counts as a use of the value.
-        after = _code_only(body[body.index(f"{hook}()"):])
-        used |= set(re.findall(r"\b([a-zA-Z_$][\w$]*)\b", after))
+    for relative in consumers:
+        body = (SRC_DIR / relative).read_text(encoding="utf-8")
+        # Everything after each destructuring site: what the consumer actually
+        # reads. Prose and comments stripped first, or a field name mentioned in
+        # a subtitle counts as a use of the value. A file may call the hook more
+        # than once (shell.jsx has three components sharing useShell), so every
+        # occurrence contributes.
+        for match in re.finditer(rf"{re.escape(hook)}\(\)", body):
+            after = _code_only(body[match.start():])
+            used |= set(re.findall(r"\b([a-zA-Z_$][\w$]*)\b", after))
 
     unused = sorted(f for f in exposed if f not in used)
     assert not unused, (
-        f"{hook} exposes {unused} to {panels}, which never read them. Remove the "
-        "field from the selector, or use it — a slice that carries what nobody "
-        "asked for is the first step back to one shared store."
+        f"{hook} exposes {unused} to {consumers}, which never read them. Remove "
+        "the field from the selector, or use it — a slice that carries what "
+        "nobody asked for is the first step back to one shared store."
     )
 
 
@@ -280,7 +287,8 @@ def test_using_state_outside_the_provider_fails_loudly():
 
 
 _PANELS = ["LiverPanel", "RenalPanel", "FraxPanel", "OverviewPanel",
-           "GrowthPanel", "QriskPanel", "LedgerPanel", "BoneAgePanel"]
+           "GrowthPanel", "QriskPanel", "LedgerPanel", "BoneAgePanel",
+           "InputColumn"]
 
 
 @pytest.mark.parametrize("panel", _PANELS)
@@ -311,6 +319,13 @@ def test_no_panel_markup_is_left_behind_in_app():
                    "FRAX Plus · 10-Year Fracture Risk",
                    "Every module's headline at a glance",
                    "Bone Age · 20-bone staging (13 RUS + 7 carpal)",
+                   # the shell and the input column (M6 final extraction)
+                   "Pediatric Clinical Workspace</div>",
+                   "Albuminuria / ACR Stage",
+                   "FRAX Risk Factors",
+                   "Hepatic Enzymes & Platelets",
+                   'className="patient-bar no-print"',
+                   'className="tab-scroll custom-scrollbar"',
                    "activeTab === 'liver' && (",
                    "activeTab === 'qrisk' && (",
                    "activeTab === 'boneage' && (",

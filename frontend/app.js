@@ -638,6 +638,74 @@
     const s = useClinicalState();
     return { metrics: s.fraxMetrics, hasManual: s.hasManualFrax };
   }
+  function useInputs() {
+    const s = useClinicalState();
+    return {
+      age: s.age,
+      handleAgeChange: s.handleAgeChange,
+      dob: s.dob,
+      handleDobChange: s.handleDobChange,
+      ageParts: s.ageParts,
+      gender: s.gender,
+      setGender: s.setGender,
+      height: s.height,
+      setHeight: s.setHeight,
+      weight: s.weight,
+      setWeight: s.setWeight,
+      // Which cards the active tab actually consumes -- the panel stays live and
+      // editable, irrelevant sections are only de-emphasised.
+      labsRelevant: s.labsRelevant,
+      fraxRelevant: s.fraxRelevant,
+      creatinine: s.creatinine,
+      setCreatinine: s.setCreatinine,
+      albuminuria: s.albuminuria,
+      setAlbuminuria: s.setAlbuminuria,
+      systolic: s.systolic,
+      setSystolic: s.setSystolic,
+      diastolic: s.diastolic,
+      setDiastolic: s.setDiastolic,
+      ast: s.ast,
+      setAst: s.setAst,
+      alt: s.alt,
+      setAlt: s.setAlt,
+      platelets: s.platelets,
+      setPlatelets: s.setPlatelets,
+      prevFracture: s.prevFracture,
+      setPrevFracture: s.setPrevFracture,
+      parentHipFracture: s.parentHipFracture,
+      setParentHipFracture: s.setParentHipFracture,
+      smoking: s.smoking,
+      setSmoking: s.setSmoking,
+      glucocorticoids: s.glucocorticoids,
+      setGlucocorticoids: s.setGlucocorticoids,
+      rheumatoid: s.rheumatoid,
+      setRheumatoid: s.setRheumatoid,
+      secondaryOsteo: s.secondaryOsteo,
+      setSecondaryOsteo: s.setSecondaryOsteo,
+      alcohol: s.alcohol,
+      setAlcohol: s.setAlcohol
+    };
+  }
+  function useShell() {
+    const s = useClinicalState();
+    return {
+      resetAll: s.resetAll,
+      exportFullReport: s.exportFullReport,
+      patientName: s.patientName,
+      setPatientName: s.setPatientName,
+      patientMrn: s.patientMrn,
+      setPatientMrn: s.setPatientMrn,
+      examDate: s.examDate,
+      setExamDate: s.setExamDate,
+      age: s.age,
+      gender: s.gender,
+      TABS: s.TABS,
+      activeTab: s.activeTab,
+      setActiveTab: s.setActiveTab,
+      moduleStatus: s.moduleStatus,
+      timeline: s.timeline
+    };
+  }
   function useOverview() {
     const s = useClinicalState();
     return {
@@ -1704,6 +1772,167 @@
       motherHeight,
       setMotherHeight
     };
+  }
+
+  // frontend/src/shell.jsx
+  function AppHeader() {
+    const { resetAll } = useShell();
+    return /* @__PURE__ */ React.createElement("header", { style: { background: "white", borderBottom: "1px solid #e8ecf0", position: "sticky", top: 0, zIndex: 50, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" } }, /* @__PURE__ */ React.createElement("div", { className: "app-header-inner" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "36px", height: "36px", borderRadius: "10px", background: "linear-gradient(135deg,#4f46e5,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, /* @__PURE__ */ React.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M22 12h-4l-3 9L9 3l-3 9H2" }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "app-title", style: { fontSize: "15px", fontWeight: "900", color: "#0f172a", lineHeight: 1.2 } }, "Pediatric Clinical Workspace"), /* @__PURE__ */ React.createElement("div", { className: "app-subtitle", style: { fontSize: "10px", fontWeight: "700", color: "#94a3b8", letterSpacing: "0.06em", textTransform: "uppercase" } }, "Growth \xB7 TW3 Bone Age \xB7 QRISK3 \xB7 Renal \xB7 FRAX \xB7 FIB-4"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 } }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: resetAll,
+        className: "reset-button",
+        style: { display: "flex", alignItems: "center", gap: "7px", padding: "8px 18px", background: "white", border: "1.5px solid #fca5a5", borderRadius: "9px", fontSize: "13px", fontWeight: "700", color: "#dc2626", cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s", boxShadow: "0 1px 3px rgba(220,38,38,0.08)" },
+        onMouseEnter: (e) => {
+          e.currentTarget.style.background = "#fff1f2";
+          e.currentTarget.style.borderColor = "#f87171";
+        },
+        onMouseLeave: (e) => {
+          e.currentTarget.style.background = "white";
+          e.currentTarget.style.borderColor = "#fca5a5";
+        }
+      },
+      /* @__PURE__ */ React.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("polyline", { points: "1 4 1 10 7 10" }), /* @__PURE__ */ React.createElement("path", { d: "M3.51 15a9 9 0 1 0 .49-3.77" })),
+      "Reset Patient"
+    ))));
+  }
+  function PatientIdentityBar() {
+    const {
+      patientName,
+      setPatientName,
+      patientMrn,
+      setPatientMrn,
+      examDate,
+      setExamDate,
+      age,
+      gender,
+      exportFullReport
+    } = useShell();
+    return /* @__PURE__ */ React.createElement("div", { className: "patient-bar no-print" }, /* @__PURE__ */ React.createElement("div", { className: "patient-bar-inner" }, /* @__PURE__ */ React.createElement("div", { className: "patient-field", style: { flex: "2 1 200px" } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "pt-name" }, "Patient name"), /* @__PURE__ */ React.createElement("input", { id: "pt-name", type: "text", value: patientName, onChange: (e) => setPatientName(e.target.value), placeholder: "Full name" })), /* @__PURE__ */ React.createElement("div", { className: "patient-field", style: { flex: "1 1 130px" } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "pt-mrn" }, "MRN / ID"), /* @__PURE__ */ React.createElement("input", { id: "pt-mrn", type: "text", value: patientMrn, onChange: (e) => setPatientMrn(e.target.value), placeholder: "e.g. 004821" })), /* @__PURE__ */ React.createElement("div", { className: "patient-field", style: { flex: "1 1 140px" } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "pt-date" }, "Exam date"), /* @__PURE__ */ React.createElement("input", { id: "pt-date", type: "date", value: examDate, onChange: (e) => setExamDate(e.target.value) })), /* @__PURE__ */ React.createElement("div", { className: "patient-field", style: { flex: "1 1 120px" } }, /* @__PURE__ */ React.createElement("label", null, "Age / Sex"), /* @__PURE__ */ React.createElement("div", { className: "patient-reflect" }, age !== "" ? `${age} yr` : "\u2014 yr", " \xB7 ", gender === "boys" ? "Male" : gender === "girls" ? "Female" : "\u2014")), /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: exportFullReport,
+        title: "Print a combined summary of every module",
+        style: { marginLeft: "auto", alignSelf: "center", display: "flex", alignItems: "center", gap: "7px", padding: "8px 16px", background: "#4f46e5", color: "white", border: "none", borderRadius: "9px", fontSize: "13px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap" }
+      },
+      /* @__PURE__ */ React.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("polyline", { points: "6 9 6 2 18 2 18 9" }), /* @__PURE__ */ React.createElement("path", { d: "M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" }), /* @__PURE__ */ React.createElement("rect", { x: "6", y: "14", width: "12", height: "8" })),
+      "Export report"
+    )));
+  }
+  function TabBar() {
+    const { TABS, activeTab, setActiveTab, moduleStatus, timeline } = useShell();
+    return /* @__PURE__ */ React.createElement("div", { className: "card tab-card", style: { padding: "6px" } }, /* @__PURE__ */ React.createElement("div", { className: "tab-scroll custom-scrollbar" }, TABS.map((tab) => /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        key: tab.id,
+        onClick: () => setActiveTab(tab.id),
+        className: `${activeTab === tab.id ? "tab-active" : "tab-inactive"} tab-button`
+      },
+      tab.label,
+      moduleStatus[tab.id] && /* @__PURE__ */ React.createElement(
+        "span",
+        {
+          className: `status-dot status-dot-${moduleStatus[tab.id].state}`,
+          title: moduleStatus[tab.id].label
+        }
+      ),
+      tab.id === "timeline" && timeline.length > 0 && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "6px", background: "#4f46e5", color: "white", fontSize: "9px", fontWeight: "800", padding: "1px 6px", borderRadius: "99px" } }, timeline.length)
+    ))));
+  }
+
+  // frontend/src/panels/InputColumn.jsx
+  function InputColumn() {
+    const {
+      age,
+      handleAgeChange,
+      dob,
+      handleDobChange,
+      ageParts,
+      gender,
+      setGender,
+      height,
+      setHeight,
+      weight,
+      setWeight,
+      labsRelevant,
+      fraxRelevant,
+      creatinine,
+      setCreatinine,
+      albuminuria,
+      setAlbuminuria,
+      systolic,
+      setSystolic,
+      diastolic,
+      setDiastolic,
+      ast,
+      setAst,
+      alt,
+      setAlt,
+      platelets,
+      setPlatelets,
+      prevFracture,
+      setPrevFracture,
+      parentHipFracture,
+      setParentHipFracture,
+      smoking,
+      setSmoking,
+      glucocorticoids,
+      setGlucocorticoids,
+      rheumatoid,
+      setRheumatoid,
+      secondaryOsteo,
+      setSecondaryOsteo,
+      alcohol,
+      setAlcohol
+    } = useInputs();
+    return /* @__PURE__ */ React.createElement("div", { className: "input-column" }, /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#4f46e5", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "Demographics"), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", fontSize: "9px", fontWeight: "700", color: "#cbd5e1", textTransform: "uppercase", letterSpacing: "0.05em" } }, "Required")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "14px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "form-grid" }, /* @__PURE__ */ React.createElement(
+      InputWithUnit,
+      {
+        label: "Chronological Age",
+        value: age,
+        onChange: handleAgeChange,
+        placeholder: "e.g. 9.5",
+        step: "0.1",
+        unit: "yrs",
+        unitPosition: "right",
+        accent: "#4f46e5"
+      }
+    ), /* @__PURE__ */ React.createElement("div", { style: { minWidth: 0 } }, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Date of Birth"), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "date",
+        value: dob,
+        onChange: handleDobChange,
+        max: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+        className: "input-field",
+        style: { width: "100%", color: dob ? "#1e293b" : "#94a3b8" }
+      }
+    ))), ageParts ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", color: "#4338ca", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: "8px", padding: "7px 10px", lineHeight: "1.5" } }, "Age ", /* @__PURE__ */ React.createElement("strong", null, ageParts.years, " yr ", ageParts.months, " mo ", ageParts.days, " d"), /* @__PURE__ */ React.createElement("span", { style: { color: "#818cf8" } }, " \xB7 used as ", ageParts.decimal.toFixed(1), " yr in calculations")) : /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.4" } }, "Enter an age directly, or a date of birth to compute it automatically.")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Biological Sex"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px" } }, /* @__PURE__ */ React.createElement("button", { className: `gender-btn ${gender === "boys" ? "gender-active" : "gender-inactive"}`, onClick: () => setGender("boys") }, "\u2642 Male"), /* @__PURE__ */ React.createElement("button", { className: `gender-btn ${gender === "girls" ? "gender-active" : "gender-inactive"}`, onClick: () => setGender("girls") }, "\u2640 Female"))), /* @__PURE__ */ React.createElement("div", { className: "form-grid" }, /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Height", value: height, onChange: (e) => setHeight(e.target.value === "" ? "" : parseFloat(e.target.value)), placeholder: "cm", unit: "cm" }), /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Weight", value: weight, onChange: (e) => setWeight(e.target.value === "" ? "" : parseFloat(e.target.value)), placeholder: "kg", unit: "kg" })))), /* @__PURE__ */ React.createElement("div", { className: `card${labsRelevant ? "" : " section-dim"}`, style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#0891b2", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "Clinical Labs & Parameters")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "14px" } }, /* @__PURE__ */ React.createElement(
+      InputWithUnit,
+      {
+        label: "Serum Creatinine",
+        value: creatinine,
+        onChange: (e) => setCreatinine(e.target.value === "" ? "" : parseFloat(e.target.value)),
+        placeholder: "mg/dL",
+        step: "0.01",
+        unit: "mg/dL",
+        accent: "#0891b2"
+      }
+    ), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Albuminuria / ACR Stage"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px" } }, [["A1", "< 30 mg/g"], ["A2", "30\u2013300 mg/g"], ["A3", "> 300 mg/g"]].map(([lv, desc]) => /* @__PURE__ */ React.createElement("button", { key: lv, className: `alb-btn ${albuminuria === lv ? "alb-active" : "alb-inactive"}`, onClick: () => setAlbuminuria(lv) }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", fontWeight: "800", color: albuminuria === lv ? "#4338ca" : "#334155" } }, lv), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "9px", color: "#94a3b8", marginTop: "2px" } }, desc))))), /* @__PURE__ */ React.createElement("div", { className: "form-grid" }, /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Systolic BP", value: systolic, onChange: (e) => setSystolic(e.target.value === "" ? "" : parseInt(e.target.value)), placeholder: "mmHg", unit: "mmHg" }), /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Diastolic BP", value: diastolic, onChange: (e) => setDiastolic(e.target.value === "" ? "" : parseInt(e.target.value)), placeholder: "mmHg", unit: "mmHg" })), /* @__PURE__ */ React.createElement("div", { style: { paddingTop: "12px", borderTop: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("label", { className: "field-label", style: { marginBottom: "10px" } }, "Hepatic Enzymes & Platelets"), /* @__PURE__ */ React.createElement("div", { className: "liver-grid" }, [
+      ["AST", "SGOT \xB7 U/L", ast, (e) => setAst(e.target.value === "" ? "" : parseFloat(e.target.value))],
+      ["ALT", "SGPT \xB7 U/L", alt, (e) => setAlt(e.target.value === "" ? "" : parseFloat(e.target.value))],
+      ["PLT", "\xD710\xB3 / \xB5L", platelets, (e) => setPlatelets(e.target.value === "" ? "" : parseFloat(e.target.value))]
+    ].map(([lbl, sub, val, fn]) => /* @__PURE__ */ React.createElement("div", { key: lbl, style: { display: "flex", flexDirection: "column", alignItems: "stretch" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", fontWeight: "800", color: "#334155", textAlign: "center", display: "block", marginBottom: "2px" } }, lbl), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "9px", fontWeight: "600", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center", display: "block", marginBottom: "6px" } }, sub), /* @__PURE__ */ React.createElement(
+      "input",
+      {
+        type: "number",
+        placeholder: "\u2014",
+        value: val,
+        onChange: fn,
+        className: "input-field",
+        style: { textAlign: "center", padding: "9px 8px", width: "100%", boxSizing: "border-box" }
+      }
+    ))))))), /* @__PURE__ */ React.createElement("div", { className: `card${fraxRelevant ? "" : " section-dim"}`, style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#d97706", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "FRAX Risk Factors"), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", fontSize: "9px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" } }, "India \xB7 No BMD")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Previous Fracture", value: prevFracture, setter: setPrevFracture }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Parent Hip Fracture", value: parentHipFracture, setter: setParentHipFracture }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Current Smoking", value: smoking, setter: setSmoking }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Glucocorticoids", value: glucocorticoids, setter: setGlucocorticoids }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Rheumatoid Arthritis", value: rheumatoid, setter: setRheumatoid }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Secondary Osteoporosis", value: secondaryOsteo, setter: setSecondaryOsteo }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Alcohol \u2265 3 units/day", value: alcohol, setter: setAlcohol }))));
   }
 
   // frontend/src/qriskState.js
@@ -3566,6 +3795,50 @@
       creatinine,
       fraxMetrics,
       hasManualFrax,
+      // ── the input column's slice (useInputs): the ONLY setters for the
+      // shared measurements, because it is the only thing that writes them
+      setGender,
+      setHeight,
+      setWeight,
+      handleAgeChange,
+      handleDobChange,
+      ageParts,
+      labsRelevant,
+      fraxRelevant,
+      setCreatinine,
+      setAlbuminuria,
+      systolic,
+      setSystolic,
+      diastolic,
+      setDiastolic,
+      ast,
+      setAst,
+      alt,
+      setAlt,
+      platelets,
+      setPlatelets,
+      prevFracture,
+      setPrevFracture,
+      parentHipFracture,
+      setParentHipFracture,
+      smoking,
+      setSmoking,
+      glucocorticoids,
+      setGlucocorticoids,
+      rheumatoid,
+      setRheumatoid,
+      secondaryOsteo,
+      setSecondaryOsteo,
+      alcohol,
+      setAlcohol,
+      // ── the shell's slice (useShell): header, identity bar, tabs
+      resetAll,
+      exportFullReport,
+      TABS,
+      activeTab,
+      setPatientName,
+      setPatientMrn,
+      setExamDate,
       DECLARABLE_FLAGS: DECLARABLE_FLAGS2,
       LC_API,
       addOrSelectBox,
@@ -3723,96 +3996,7 @@
       systolic,
       timeline
     };
-    return /* @__PURE__ */ React.createElement(ClinicalStateProvider, { value: clinicalState }, /* @__PURE__ */ React.createElement("div", { className: "app-shell" }, /* @__PURE__ */ React.createElement("header", { style: { background: "white", borderBottom: "1px solid #e8ecf0", position: "sticky", top: 0, zIndex: 50, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" } }, /* @__PURE__ */ React.createElement("div", { className: "app-header-inner" }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "12px" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "36px", height: "36px", borderRadius: "10px", background: "linear-gradient(135deg,#4f46e5,#7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 } }, /* @__PURE__ */ React.createElement("svg", { width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "white", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("path", { d: "M22 12h-4l-3 9L9 3l-3 9H2" }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "app-title", style: { fontSize: "15px", fontWeight: "900", color: "#0f172a", lineHeight: 1.2 } }, "Pediatric Clinical Workspace"), /* @__PURE__ */ React.createElement("div", { className: "app-subtitle", style: { fontSize: "10px", fontWeight: "700", color: "#94a3b8", letterSpacing: "0.06em", textTransform: "uppercase" } }, "Growth \xB7 TW3 Bone Age \xB7 QRISK3 \xB7 Renal \xB7 FRAX \xB7 FIB-4"))), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 } }, /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: resetAll,
-        className: "reset-button",
-        style: { display: "flex", alignItems: "center", gap: "7px", padding: "8px 18px", background: "white", border: "1.5px solid #fca5a5", borderRadius: "9px", fontSize: "13px", fontWeight: "700", color: "#dc2626", cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s", boxShadow: "0 1px 3px rgba(220,38,38,0.08)" },
-        onMouseEnter: (e) => {
-          e.currentTarget.style.background = "#fff1f2";
-          e.currentTarget.style.borderColor = "#f87171";
-        },
-        onMouseLeave: (e) => {
-          e.currentTarget.style.background = "white";
-          e.currentTarget.style.borderColor = "#fca5a5";
-        }
-      },
-      /* @__PURE__ */ React.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("polyline", { points: "1 4 1 10 7 10" }), /* @__PURE__ */ React.createElement("path", { d: "M3.51 15a9 9 0 1 0 .49-3.77" })),
-      "Reset Patient"
-    )))), /* @__PURE__ */ React.createElement("div", { className: "patient-bar no-print" }, /* @__PURE__ */ React.createElement("div", { className: "patient-bar-inner" }, /* @__PURE__ */ React.createElement("div", { className: "patient-field", style: { flex: "2 1 200px" } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "pt-name" }, "Patient name"), /* @__PURE__ */ React.createElement("input", { id: "pt-name", type: "text", value: patientName, onChange: (e) => setPatientName(e.target.value), placeholder: "Full name" })), /* @__PURE__ */ React.createElement("div", { className: "patient-field", style: { flex: "1 1 130px" } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "pt-mrn" }, "MRN / ID"), /* @__PURE__ */ React.createElement("input", { id: "pt-mrn", type: "text", value: patientMrn, onChange: (e) => setPatientMrn(e.target.value), placeholder: "e.g. 004821" })), /* @__PURE__ */ React.createElement("div", { className: "patient-field", style: { flex: "1 1 140px" } }, /* @__PURE__ */ React.createElement("label", { htmlFor: "pt-date" }, "Exam date"), /* @__PURE__ */ React.createElement("input", { id: "pt-date", type: "date", value: examDate, onChange: (e) => setExamDate(e.target.value) })), /* @__PURE__ */ React.createElement("div", { className: "patient-field", style: { flex: "1 1 120px" } }, /* @__PURE__ */ React.createElement("label", null, "Age / Sex"), /* @__PURE__ */ React.createElement("div", { className: "patient-reflect" }, age !== "" ? `${age} yr` : "\u2014 yr", " \xB7 ", gender === "boys" ? "Male" : gender === "girls" ? "Female" : "\u2014")), /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        onClick: exportFullReport,
-        title: "Print a combined summary of every module",
-        style: { marginLeft: "auto", alignSelf: "center", display: "flex", alignItems: "center", gap: "7px", padding: "8px 16px", background: "#4f46e5", color: "white", border: "none", borderRadius: "9px", fontSize: "13px", fontWeight: "700", cursor: "pointer", whiteSpace: "nowrap" }
-      },
-      /* @__PURE__ */ React.createElement("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2.5", strokeLinecap: "round", strokeLinejoin: "round" }, /* @__PURE__ */ React.createElement("polyline", { points: "6 9 6 2 18 2 18 9" }), /* @__PURE__ */ React.createElement("path", { d: "M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" }), /* @__PURE__ */ React.createElement("rect", { x: "6", y: "14", width: "12", height: "8" })),
-      "Export report"
-    ))), /* @__PURE__ */ React.createElement("main", { className: "app-main" }, /* @__PURE__ */ React.createElement("div", { className: "input-column" }, /* @__PURE__ */ React.createElement("div", { className: "card", style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#4f46e5", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "Demographics"), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", fontSize: "9px", fontWeight: "700", color: "#cbd5e1", textTransform: "uppercase", letterSpacing: "0.05em" } }, "Required")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "14px" } }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "form-grid" }, /* @__PURE__ */ React.createElement(
-      InputWithUnit,
-      {
-        label: "Chronological Age",
-        value: age,
-        onChange: handleAgeChange,
-        placeholder: "e.g. 9.5",
-        step: "0.1",
-        unit: "yrs",
-        unitPosition: "right",
-        accent: "#4f46e5"
-      }
-    ), /* @__PURE__ */ React.createElement("div", { style: { minWidth: 0 } }, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Date of Birth"), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        type: "date",
-        value: dob,
-        onChange: handleDobChange,
-        max: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
-        className: "input-field",
-        style: { width: "100%", color: dob ? "#1e293b" : "#94a3b8" }
-      }
-    ))), ageParts ? /* @__PURE__ */ React.createElement("div", { style: { marginTop: "8px", fontSize: "11px", color: "#4338ca", background: "#eef2ff", border: "1px solid #c7d2fe", borderRadius: "8px", padding: "7px 10px", lineHeight: "1.5" } }, "Age ", /* @__PURE__ */ React.createElement("strong", null, ageParts.years, " yr ", ageParts.months, " mo ", ageParts.days, " d"), /* @__PURE__ */ React.createElement("span", { style: { color: "#818cf8" } }, " \xB7 used as ", ageParts.decimal.toFixed(1), " yr in calculations")) : /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px", fontSize: "10px", color: "#94a3b8", lineHeight: "1.4" } }, "Enter an age directly, or a date of birth to compute it automatically.")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Biological Sex"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px" } }, /* @__PURE__ */ React.createElement("button", { className: `gender-btn ${gender === "boys" ? "gender-active" : "gender-inactive"}`, onClick: () => setGender("boys") }, "\u2642 Male"), /* @__PURE__ */ React.createElement("button", { className: `gender-btn ${gender === "girls" ? "gender-active" : "gender-inactive"}`, onClick: () => setGender("girls") }, "\u2640 Female"))), /* @__PURE__ */ React.createElement("div", { className: "form-grid" }, /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Height", value: height, onChange: (e) => setHeight(e.target.value === "" ? "" : parseFloat(e.target.value)), placeholder: "cm", unit: "cm" }), /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Weight", value: weight, onChange: (e) => setWeight(e.target.value === "" ? "" : parseFloat(e.target.value)), placeholder: "kg", unit: "kg" })))), /* @__PURE__ */ React.createElement("div", { className: `card${labsRelevant ? "" : " section-dim"}`, style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#0891b2", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "Clinical Labs & Parameters")), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "14px" } }, /* @__PURE__ */ React.createElement(
-      InputWithUnit,
-      {
-        label: "Serum Creatinine",
-        value: creatinine,
-        onChange: (e) => setCreatinine(e.target.value === "" ? "" : parseFloat(e.target.value)),
-        placeholder: "mg/dL",
-        step: "0.01",
-        unit: "mg/dL",
-        accent: "#0891b2"
-      }
-    ), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("label", { className: "field-label" }, "Albuminuria / ACR Stage"), /* @__PURE__ */ React.createElement("div", { style: { display: "flex", gap: "8px" } }, [["A1", "< 30 mg/g"], ["A2", "30\u2013300 mg/g"], ["A3", "> 300 mg/g"]].map(([lv, desc]) => /* @__PURE__ */ React.createElement("button", { key: lv, className: `alb-btn ${albuminuria === lv ? "alb-active" : "alb-inactive"}`, onClick: () => setAlbuminuria(lv) }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", fontWeight: "800", color: albuminuria === lv ? "#4338ca" : "#334155" } }, lv), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "9px", color: "#94a3b8", marginTop: "2px" } }, desc))))), /* @__PURE__ */ React.createElement("div", { className: "form-grid" }, /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Systolic BP", value: systolic, onChange: (e) => setSystolic(e.target.value === "" ? "" : parseInt(e.target.value)), placeholder: "mmHg", unit: "mmHg" }), /* @__PURE__ */ React.createElement(InputWithUnit, { label: "Diastolic BP", value: diastolic, onChange: (e) => setDiastolic(e.target.value === "" ? "" : parseInt(e.target.value)), placeholder: "mmHg", unit: "mmHg" })), /* @__PURE__ */ React.createElement("div", { style: { paddingTop: "12px", borderTop: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("label", { className: "field-label", style: { marginBottom: "10px" } }, "Hepatic Enzymes & Platelets"), /* @__PURE__ */ React.createElement("div", { className: "liver-grid" }, [
-      ["AST", "SGOT \xB7 U/L", ast, (e) => setAst(e.target.value === "" ? "" : parseFloat(e.target.value))],
-      ["ALT", "SGPT \xB7 U/L", alt, (e) => setAlt(e.target.value === "" ? "" : parseFloat(e.target.value))],
-      ["PLT", "\xD710\xB3 / \xB5L", platelets, (e) => setPlatelets(e.target.value === "" ? "" : parseFloat(e.target.value))]
-    ].map(([lbl, sub, val, fn]) => /* @__PURE__ */ React.createElement("div", { key: lbl, style: { display: "flex", flexDirection: "column", alignItems: "stretch" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", fontWeight: "800", color: "#334155", textAlign: "center", display: "block", marginBottom: "2px" } }, lbl), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "9px", fontWeight: "600", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center", display: "block", marginBottom: "6px" } }, sub), /* @__PURE__ */ React.createElement(
-      "input",
-      {
-        type: "number",
-        placeholder: "\u2014",
-        value: val,
-        onChange: fn,
-        className: "input-field",
-        style: { textAlign: "center", padding: "9px 8px", width: "100%", boxSizing: "border-box" }
-      }
-    ))))))), /* @__PURE__ */ React.createElement("div", { className: `card${fraxRelevant ? "" : " section-dim"}`, style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#d97706", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "FRAX Risk Factors"), /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "auto", fontSize: "9px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" } }, "India \xB7 No BMD")), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Previous Fracture", value: prevFracture, setter: setPrevFracture }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Parent Hip Fracture", value: parentHipFracture, setter: setParentHipFracture }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Current Smoking", value: smoking, setter: setSmoking }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Glucocorticoids", value: glucocorticoids, setter: setGlucocorticoids }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Rheumatoid Arthritis", value: rheumatoid, setter: setRheumatoid }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Secondary Osteoporosis", value: secondaryOsteo, setter: setSecondaryOsteo }), /* @__PURE__ */ React.createElement(FraxToggleRow, { label: "Alcohol \u2265 3 units/day", value: alcohol, setter: setAlcohol })))), /* @__PURE__ */ React.createElement("div", { className: "result-column" }, /* @__PURE__ */ React.createElement("div", { className: "card tab-card", style: { padding: "6px" } }, /* @__PURE__ */ React.createElement("div", { className: "tab-scroll custom-scrollbar" }, TABS.map((tab) => /* @__PURE__ */ React.createElement(
-      "button",
-      {
-        key: tab.id,
-        onClick: () => setActiveTab(tab.id),
-        className: `${activeTab === tab.id ? "tab-active" : "tab-inactive"} tab-button`
-      },
-      tab.label,
-      moduleStatus[tab.id] && /* @__PURE__ */ React.createElement(
-        "span",
-        {
-          className: `status-dot status-dot-${moduleStatus[tab.id].state}`,
-          title: moduleStatus[tab.id].label
-        }
-      ),
-      tab.id === "timeline" && timeline.length > 0 && /* @__PURE__ */ React.createElement("span", { style: { marginLeft: "6px", background: "#4f46e5", color: "white", fontSize: "9px", fontWeight: "800", padding: "1px 6px", borderRadius: "99px" } }, timeline.length)
-    )))), /* @__PURE__ */ React.createElement("div", { className: "card-lg result-panel" }, activeTab === "overview" && /* @__PURE__ */ React.createElement(OverviewPanel, null), activeTab === "growth" && /* @__PURE__ */ React.createElement(GrowthPanel, null), activeTab === "boneage" && /* @__PURE__ */ React.createElement(BoneAgePanel, null), activeTab === "renal" && /* @__PURE__ */ React.createElement(RenalPanel, null), activeTab === "liver" && /* @__PURE__ */ React.createElement(LiverPanel, null), activeTab === "frax" && /* @__PURE__ */ React.createElement(FraxPanel, null), activeTab === "qrisk" && /* @__PURE__ */ React.createElement(QriskPanel, null), activeTab === "timeline" && /* @__PURE__ */ React.createElement(LedgerPanel, null)), /* @__PURE__ */ React.createElement("div", { className: "card no-print", style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#0891b2", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "General Health Indicators")), /* @__PURE__ */ React.createElement("div", { className: "general-grid" }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Body Mass Index"), height !== "" && weight !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.bmi.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "kg/m\xB2")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.bmiCat, variant: generalMetrics.bmiVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Asian cutoffs: Normal < 23, OW \u2265 23, Obese \u2265 27.5")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter height & weight")), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Mean Arterial Pressure"), systolic !== "" && diastolic !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.map.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "mmHg")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.mapCat, variant: generalMetrics.mapVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Normal range: 70\u2013100 mmHg")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter systolic & diastolic BP")))))), /* @__PURE__ */ React.createElement("footer", { className: "clinical-footer" }, "Reference: Khadilkar V et al. (2015) Indian Pediatrics \xB7 TW3 (Tanner-Whitehouse 3, 2001) \xB7 QRISK3-2017 (Hippisley-Cox, BMJ 2017; ClinRisk LGPL) \xB7 CKD-EPI 2021 \xB7 Modified Bedside Schwartz (2009) \xB7 FRAX India Asian \xB7 FIB-4 (Sterling et al.) \xB7 For clinical decision support only.")));
+    return /* @__PURE__ */ React.createElement(ClinicalStateProvider, { value: clinicalState }, /* @__PURE__ */ React.createElement("div", { className: "app-shell" }, /* @__PURE__ */ React.createElement(AppHeader, null), /* @__PURE__ */ React.createElement(PatientIdentityBar, null), /* @__PURE__ */ React.createElement("main", { className: "app-main" }, /* @__PURE__ */ React.createElement(InputColumn, null), /* @__PURE__ */ React.createElement("div", { className: "result-column" }, /* @__PURE__ */ React.createElement(TabBar, null), /* @__PURE__ */ React.createElement("div", { className: "card-lg result-panel" }, activeTab === "overview" && /* @__PURE__ */ React.createElement(OverviewPanel, null), activeTab === "growth" && /* @__PURE__ */ React.createElement(GrowthPanel, null), activeTab === "boneage" && /* @__PURE__ */ React.createElement(BoneAgePanel, null), activeTab === "renal" && /* @__PURE__ */ React.createElement(RenalPanel, null), activeTab === "liver" && /* @__PURE__ */ React.createElement(LiverPanel, null), activeTab === "frax" && /* @__PURE__ */ React.createElement(FraxPanel, null), activeTab === "qrisk" && /* @__PURE__ */ React.createElement(QriskPanel, null), activeTab === "timeline" && /* @__PURE__ */ React.createElement(LedgerPanel, null)), /* @__PURE__ */ React.createElement("div", { className: "card no-print", style: { padding: "20px" } }, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px", paddingBottom: "12px", borderBottom: "1px solid #f1f5f9" } }, /* @__PURE__ */ React.createElement("div", { style: { width: "6px", height: "6px", borderRadius: "50%", background: "#0891b2", flexShrink: 0 } }), /* @__PURE__ */ React.createElement("span", { className: "section-label" }, "General Health Indicators")), /* @__PURE__ */ React.createElement("div", { className: "general-grid" }, /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Body Mass Index"), height !== "" && weight !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.bmi.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "kg/m\xB2")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.bmiCat, variant: generalMetrics.bmiVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Asian cutoffs: Normal < 23, OW \u2265 23, Obese \u2265 27.5")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter height & weight")), /* @__PURE__ */ React.createElement("div", { style: { background: "#f8fafc", borderRadius: "12px", padding: "14px 16px", border: "1px solid #e8ecf0" } }, /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", fontWeight: "800", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "6px" } }, "Mean Arterial Pressure"), systolic !== "" && diastolic !== "" ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { style: { display: "flex", alignItems: "baseline", gap: "8px" } }, /* @__PURE__ */ React.createElement("span", { style: { fontSize: "28px", fontWeight: "900", color: "#1e293b", lineHeight: 1 } }, generalMetrics.map.toFixed(1)), /* @__PURE__ */ React.createElement("span", { style: { fontSize: "12px", color: "#94a3b8" } }, "mmHg")), /* @__PURE__ */ React.createElement("div", { style: { marginTop: "6px" } }, /* @__PURE__ */ React.createElement(StatusBadge, { text: generalMetrics.mapCat, variant: generalMetrics.mapVariant })), /* @__PURE__ */ React.createElement("div", { style: { fontSize: "10px", color: "#94a3b8", marginTop: "4px" } }, "Normal range: 70\u2013100 mmHg")) : /* @__PURE__ */ React.createElement("div", { style: { fontSize: "12px", color: "#94a3b8", padding: "6px 0" } }, "Enter systolic & diastolic BP")))))), /* @__PURE__ */ React.createElement("footer", { className: "clinical-footer" }, "Reference: Khadilkar V et al. (2015) Indian Pediatrics \xB7 TW3 (Tanner-Whitehouse 3, 2001) \xB7 QRISK3-2017 (Hippisley-Cox, BMJ 2017; ClinRisk LGPL) \xB7 CKD-EPI 2021 \xB7 Modified Bedside Schwartz (2009) \xB7 FRAX India Asian \xB7 FIB-4 (Sterling et al.) \xB7 For clinical decision support only.")));
   }
   var root = ReactDOM.createRoot(document.getElementById("root"));
   root.render(/* @__PURE__ */ React.createElement(App, null));

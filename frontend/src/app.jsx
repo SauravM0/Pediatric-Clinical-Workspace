@@ -41,6 +41,8 @@ import { ProbBar, StatusBadge, MetricRow, SectionHeader, FraxToggleRow,
 import { ClinicalStateProvider } from "./state.jsx";
 import { useBoneAgeHandlers } from "./boneAgeHandlers.js";
 import { useBoneAgeState } from "./boneAgeState.js";
+import { AppHeader, PatientIdentityBar, TabBar } from "./shell.jsx";
+import { InputColumn } from "./panels/InputColumn.jsx";
 import { useQriskInputs } from "./qriskState.js";
 import { RenalPanel } from "./panels/RenalPanel.jsx";
 import { LiverPanel } from "./panels/LiverPanel.jsx";
@@ -853,6 +855,22 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             liverMetrics, hasManualLiver, platelets,
             renalMetrics, hasManualRenal, creatinine,
             fraxMetrics, hasManualFrax,
+            // ── the input column's slice (useInputs): the ONLY setters for the
+            // shared measurements, because it is the only thing that writes them
+            setGender, setHeight, setWeight,
+            handleAgeChange, handleDobChange, ageParts,
+            labsRelevant, fraxRelevant,
+            setCreatinine, setAlbuminuria,
+            systolic, setSystolic, diastolic, setDiastolic,
+            ast, setAst, alt, setAlt, platelets, setPlatelets,
+            prevFracture, setPrevFracture,
+            parentHipFracture, setParentHipFracture,
+            smoking, setSmoking, glucocorticoids, setGlucocorticoids,
+            rheumatoid, setRheumatoid, secondaryOsteo, setSecondaryOsteo,
+            alcohol, setAlcohol,
+            // ── the shell's slice (useShell): header, identity bar, tabs
+            resetAll, exportFullReport, TABS, activeTab,
+            setPatientName, setPatientMrn, setExamDate,
             DECLARABLE_FLAGS,
             LC_API,
             addOrSelectBox,
@@ -1015,246 +1033,18 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             <ClinicalStateProvider value={clinicalState}>
             <div className="app-shell">
 
-              {/* ── HEADER ── */}
-              <header style={{ background:'white', borderBottom:'1px solid #e8ecf0', position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 4px rgba(0,0,0,0.05)' }}>
-                <div className="app-header-inner">
-                  <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
-                    <div style={{ width:'36px', height:'36px', borderRadius:'10px', background:'linear-gradient(135deg,#4f46e5,#7c3aed)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="app-title" style={{ fontSize:'15px', fontWeight:'900', color:'#0f172a', lineHeight:1.2 }}>Pediatric Clinical Workspace</div>
-                      <div className="app-subtitle" style={{ fontSize:'10px', fontWeight:'700', color:'#94a3b8', letterSpacing:'0.06em', textTransform:'uppercase' }}>Growth · TW3 Bone Age · QRISK3 · Renal · FRAX · FIB-4</div>
-                    </div>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:'8px', flexShrink:0 }}>
-                    <button
-                      onClick={resetAll}
-                      className="reset-button"
-                      style={{ display:'flex', alignItems:'center', gap:'7px', padding:'8px 18px', background:'white', border:'1.5px solid #fca5a5', borderRadius:'9px', fontSize:'13px', fontWeight:'700', color:'#dc2626', cursor:'pointer', whiteSpace:'nowrap', transition:'all 0.15s', boxShadow:'0 1px 3px rgba(220,38,38,0.08)' }}
-                      onMouseEnter={e => { e.currentTarget.style.background='#fff1f2'; e.currentTarget.style.borderColor='#f87171'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background='white'; e.currentTarget.style.borderColor='#fca5a5'; }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.77"/>
-                      </svg>
-                      Reset Patient
-                    </button>
-                  </div>
-                </div>
-              </header>
-
-              {/* ── PATIENT IDENTITY BAR (safety: every result is attributable) ── */}
-              <div className="patient-bar no-print">
-                <div className="patient-bar-inner">
-                  <div className="patient-field" style={{ flex:'2 1 200px' }}>
-                    <label htmlFor="pt-name">Patient name</label>
-                    <input id="pt-name" type="text" value={patientName} onChange={e => setPatientName(e.target.value)} placeholder="Full name" />
-                  </div>
-                  <div className="patient-field" style={{ flex:'1 1 130px' }}>
-                    <label htmlFor="pt-mrn">MRN / ID</label>
-                    <input id="pt-mrn" type="text" value={patientMrn} onChange={e => setPatientMrn(e.target.value)} placeholder="e.g. 004821" />
-                  </div>
-                  <div className="patient-field" style={{ flex:'1 1 140px' }}>
-                    <label htmlFor="pt-date">Exam date</label>
-                    <input id="pt-date" type="date" value={examDate} onChange={e => setExamDate(e.target.value)} />
-                  </div>
-                  <div className="patient-field" style={{ flex:'1 1 120px' }}>
-                    <label>Age / Sex</label>
-                    <div className="patient-reflect">
-                      {age !== "" ? `${age} yr` : '— yr'} · {gender === 'boys' ? 'Male' : gender === 'girls' ? 'Female' : '—'}
-                    </div>
-                  </div>
-                  <button onClick={exportFullReport} title="Print a combined summary of every module"
-                    style={{ marginLeft:'auto', alignSelf:'center', display:'flex', alignItems:'center', gap:'7px', padding:'8px 16px', background:'#4f46e5', color:'white', border:'none', borderRadius:'9px', fontSize:'13px', fontWeight:'700', cursor:'pointer', whiteSpace:'nowrap' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                    Export report
-                  </button>
-                </div>
-              </div>
+              <AppHeader />
+              <PatientIdentityBar />
 
               {/* ── MAIN ── */}
               <main className="app-main">
 
-                {/* ─── LEFT COLUMN: Inputs ─── */}
-                <div className="input-column">
-
-                  {/* Card: Demographics */}
-                  <div className="card" style={{ padding:'20px' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'16px', paddingBottom:'12px', borderBottom:'1px solid #f1f5f9' }}>
-                      <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#4f46e5', flexShrink:0 }}></div>
-                      <span className="section-label">Demographics</span>
-                      <span style={{ marginLeft:'auto', fontSize:'9px', fontWeight:'700', color:'#cbd5e1', textTransform:'uppercase', letterSpacing:'0.05em' }}>Required</span>
-                    </div>
-
-                    <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
-                      {/* Age or Date of birth — enter either one */}
-                      <div>
-                        <div className="form-grid">
-                          <InputWithUnit
-                            label="Chronological Age"
-                            value={age}
-                            onChange={handleAgeChange}
-                            placeholder="e.g. 9.5"
-                            step="0.1"
-                            unit="yrs"
-                            unitPosition="right"
-                            accent="#4f46e5"
-                          />
-                          <div style={{ minWidth:0 }}>
-                            <label className="field-label">Date of Birth</label>
-                            <input
-                              type="date"
-                              value={dob}
-                              onChange={handleDobChange}
-                              max={new Date().toISOString().split('T')[0]}
-                              className="input-field"
-                              style={{ width:'100%', color: dob ? '#1e293b' : '#94a3b8' }}
-                            />
-                          </div>
-                        </div>
-                        {ageParts ? (
-                          <div style={{ marginTop:'8px', fontSize:'11px', color:'#4338ca', background:'#eef2ff', border:'1px solid #c7d2fe', borderRadius:'8px', padding:'7px 10px', lineHeight:'1.5' }}>
-                            Age <strong>{ageParts.years} yr {ageParts.months} mo {ageParts.days} d</strong>
-                            <span style={{ color:'#818cf8' }}> · used as {ageParts.decimal.toFixed(1)} yr in calculations</span>
-                          </div>
-                        ) : (
-                          <div style={{ marginTop:'6px', fontSize:'10px', color:'#94a3b8', lineHeight:'1.4' }}>
-                            Enter an age directly, or a date of birth to compute it automatically.
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Gender */}
-                      <div>
-                        <label className="field-label">Biological Sex</label>
-                        <div style={{ display:'flex', gap:'8px' }}>
-                          <button className={`gender-btn ${gender === 'boys' ? 'gender-active' : 'gender-inactive'}`} onClick={() => setGender('boys')}>
-                            ♂ Male
-                          </button>
-                          <button className={`gender-btn ${gender === 'girls' ? 'gender-active' : 'gender-inactive'}`} onClick={() => setGender('girls')}>
-                            ♀ Female
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Height + Weight */}
-                      <div className="form-grid">
-                        <InputWithUnit label="Height" value={height} onChange={e => setHeight(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="cm" unit="cm" />
-                        <InputWithUnit label="Weight" value={weight} onChange={e => setWeight(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="kg" unit="kg" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card: Labs */}
-                  <div className={`card${labsRelevant ? '' : ' section-dim'}`} style={{ padding:'20px' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'16px', paddingBottom:'12px', borderBottom:'1px solid #f1f5f9' }}>
-                      <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#0891b2', flexShrink:0 }}></div>
-                      <span className="section-label">Clinical Labs & Parameters</span>
-                    </div>
-
-                    <div style={{ display:'flex', flexDirection:'column', gap:'14px' }}>
-                      {/* Creatinine */}
-                      <InputWithUnit
-                        label="Serum Creatinine"
-                        value={creatinine}
-                        onChange={e => setCreatinine(e.target.value === "" ? "" : parseFloat(e.target.value))}
-                        placeholder="mg/dL"
-                        step="0.01"
-                        unit="mg/dL"
-                        accent="#0891b2"
-                      />
-
-                      {/* Albuminuria */}
-                      <div>
-                        <label className="field-label">Albuminuria / ACR Stage</label>
-                        <div style={{ display:'flex', gap:'8px' }}>
-                          {[['A1','< 30 mg/g'],['A2','30–300 mg/g'],['A3','> 300 mg/g']].map(([lv, desc]) => (
-                            <button key={lv} className={`alb-btn ${albuminuria === lv ? 'alb-active' : 'alb-inactive'}`} onClick={() => setAlbuminuria(lv)}>
-                              <div style={{ fontSize:'12px', fontWeight:'800', color: albuminuria === lv ? '#4338ca' : '#334155' }}>{lv}</div>
-                              <div style={{ fontSize:'9px', color:'#94a3b8', marginTop:'2px' }}>{desc}</div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* BP */}
-                      <div className="form-grid">
-                        <InputWithUnit label="Systolic BP" value={systolic} onChange={e => setSystolic(e.target.value === "" ? "" : parseInt(e.target.value))} placeholder="mmHg" unit="mmHg" />
-                        <InputWithUnit label="Diastolic BP" value={diastolic} onChange={e => setDiastolic(e.target.value === "" ? "" : parseInt(e.target.value))} placeholder="mmHg" unit="mmHg" />
-                      </div>
-
-                      {/* Liver enzymes */}
-                      <div style={{ paddingTop:'12px', borderTop:'1px solid #f1f5f9' }}>
-                        <label className="field-label" style={{ marginBottom:'10px' }}>Hepatic Enzymes & Platelets</label>
-                        <div className="liver-grid">
-                          {[
-                            ['AST', 'SGOT · U/L', ast, e => setAst(e.target.value === "" ? "" : parseFloat(e.target.value))],
-                            ['ALT', 'SGPT · U/L', alt, e => setAlt(e.target.value === "" ? "" : parseFloat(e.target.value))],
-                            ['PLT', '×10³ / µL', platelets, e => setPlatelets(e.target.value === "" ? "" : parseFloat(e.target.value))],
-                          ].map(([lbl, sub, val, fn]) => (
-                            <div key={lbl} style={{ display:'flex', flexDirection:'column', alignItems:'stretch' }}>
-                              <span style={{ fontSize:'12px', fontWeight:'800', color:'#334155', textAlign:'center', display:'block', marginBottom:'2px' }}>{lbl}</span>
-                              <span style={{ fontSize:'9px', fontWeight:'600', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em', textAlign:'center', display:'block', marginBottom:'6px' }}>{sub}</span>
-                              <input
-                                type="number"
-                                placeholder="—"
-                                value={val}
-                                onChange={fn}
-                                className="input-field"
-                                style={{ textAlign:'center', padding:'9px 8px', width:'100%', boxSizing:'border-box' }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card: FRAX */}
-                  <div className={`card${fraxRelevant ? '' : ' section-dim'}`} style={{ padding:'20px' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'14px', paddingBottom:'12px', borderBottom:'1px solid #f1f5f9' }}>
-                      <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#d97706', flexShrink:0 }}></div>
-                      <span className="section-label">FRAX Risk Factors</span>
-                      <span style={{ marginLeft:'auto', fontSize:'9px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em' }}>India · No BMD</span>
-                    </div>
-                    <div>
-                      <FraxToggleRow label="Previous Fracture" value={prevFracture} setter={setPrevFracture} />
-                      <FraxToggleRow label="Parent Hip Fracture" value={parentHipFracture} setter={setParentHipFracture} />
-                      <FraxToggleRow label="Current Smoking" value={smoking} setter={setSmoking} />
-                      <FraxToggleRow label="Glucocorticoids" value={glucocorticoids} setter={setGlucocorticoids} />
-                      <FraxToggleRow label="Rheumatoid Arthritis" value={rheumatoid} setter={setRheumatoid} />
-                      <FraxToggleRow label="Secondary Osteoporosis" value={secondaryOsteo} setter={setSecondaryOsteo} />
-                      <FraxToggleRow label="Alcohol ≥ 3 units/day" value={alcohol} setter={setAlcohol} />
-                    </div>
-                  </div>
-
-                </div>
+                <InputColumn />
 
                 {/* ─── RIGHT COLUMN: Results ─── */}
                 <div className="result-column">
 
-                  {/* Tab Bar */}
-                  <div className="card tab-card" style={{ padding:'6px' }}>
-                    <div className="tab-scroll custom-scrollbar">
-                      {TABS.map(tab => (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
-                          className={`${activeTab === tab.id ? 'tab-active' : 'tab-inactive'} tab-button`}>
-                          {tab.label}
-                          {moduleStatus[tab.id] && (
-                            <span className={`status-dot status-dot-${moduleStatus[tab.id].state}`}
-                              title={moduleStatus[tab.id].label}></span>
-                          )}
-                          {tab.id === 'timeline' && timeline.length > 0 && (
-                            <span style={{ marginLeft:'6px', background:'#4f46e5', color:'white', fontSize:'9px', fontWeight:'800', padding:'1px 6px', borderRadius:'99px' }}>{timeline.length}</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <TabBar />
 
                   {/* Result Panel */}
                   <div className="card-lg result-panel">
