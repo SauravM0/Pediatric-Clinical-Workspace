@@ -628,16 +628,11 @@
   }
   function useLiver() {
     const s = useClinicalState();
-    return { metrics: s.liverMetrics, hasManual: s.hasManualLiver, platelets: s.platelets };
+    return { metrics: s.liverMetrics, hasManual: s.hasManualLiver };
   }
   function useRenal() {
     const s = useClinicalState();
-    return {
-      metrics: s.renalMetrics,
-      hasManual: s.hasManualRenal,
-      creatinine: s.creatinine,
-      monitoring: s.monitoring
-    };
+    return { metrics: s.renalMetrics, hasManual: s.hasManualRenal };
   }
   function useFrax() {
     const s = useClinicalState();
@@ -669,7 +664,6 @@
       moduleStatus: s.moduleStatus,
       patientMrn: s.patientMrn,
       patientName: s.patientName,
-      printGrowthReport: s.printGrowthReport,
       setGrowthChartMeasure: s.setGrowthChartMeasure,
       setShowChart: s.setShowChart,
       showChart: s.showChart,
@@ -1539,7 +1533,7 @@
 
   // frontend/src/panels/RenalPanel.jsx
   function RenalPanel() {
-    const { metrics, hasManual, creatinine, monitoring } = useRenal();
+    const { metrics, hasManual } = useRenal();
     const { evalAge, age, height } = usePatient();
     const renalMetrics = metrics;
     const hasManualRenal = hasManual;
@@ -1568,7 +1562,7 @@
 
   // frontend/src/panels/LiverPanel.jsx
   function LiverPanel() {
-    const { metrics, hasManual, platelets } = useLiver();
+    const { metrics, hasManual } = useLiver();
     const { evalAge, age, height } = usePatient();
     const liverMetrics = metrics;
     const hasManualLiver = hasManual;
@@ -1630,7 +1624,7 @@
 
   // frontend/src/panels/GrowthPanel.jsx
   function GrowthPanel() {
-    const { age, evalAge, evalGender, evalHeight, evalWeight, examDate, exportGrowthReportPdf, gender, growthChartMeasure, growthMetrics, growthSeries, hasManualGrowth, height, moduleStatus, patientMrn, patientName, printGrowthReport, setGrowthChartMeasure, setShowChart, showChart, timeline, weight } = useGrowth();
+    const { age, evalAge, evalGender, evalHeight, evalWeight, examDate, exportGrowthReportPdf, gender, growthChartMeasure, growthMetrics, growthSeries, hasManualGrowth, height, moduleStatus, patientMrn, patientName, setGrowthChartMeasure, setShowChart, showChart, timeline, weight } = useGrowth();
     const gm = growthMetrics;
     const heightSeries = timeline.map((t) => ({ age: t.age, value: t.height })).filter((p) => p.value > 0);
     const weightSeries = timeline.map((t) => ({ age: t.age, value: t.weight })).filter((p) => p.value > 0);
@@ -3280,7 +3274,6 @@
       renalMetrics,
       hasManualRenal,
       creatinine,
-      monitoring,
       fraxMetrics,
       hasManualFrax,
       DECLARABLE_FLAGS,
@@ -3340,6 +3333,7 @@
       ltStatus,
       ltTables,
       monBusy,
+      monitoring,
       motherHeight,
       onLocMove,
       patientCode,

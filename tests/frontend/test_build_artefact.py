@@ -177,6 +177,100 @@ def test_clinical_state_context_exists_with_grouped_selectors():
     assert "ClinicalStateProvider" in body
 
 
+_SELECTOR_CONSUMERS = {
+    "useLiver": ["LiverPanel"],
+    "useRenal": ["RenalPanel"],
+    "useFrax": ["FraxPanel"],
+    "useOverview": ["OverviewPanel"],
+    "useGrowth": ["GrowthPanel"],
+    "useQrisk": ["QriskPanel"],
+    "useLedger": ["LedgerPanel"],
+    "useBoneAge": ["BoneAgePanel"],
+}
+
+
+def _code_only(source: str) -> str:
+    """Strip comments and string CONTENT, keeping code.
+
+    Without this the guard is vacuous: RenalPanel's subtitle reads "Multi-equation
+    clearance monitoring", so the prose word `monitoring` satisfied a search for
+    the identifier `monitoring` and the leak it was written to catch sailed
+    through. Template-literal `${...}` expressions are kept, since those are real
+    code.
+    """
+    def _template(match: re.Match) -> str:
+        return " ".join(re.findall(r"\$\{([^{}]*)\}", match.group(0)))
+
+    # Strings FIRST, comments second. The other order breaks on
+    # `accept=".dcm,image/*"`: the `/*` inside that attribute opens a phantom
+    # comment that swallows the next several hundred lines of real code, which
+    # is what made this guard report nine used names as unused.
+    src = re.sub(r'"(?:[^"\\\n]|\\.)*"', ' "" ', source)
+    src = re.sub(r"`(?:[^`\\]|\\.)*`", _template, src, flags=re.S)
+    src = re.sub(r"/\*.*?\*/", " ", src, flags=re.S)
+    src = re.sub(r"//[^\n]*", " ", src)
+    # Single-quoted strings are deliberately LEFT ALONE. JSX text is not quoted,
+    # so a prose apostrophe ("someone's") opens a phantom string that swallows
+    # the real code after it -- which produced four false positives the first
+    # time this ran. The strings that actually carry field names here are JSX
+    # attributes (double-quoted) and subtitles (template literals); single quotes
+    # in this codebase hold CSS values like '11px'.
+    return src
+
+
+def _selector_fields(body: str, hook: str) -> set[str]:
+    """Keys a selector hook returns."""
+    start = body.index(f"function {hook}(")
+    ret = body.index("return", start)
+    depth, end = 0, ret
+    for i in range(body.index("{", ret), len(body)):
+        if body[i] == "{":
+            depth += 1
+        elif body[i] == "}":
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    block = body[ret:end]
+    # `name: s.thing` and shorthand `name,`
+    keys = set(re.findall(r"([a-zA-Z_$][\w$]*)\s*:", block))
+    keys |= set(re.findall(r"^\s*([a-zA-Z_$][\w$]*)\s*,\s*$", block, re.M))
+    return keys
+
+
+@pytest.mark.parametrize("hook,panels", sorted(_SELECTOR_CONSUMERS.items()))
+def test_selectors_expose_nothing_the_panel_does_not_use(hook, panels):
+    """A slice must not carry a value its panel never reads.
+
+    Not tidiness. `useRenal` exposed `monitoring` — the bone-age AI monitoring
+    payload — to the renal panel, which destructured it and never used it. It
+    got there because that state sits next to the renal fields in
+    clinicalState. Nothing broke, and that is the problem: the narrow selectors
+    exist so a panel *cannot* reach a value nobody decided to share with it, and
+    an unused field is exactly how that guarantee erodes into a god-object one
+    key at a time.
+    """
+    state = (SRC_DIR / "state.jsx").read_text(encoding="utf-8")
+    exposed = _selector_fields(state, hook)
+    assert exposed, f"could not parse the fields {hook} returns"
+
+    used: set[str] = set()
+    for panel in panels:
+        body = (SRC_DIR / "panels" / f"{panel}.jsx").read_text(encoding="utf-8")
+        # Everything after the destructuring line: what the panel actually reads.
+        # Prose and comments stripped first, or a field name mentioned in a
+        # subtitle counts as a use of the value.
+        after = _code_only(body[body.index(f"{hook}()"):])
+        used |= set(re.findall(r"\b([a-zA-Z_$][\w$]*)\b", after))
+
+    unused = sorted(f for f in exposed if f not in used)
+    assert not unused, (
+        f"{hook} exposes {unused} to {panels}, which never read them. Remove the "
+        "field from the selector, or use it — a slice that carries what nobody "
+        "asked for is the first step back to one shared store."
+    )
+
+
 def test_using_state_outside_the_provider_fails_loudly():
     """A panel rendered outside the provider would otherwise crash on an
     undefined field somewhere deeper, pointing at the wrong place entirely."""

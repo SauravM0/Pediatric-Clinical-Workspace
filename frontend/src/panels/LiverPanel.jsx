@@ -9,7 +9,7 @@ import { useLiver, usePatient } from "../state.jsx";
 import { StatusBadge, SectionHeader, EmptyState, heroTone } from "../ui.jsx";
 
 function LiverPanel() {
-  const { metrics, hasManual, platelets } = useLiver();
+  const { metrics, hasManual } = useLiver();
   const { evalAge, age, height } = usePatient();
   const liverMetrics = metrics;
   const hasManualLiver = hasManual;

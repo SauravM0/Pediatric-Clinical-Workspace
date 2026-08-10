@@ -61,17 +61,24 @@ function usePatient() {
   };
 }
 
+// Each slice carries what its panel READS and nothing else. The panels take the
+// raw inputs (creatinine, platelets) only through the derived `metrics`, so the
+// raw values are not re-exposed here -- a field nobody reads is how a narrow
+// slice drifts back into a shared store, one key at a time.
+// test_selectors_expose_nothing_the_panel_does_not_use enforces it.
+
 function useLiver() {
   const s = useClinicalState();
-  return { metrics: s.liverMetrics, hasManual: s.hasManualLiver, platelets: s.platelets };
+  return { metrics: s.liverMetrics, hasManual: s.hasManualLiver };
 }
 
 function useRenal() {
   const s = useClinicalState();
-  return {
-    metrics: s.renalMetrics, hasManual: s.hasManualRenal,
-    creatinine: s.creatinine, monitoring: s.monitoring,
-  };
+  // Notably NOT `monitoring`: that is the bone-age AI monitoring payload
+  // (/api/bone-age/monitoring), which the renal slice offered and the renal
+  // panel never used, purely because it sits beside the renal fields in
+  // clinicalState.
+  return { metrics: s.renalMetrics, hasManual: s.hasManualRenal };
 }
 
 function useFrax() {
@@ -110,7 +117,6 @@ function useGrowth() {
     moduleStatus: s.moduleStatus,
     patientMrn: s.patientMrn,
     patientName: s.patientName,
-    printGrowthReport: s.printGrowthReport,
     setGrowthChartMeasure: s.setGrowthChartMeasure,
     setShowChart: s.setShowChart,
     showChart: s.showChart,

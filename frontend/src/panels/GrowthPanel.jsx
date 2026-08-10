@@ -9,7 +9,7 @@ import { MetricRow, SectionHeader, EmptyState } from "../ui.jsx";
 import { SDSBar, GrowthChart, GrowthChartCombined } from "../charts.jsx";
 
 function GrowthPanel() {
-  const { age, evalAge, evalGender, evalHeight, evalWeight, examDate, exportGrowthReportPdf, gender, growthChartMeasure, growthMetrics, growthSeries, hasManualGrowth, height, moduleStatus, patientMrn, patientName, printGrowthReport, setGrowthChartMeasure, setShowChart, showChart, timeline, weight } = useGrowth();
+  const { age, evalAge, evalGender, evalHeight, evalWeight, examDate, exportGrowthReportPdf, gender, growthChartMeasure, growthMetrics, growthSeries, hasManualGrowth, height, moduleStatus, patientMrn, patientName, setGrowthChartMeasure, setShowChart, showChart, timeline, weight } = useGrowth();
   const gm = growthMetrics;
   const heightSeries = timeline.map(t => ({ age: t.age, value: t.height })).filter(p => p.value > 0);
   const weightSeries = timeline.map(t => ({ age: t.age, value: t.weight })).filter(p => p.value > 0);

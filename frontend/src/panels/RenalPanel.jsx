@@ -9,7 +9,7 @@ import { useRenal, usePatient } from "../state.jsx";
 import { StatusBadge, SectionHeader, EmptyState, heroTone } from "../ui.jsx";
 
 function RenalPanel() {
-  const { metrics, hasManual, creatinine, monitoring } = useRenal();
+  const { metrics, hasManual } = useRenal();
   const { evalAge, age, height } = usePatient();
   const renalMetrics = metrics;
   const hasManualRenal = hasManual;
