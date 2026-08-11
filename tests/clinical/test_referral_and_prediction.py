@@ -159,11 +159,18 @@ def test_target_carries_a_range_not_just_a_number():
 
 def test_khamis_roche_is_gated_not_invented():
     """Regression coefficients are not bundled. Inventing them would repeat
-    exactly the failure already carried by the digitized TW3 curve."""
+    exactly the failure already carried by the digitized TW3 curve.
+
+    Asserts the intent -- refused, cited, and actionable -- rather than a fixed
+    sentence. M5.3 replaced the wording with one that distinguishes "not
+    entered" from "entered but unusable" and names the tool that installs them.
+    """
     assert prediction.khamis_roche_available() is False
     p = prediction.predict_adult_height("boys", 10.0, 140.0, 32.0, 155.0, 175.0)
     assert p.available is False
-    assert "not bundled" in p.status and "Khamis & Roche" in p.status
+    assert p.predicted_cm is None, "a gated method must not return a number"
+    assert "Khamis & Roche" in p.status, "the refusal must cite its source"
+    assert "ingest_khamis_roche" in p.status, "and say how to fix it"
 
 
 def test_target_and_prediction_are_separately_labelled():

@@ -86,19 +86,212 @@ def mid_parental_target(sex: str, mother_cm: Optional[float], father_cm: Optiona
                         quality, caveat)
 
 
+# Structural bounds on the published regression coefficients. Not clinical
+# limits -- they are wide enough to admit any real Khamis-Roche row and narrow
+# enough to catch the mistakes that actually happen: columns transposed, a sign
+# dropped, or centimetres entered where the paper uses inches.
+#
+# The model is
+#     adult height = intercept + b_height*height + b_weight*weight
+#                              + b_midparent*midparent
+# so current height must carry most of the signal (positive, order 1),
+# mid-parental height a positive minority share, and weight a small term that is
+# legitimately negative at some ages.
+_COEFFICIENT_BOUNDS = {
+    "intercept": (-120.0, 120.0),
+    "height": (0.1, 2.0),
+    "weight": (-1.5, 1.5),
+    "midparent": (0.0, 1.0),
+}
+
+# A reference child used only to check the installed table produces sane
+# predictions across its age range: mid-height, mid-weight, average parents.
+_PROBE = {"height_cm": 130.0, "weight_kg": 28.0, "midparent_cm": 165.0}
+
+
+class CoefficientError(ValueError):
+    """The Khamis-Roche coefficient file exists but is not usable."""
+
+
 @lru_cache(maxsize=1)
-def _coefficients() -> Optional[dict]:
+def _load_raw() -> Optional[dict]:
+    """Parse the file, or raise with a reason. None only when absent.
+
+    Deliberately not a bare ``except: return None``. That is what this did, and
+    it meant a malformed or half-entered file disabled adult-height prediction
+    with the same message as no file at all -- indistinguishable from "not
+    installed yet", which is the one state nobody needs to debug.
+    """
     if not _COEFFICIENTS_PATH.exists():
         return None
     try:
         data = json.loads(_COEFFICIENTS_PATH.read_text(encoding="utf-8"))
-    except Exception:
+    except json.JSONDecodeError as exc:
+        raise CoefficientError(
+            f"{_COEFFICIENTS_PATH.name} is not valid JSON: {exc}") from exc
+    if not isinstance(data, dict) or not data.get("coefficients"):
+        raise CoefficientError(
+            f"{_COEFFICIENTS_PATH.name} has no 'coefficients' block. See "
+            "KHAMIS-ROCHE-REQUEST.md for the expected shape.")
+    return data
+
+
+def coefficient_problems(data: Optional[dict] = None) -> list[str]:
+    """Structural and shape faults in an installed coefficient table."""
+    try:
+        data = data if data is not None else _load_raw()
+    except CoefficientError as exc:
+        return [str(exc)]
+    if data is None:
+        return ["not installed"]
+
+    problems: list[str] = []
+    table = data.get("coefficients") or {}
+    if not any(table.get(sex) for sex in ("boys", "girls")):
+        return ["no rows for either sex"]
+
+    for sex in ("boys", "girls"):
+        rows = table.get(sex) or {}
+        if not rows:
+            # NOT blocking. The paper publishes one table per sex and they are
+            # often entered separately, so a single-sex install is a normal
+            # intermediate state -- predict_adult_height already refuses that
+            # sex with its own message. Blocking here would disable the sex that
+            # HAS been entered, which is the opposite of useful.
+            continue
+
+        ages = []
+        for key, row in sorted(rows.items()):
+            try:
+                age = float(key)
+            except ValueError:
+                problems.append(f"{sex}: age key {key!r} is not a number")
+                continue
+            ages.append(age)
+            for name, (lo, hi) in _COEFFICIENT_BOUNDS.items():
+                if name not in row:
+                    problems.append(f"{sex}@{key}: missing {name!r}")
+                    continue
+                value = float(row[name])
+                if not (lo <= value <= hi):
+                    problems.append(
+                        f"{sex}@{key}: {name}={value} outside {(lo, hi)} — check "
+                        "the column order and the units (the paper's tables are "
+                        "sometimes in inches)")
+
+        if ages and (min(ages) > KR_MIN_AGE_YEARS + 0.5
+                     or max(ages) < KR_MAX_AGE_YEARS - 0.5):
+            problems.append(
+                f"{sex}: ages span {min(ages)}-{max(ages)}, but the method is "
+                f"validated over {KR_MIN_AGE_YEARS}-{KR_MAX_AGE_YEARS}; every "
+                "age outside the entered rows is refused, so a short table "
+                "silently disables most of the range")
+
+    problems.extend(_probe_problems(table))
+    return problems
+
+
+def _probe_problems(table: dict) -> list[str]:
+    """Two checks the per-coefficient bounds cannot make.
+
+    **Composition.** Coefficients can each be in range and still not compose. A
+    predicted adult height below the child's current height, or above any human
+    adult, means the row is wrong however plausible its parts look.
+
+    **Dominance.** In Khamis-Roche the child's own stature is the dominant
+    predictor: the model is essentially "how tall are you now, adjusted for
+    build and parental size". A row where mid-parental height outweighs the
+    child's own height is almost certainly transposed.
+
+    That second check exists because the first one is not enough, which was
+    measured rather than assumed: swapping the height and mid-parent columns in
+    a plausible table leaves every coefficient inside its bounds and still
+    predicts 191 cm -- a perfectly possible adult height. Composition alone
+    accepted it.
+    """
+    problems: list[str] = []
+    for sex in ("boys", "girls"):
+        for key, row in sorted((table.get(sex) or {}).items()):
+            try:
+                b_height = float(row["height"])
+                b_midparent = float(row["midparent"])
+                predicted = (float(row["intercept"])
+                             + b_height * _PROBE["height_cm"]
+                             + float(row["weight"]) * _PROBE["weight_kg"]
+                             + b_midparent * _PROBE["midparent_cm"])
+            except (KeyError, TypeError, ValueError):
+                continue      # already reported by the structural pass
+            if not (_PROBE["height_cm"] <= predicted <= 230.0):
+                problems.append(
+                    f"{sex}@{key}: predicts {predicted:.1f} cm adult height for a "
+                    f"{_PROBE['height_cm']:.0f} cm child — outside "
+                    f"{_PROBE['height_cm']:.0f}-230 cm, so the row does not compose"
+                )
+            if b_midparent >= b_height:
+                problems.append(
+                    f"{sex}@{key}: mid-parental coefficient ({b_midparent}) is not "
+                    f"smaller than the child's own height coefficient ({b_height}). "
+                    "The child's current stature is the dominant predictor in this "
+                    "model, so these two columns are almost certainly transposed."
+                )
+    return problems
+
+
+@lru_cache(maxsize=1)
+def _coefficients() -> Optional[dict]:
+    """The installed table, or None when absent OR unusable.
+
+    Callers get None either way -- prediction stays off -- but
+    :func:`khamis_roche_status` says which, and why.
+    """
+    try:
+        data = _load_raw()
+    except CoefficientError:
         return None
-    return data if data.get("coefficients") else None
+    if data is None or coefficient_problems(data):
+        return None
+    return data
 
 
 def khamis_roche_available() -> bool:
     return _coefficients() is not None
+
+
+def khamis_roche_status() -> dict:
+    """Why prediction is or is not live -- surfaced beside the result."""
+    if not _COEFFICIENTS_PATH.exists():
+        return {
+            "active": False, "file_present": False,
+            "reason": (
+                "Khamis-Roche coefficients are not entered. The published "
+                "sex- and age-specific regression coefficients (Khamis & Roche, "
+                "Pediatrics 1994;94:504-7) must be entered once; nothing is "
+                "estimated in their absence. Install with: python -m "
+                "backend.clinical.ingest_khamis_roche"
+            ),
+        }
+    problems = coefficient_problems()
+    try:
+        table = (_load_raw() or {}).get("coefficients") or {}
+    except CoefficientError:
+        table = {}
+    entered = sorted(sex for sex in ("boys", "girls") if table.get(sex))
+    missing = [sex for sex in ("boys", "girls") if not table.get(sex)]
+    return {
+        "active": not problems, "file_present": True,
+        "problems": problems,
+        "sexes_entered": entered,
+        # Surfaced rather than blocking: prediction works for whichever sex is
+        # entered, and refuses for the other with its own message.
+        "sexes_missing": missing,
+        "reason": "ok" if not problems else "; ".join(problems[:4]),
+    }
+
+
+def reset_cache() -> None:
+    """Test seam -- the file is read once per process in normal operation."""
+    _load_raw.cache_clear()
+    _coefficients.cache_clear()
 
 
 def predict_adult_height(sex: str, age_years: Optional[float], height_cm: Optional[float],
@@ -108,14 +301,11 @@ def predict_adult_height(sex: str, age_years: Optional[float], height_cm: Option
     method = "Khamis-Roche (no radiograph)"
 
     if not khamis_roche_available():
-        return AdultHeightPrediction(
-            False, None, None, method,
-            "Khamis-Roche coefficients are not bundled. The published sex- and "
-            "age-specific regression coefficients (Khamis & Roche, Pediatrics "
-            "1994;94:504-7) must be entered once into "
-            "backend/clinical/khamis_roche_coefficients.json. Prediction stays "
-            "disabled rather than running on invented coefficients.",
-        )
+        # Say WHICH of "absent" and "entered but unusable" it is. Reporting both
+        # identically is how a half-entered table looks exactly like a fresh
+        # install for as long as nobody checks.
+        return AdultHeightPrediction(False, None, None, method,
+                                     khamis_roche_status()["reason"])
 
     if None in (age_years, height_cm, weight_kg, mother_cm, father_cm):
         return AdultHeightPrediction(False, None, None, method,
