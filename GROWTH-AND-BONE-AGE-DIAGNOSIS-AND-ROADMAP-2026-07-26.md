@@ -5,6 +5,18 @@
 **Method:** Direct code reading, numeric probes run against your own engine, and external literature search
 **Status:** Diagnosis only — no code was changed
 
+> **Superseded in part — see `DELIVERY-STATUS-2026-08-10.md`.**
+> This document is left as written on 26 July. Most of its roadmap is now built;
+> six of its findings have since been measured and four of those were wrong.
+> The two that change the clinical picture:
+>
+> - **Four of seven columns in the IAP height/weight CSVs are not published
+>   values.** They were filled in by even z-spacing during transcription, so the
+>   drawn 25th centile is the 26.5th. This document identifies the missing L,M,S
+>   as *the* growth-chart problem; it is not the only one.
+> - **"8.99 mo → ~4.8 mo" (§ digiBONE) is not a valid comparison.** Those are
+>   two different models measured on two different test sets.
+
 ---
 
 ## 0. Executive summary
@@ -25,8 +37,9 @@ in a 2021 paper. Getting them collapses most of the growth-chart problem to noth
 
 **The second most important finding:** there is an **MIT-licensed, Indian-trained,
 open-source bone age model** (digiBONE) built on 2,430 Indian children at Khadilkar's own
-institute in Pune, reporting 4.75–4.93 months error. Your current model measures **8.99
-months**. See §4.4.
+institute in Pune, reporting 4.7–4.9 months error *on its own Indian validation set*. Your
+current model measures **8.99 months** *on a frozen RSNA split*. Those two numbers are not
+comparable — see the correction at §4.4. See §4.4.
 
 **One premise needs correcting up front:** you asked about "TW3, newest method, 20 bones."
 TW3 (Tanner et al., 2001) does **not** have a 20-bone score. The 20-bone score was a *TW2*
@@ -104,6 +117,16 @@ boys P50 height:
 
 A 0.85 cm/yr artefactual swing inside a single year is larger than many of the real
 velocity differences a clinician is trying to detect.
+
+> **Correction (10 Aug 2026):** (c) below is real and was fixed in M1.2, but it
+> is not the largest defect in these tables. **Four of the seven height/weight
+> columns — p10, p25, p75, p90 — are not published values at all.** They were
+> filled in by dividing the p3–p97 z-range into six equal steps during
+> transcription, so the line drawn as the 25th centile is the 26.5th and the
+> 10th is the 10.5th: 0.27–0.48 cm and 0.30–0.77 kg of systematic error, present
+> at every age, independent of the tail problem described here. Only p3, p50 and
+> p97 carry independent information. See `backend/growth/iap_table_consistency.py`
+> and correction 6 in `DELIVERY-STATUS-2026-08-10.md`.
 
 **(c) The L,M,S triplets were never obtained — so the tails are extrapolated.**
 Because only percentile *values* are available, `iap_reference.py` fits L and S per age row
@@ -427,10 +450,19 @@ small backbone for this task. And you do not need to close that gap yourself:
 
 | Option | Population | Reported accuracy | Licence | Notes |
 |---|---|---|---|---|
-| **digiBONE** | RSNA + **2,430 Indian children (HCJMRI, Pune)** | **4.75 mo boys / 4.93 mo girls on Indian validation** | **MIT** | Segmental GP: separate networks for short bones, carpals, wrist. Weights downloadable. <5s inference |
+| **digiBONE** | RSNA + **2,430 Indian children (HCJMRI, Pune)** | **4.7 mo male / 4.9 mo female (segmental); 5.7 / 5.9 full-hand** — on *its own* Indian validation | **MIT** | Segmental GP: separate networks for short bones, carpals, wrist. Weights downloadable. <5s inference |
 | **Deeplasia** | RSNA + dysplasia cohorts | 3.87 mo RSNA; 5.84 mo dysplastic | open | Prior-free; validated on skeletal dysplasias; beat all individual human raters in one study |
-| Your current model | RSNA only | 8.99 mo | yours | — |
+| Your current model | RSNA only | 8.99 mo — on the *frozen RSNA split* | yours | — |
 | BoneXpert (commercial) | — | 6.36→4.68 mo on Indian validation | commercial | CE-marked; useful as a comparator benchmark |
+
+> **Correction (10 Aug 2026):** the figures in this table are **not mutually
+> comparable** and the original row for digiBONE misquoted them (4.75/4.93; the
+> paper says 4.7/4.9 segmental and 5.7/5.9 full-hand, which was omitted). Each
+> number is a different model on a different test set in a different population.
+> Producing the comparable figure — digiBONE on *this* product's locked RSNA
+> test — is step 4 of `backend/ai/DIGIBONE.md`, and the release gate treats the
+> adoption as `CROSS_METHOD_ADOPTION` precisely so a like-for-like improvement is
+> never claimed from numbers like these.
 
 **digiBONE is close to a perfect fit for you** and I would treat adopting it as the
 highest-priority bone-age action. It is MIT-licensed with downloadable weights; it is
@@ -512,7 +544,8 @@ end is close enough to leave alone for now.
 
 ### 5.2 P1 — the substantial next tier
 
-**8. Adopt digiBONE for the screening path.** MIT, Indian-trained, 4.75–4.93 mo. Run it
+**8. Adopt digiBONE for the screening path.** MIT, Indian-trained, 4.7–4.9 mo segmental
+(5.7–5.9 full-hand) on its own validation set. Run it
 against your existing locked RSNA test set first so you have an apples-to-apples number
 versus your 8.99 mo, then keep your release gate, conformal calibration and abstention
 logic around it. Your gated-release harness means you can do this safely.
@@ -613,7 +646,9 @@ clinicians. Concretely, what earns that:
 2. **Add the Indian height-velocity chart** (Khadilkar 2019). Biggest clinical gain available.
 3. **Relabel the bone age as provisional TW3-C, and clamp-guard the curve.** Stops the
    product overstating itself. One day of work.
-4. **Swap in digiBONE** behind your existing release gate. 8.99 mo → ~4.8 mo, with Indian
+4. **Swap in digiBONE** behind your existing release gate. (Corrected 10 Aug 2026: do NOT
+   read this as "8.99 mo → ~4.8 mo" — that compares two models on two different test sets.
+   Measure digiBONE on the locked RSNA split first; §5.2 item 8 says so correctly.) With Indian
    provenance.
 5. **Start the 200-film dual-read Indian validation set.** The only thing that ever lets you
    make an accuracy claim at all.

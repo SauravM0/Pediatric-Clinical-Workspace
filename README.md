@@ -3,6 +3,13 @@
 Local FastAPI + static browser workspace for growth calculations and bone-age
 image uploads.
 
+**Project status:** `DELIVERY-STATUS-2026-08-10.md` — what is built, what is
+waiting on reference data that must come from outside this repository, and where
+the 26 July planning documents are now wrong. Read
+[`INTENDED-USE.md`](INTENDED-USE.md) before any clinical use: the AI screening
+model is currently **below its own release gate**, and the bone age reported
+today is **not Tanner TW3**.
+
 ## Security Setup (required before any real patient data)
 
 Authentication is **on by default** and there is no seeded default account —

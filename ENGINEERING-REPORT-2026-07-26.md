@@ -6,6 +6,16 @@
 **This document:** baseline architecture → milestone-by-milestone architectural critique → implementation specification
 **Verification basis:** full source read, executed runtime probes, 243/244 tests green (1 skipped), hardware capability check
 
+> **Status: see `DELIVERY-STATUS-2026-08-10.md`.** Every milestone M0–M6 in this
+> report is implemented (739 passing tests). Six are complete except for
+> reference data that must be obtained externally; each ships a loader, an
+> activation gate and an ingestion CLI.
+>
+> One estimate in this report was measured and was wrong: **preprocessing v2
+> (CLAHE + segmentation) is 3.7× WORSE, not the 1–2 month gain estimated here** —
+> MAE 8.92 → 33.34 months on the locked test. `CURRENT_PREPROCESSING` stays at
+> v1, pinned by a test.
+
 ---
 
 # Part 0 — Baseline: the architecture as it actually is
@@ -470,6 +480,8 @@ cause a silent, wrong-but-plausible clinical output if unhandled.
 
 ## M0 — Foundation Hardening
 
+> **Status (10 Aug 2026):** **Delivered** (`4f504bc`). All four items.
+
 ### M0.1 · Fix schema versioning
 
 `backend/models.py::ensure_schema_version` — change from insert-once to upsert-with-history:
@@ -576,6 +588,8 @@ impossible. Bound `maxsize` (currently `None`).
 ---
 
 ## M1 — Growth Reference Integrity
+
+> **Status (10 Aug 2026):** **Delivered, three of four data-gated.** M1.2 is live (`20d2a9d`). M1.1 (`2b0ee42`, `c577936`), M1.3 (`b1a2acf`, `d2e6247`) and M1.4 (`c8764bb`) each ship a loader, an activation gate and an ingestion CLI, and wait only on reference data. M1.1 also uncovered that four of seven IAP height/weight columns are reconstructed, not published — see correction 6 in `DELIVERY-STATUS-2026-08-10.md`.
 
 ### M1.1 · LMS ingestion (strangler pattern — **mandatory**)
 
@@ -684,6 +698,8 @@ regression tests before deleting the nudge logic.
 
 ## M2 — Longitudinal Clinical Record
 
+> **Status (10 Aug 2026):** **Delivered** (`45869b2`). M2C's licensed path is gated on the TW3 book (`bc75650`, `cae07b4`).
+
 ### M2.1 · Schema
 
 ```python
@@ -769,6 +785,8 @@ and it silently destroys velocity.
 
 ## M3 — Bone Age Integrity
 
+> **Status (10 Aug 2026):** **Delivered** (`969a4ec`). Both items.
+
 ### M3.1 · Curve domain guard
 
 `backend/tw3/scoring.py`:
@@ -818,6 +836,8 @@ existing `tests/frontend/` convention.
 ---
 
 ## M4 — Inference Platform
+
+> **Status (10 Aug 2026):** **Delivered** (`757ada9`, `5a42c00`). Note: this report's estimate that preprocessing v2 would gain 1–2 months was measured and was wrong — it is **3.7× worse** (MAE 8.92 → 33.34). v1 stays active, pinned by a test.
 
 ### M4.1 · Model registry
 
@@ -904,6 +924,8 @@ loosened gate is a permanent loss of a safety property.
 
 ## M5 — Clinical Reasoning Engine
 
+> **Status (10 Aug 2026):** **Delivered** (`2b3bb11`). M5.3 Khamis-Roche ships its ingestion path (`4730714`), gated on the published coefficients.
+
 ### M5.1 · Package shape
 
 ```
@@ -964,6 +986,8 @@ that something needs review; it cannot rule out serious disease.
 ---
 
 ## M6 — Presentation Re-platform (Option B)
+
+> **Status (10 Aug 2026):** **Delivered in full** (`4eb1aa8` → `a2dab7d`). app.jsx 3,857 → 1,062 lines; every panel, the shell and the input column are their own modules.
 
 ```
 frontend/

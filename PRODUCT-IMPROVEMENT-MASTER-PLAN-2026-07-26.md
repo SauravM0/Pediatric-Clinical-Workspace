@@ -5,6 +5,13 @@
 **This document:** the full improvement register, and the step-wise build plan
 **Verified against:** live code, executed probes, 243 passing tests, hardware check
 
+> **Status: see `DELIVERY-STATUS-2026-08-10.md`.** Most of this register is
+> built (739 passing tests now). Six items are complete except for data that
+> must come from outside the repository — each has an ingestion tool and a gate
+> that refuses rather than approximates. Two figures below are corrected there:
+> digiBONE's published MAD is 4.7/4.9 (not 4.75/4.93), and "8.99 mo → ~4.8 mo"
+> compares two different models on two different test sets.
+
 ---
 
 ## 0. The direct answer: what is your next step
@@ -219,7 +226,7 @@ Split deliberately into *stop overstating* (days) and *get more accurate* (weeks
 
 | WI | Work item | Days | Fixes |
 |---|---|---|---|
-| 2.4 | **Adopt digiBONE** (MIT, `github.com/goellab/digiBONE`) — Indian-trained on 2,430 HCJMRI Pune films, 4.75/4.93 mo. Run against your existing locked RSNA test first for an apples-to-apples number vs your 8.99 mo | 4 | C5 |
+| 2.4 | **Adopt digiBONE** (MIT, `github.com/goellab/digiBONE`) — Indian-trained on 2,430 HCJMRI Pune films, 4.7/4.9 mo segmental (5.7/5.9 full-hand) on its own validation set. Run against your existing locked RSNA test first for an apples-to-apples number vs your 8.99 mo | 4 | C5 |
 | 2.5 | **Preprocessing pipeline**: CLAHE, hand segmentation + background masking, rotation normalisation. ~~Buys 1–2 months of MAE~~ — **measured: only with retraining; retro-fitting it to the incumbent made MAE 3.7× worse.** Built and versioned in M4, inactive pending a model that declares it | 3 | C13 |
 | 2.6 | Raise analysis resolution: keep a 2048px derivative for per-bone crops; 224px whole-hand is fine for screening but not for staging | 1 | C14 |
 | 2.7 | Integrate **BoNet** (`BCV-Uniandes/Bonet`) for per-bone ROI localisation → feeds the per-bone UI you already built | 4 | C7 |
@@ -480,7 +487,9 @@ the **IAP LMS request** (1.1) and the **TW3 book** (2.11).
 3. **Relabel the bone age and clamp-guard the curve** (2.1, 2.2). Two days. Stops the product
    overstating itself.
 4. **Add the Indian height-velocity chart** (1.4). Biggest single clinical gain available.
-5. **Swap in digiBONE** (2.4). 8.99 mo → ~4.8 mo, with Indian provenance you can defend.
+5. **Swap in digiBONE** (2.4), with Indian provenance you can defend. (Corrected
+   10 Aug 2026: not "8.99 mo → ~4.8 mo" — those are two models on two different
+   test sets. Item 2.4 itself says to measure on the locked RSNA split first.)
 
 ---
 
