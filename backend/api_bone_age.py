@@ -25,7 +25,10 @@ from sqlalchemy.orm import Session
 from backend.ai import boneage
 from backend.config import APP_VERSION
 from backend.db import get_db
-from backend.imaging import ImagingError, auto_quality_flags, gate_ai_estimate, load_bytes
+from backend.imaging import (
+    ImagingError, auto_quality_flags, gate_ai_estimate, load_bytes,
+    resolve_image_domain,
+)
 from backend.models import BoneAgeFeedback
 from backend.tw3 import (
     BONE_LABELS,
@@ -264,23 +267,37 @@ async def estimate(
 
     result = boneage.predict_months(Image.fromarray(loaded.analysis), is_male=(sex == "boys"))
 
-    domain = image_domain if image_domain in IMAGE_DOMAINS else "unknown"
+    # The domain is DETECTED when the clinician did not declare one, rather than
+    # silently defaulting to "unknown" and suppressing the caveat. A photographed
+    # film used to score exactly like a scanner export unless someone remembered
+    # to change a dropdown.
+    resolved = resolve_image_domain(loaded, image_domain)
+    domain = resolved["domain"] if resolved["domain"] in IMAGE_DOMAINS else "unknown"
     low_trust = domain in LOW_TRUST_DOMAINS
     quality_warning = None
     if low_trust:
+        how = ("You marked this" if resolved["source"] == "clinician-declared"
+               else "This was detected as")
         quality_warning = (
-            "Low-trust image source ("
+            f"{how} a low-trust image source ("
             + ("compressed export" if domain == "compressed" else "photo of a film")
             + "). The screening model was validated on clean digital radiographs; "
             "glare, compression and perspective can shift the estimate. Re-acquire a "
             "direct digital / DICOM image where possible, and rely on manual TW3."
         )
+        if resolved["source"] == "auto-detected" and resolved["evidence"]:
+            quality_warning += " Detected because: " + "; ".join(resolved["evidence"]) + "."
     return {
         "available": True,
         "accepted": True,
         "quality": quality,
         "source_format": loaded.source_format,
         "image_domain": domain,
+        "image_domain_source": resolved["source"],
+        "image_domain_detected": resolved["detected"],
+        "image_domain_confidence": resolved["confidence"],
+        "image_domain_evidence": resolved["evidence"],
+        "image_domain_conflict": resolved["conflict"],
         "low_trust": low_trust,
         "quality_warning": quality_warning,
         **(result or {}),

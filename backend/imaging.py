@@ -45,6 +45,10 @@ class LoadedImage:
     study_date: Optional[str] = None
     is_color_source: bool = False
     warnings: list[str] = field(default_factory=list)
+    # Acquisition-provenance signals, captured BEFORE grayscale conversion
+    # throws them away. See detect_acquisition_domain.
+    camera_exif: dict[str, str] = field(default_factory=dict)
+    colour_spread: float = 0.0     # mean |channel - grey|, 0 for true grayscale
 
 
 def image_hash(raw: bytes) -> str:
@@ -131,8 +135,10 @@ def _load_raster(raw: bytes) -> LoadedImage:
     if fmt not in {"PNG", "JPEG", "BMP"}:
         raise ImagingError(f"unsupported image format: {img.format!r}")
 
+    exif = _camera_exif(img)
     img = ImageOps.exif_transpose(img)
     is_color = img.mode not in ("L", "I", "I;16", "1")
+    spread = _colour_spread(img) if is_color else 0.0
     gray = img.convert("L")
     arr = np.asarray(gray)
     warnings: list[str] = []
@@ -146,7 +152,45 @@ def _load_raster(raw: bytes) -> LoadedImage:
         source_format="JPEG" if fmt == "JPEG" else fmt,
         is_color_source=is_color,
         warnings=warnings,
+        camera_exif=exif,
+        colour_spread=spread,
     )
+
+
+# EXIF tags a camera writes and an imaging workstation does not. Read before
+# exif_transpose, which consumes the orientation tag.
+_CAMERA_TAGS: Final[dict[int, str]] = {
+    271: "Make", 272: "Model", 33437: "FNumber", 33434: "ExposureTime",
+    34855: "ISOSpeedRatings", 37386: "FocalLength", 42036: "LensModel",
+}
+
+
+def _camera_exif(img: Image.Image) -> dict[str, str]:
+    """Camera identification tags, if any. Deliberately narrow: only tags that
+    indicate a photograph was taken, never anything patient-identifying."""
+    try:
+        raw = img.getexif()
+    except Exception:
+        return {}
+    out: dict[str, str] = {}
+    for tag, name in _CAMERA_TAGS.items():
+        value = raw.get(tag)
+        if value not in (None, "", b""):
+            out[name] = str(value)[:64]
+    return out
+
+
+def _colour_spread(img: Image.Image) -> float:
+    """Mean per-pixel deviation of R,G,B from their own grey, 0-255.
+
+    A radiograph saved as RGB is grey in every pixel, so this is ~0 however
+    large the file. A photograph of a film carries the room: wall tint, skin,
+    and the lighting's colour temperature. This separates "stored as RGB" from
+    "actually contains colour", which the is_color flag alone cannot.
+    """
+    small = img.convert("RGB").resize((64, 64))
+    a = np.asarray(small, dtype=np.float32)
+    return float(np.abs(a - a.mean(axis=2, keepdims=True)).mean())
 
 
 def load_bytes(raw: bytes, filename: str = "") -> LoadedImage:
@@ -224,6 +268,61 @@ HARD_QUALITY_FLAGS: Final[frozenset[str]] = frozenset({
 })
 
 
+# Above this mean channel deviation the image genuinely contains colour rather
+# than being a grey image stored in three channels. A radiograph re-saved as RGB
+# measures ~0; a phone photo of a film carries the room's colour cast. Set well
+# clear of JPEG chroma noise, which lands under 1.
+COLOUR_SPREAD_PHOTO_THRESHOLD: Final[float] = 3.0
+
+
+def detect_acquisition_domain(img: LoadedImage) -> dict:
+    """Was this a digital radiograph, or a photograph of a film?
+
+    This is deliberately NOT the kind of judgement `auto_quality_flags` refuses
+    to make. Fracture, cast, deformity and rotation are DIAGNOSTIC properties
+    needing a validated classifier. How a file was acquired is not diagnostic --
+    it is provenance, and it leaves deterministic traces:
+
+    * **DICOM** is a radiograph by construction. Nothing else to decide.
+    * **Camera EXIF** (Make/Model/FNumber/ISO/FocalLength) is written by a
+      camera and not by an imaging workstation. Its presence is close to proof.
+    * **Real colour** separates "a grey image stored as RGB" (spread ~0) from
+      "a photograph containing a wall, a hand and warm indoor light".
+
+    Returns the inferred domain, a confidence, and the evidence — so the caller
+    can show a clinician WHY rather than asserting it.
+    """
+    evidence: list[str] = []
+
+    if img.source_format == "DICOM":
+        return {"domain": "digital_diagnostic", "confidence": "certain",
+                "evidence": ["DICOM: a radiograph by construction"],
+                "auto_detected": True}
+
+    if img.camera_exif:
+        shown = ", ".join(f"{k}={v}" for k, v in sorted(img.camera_exif.items())[:3])
+        evidence.append(f"camera EXIF present ({shown})")
+    if img.colour_spread >= COLOUR_SPREAD_PHOTO_THRESHOLD:
+        evidence.append(
+            f"image contains real colour (spread {img.colour_spread:.1f}, "
+            f"threshold {COLOUR_SPREAD_PHOTO_THRESHOLD}) — a radiograph is grey "
+            "in every pixel")
+
+    if img.camera_exif and img.colour_spread >= COLOUR_SPREAD_PHOTO_THRESHOLD:
+        return {"domain": "film_photo", "confidence": "high",
+                "evidence": evidence, "auto_detected": True}
+    if evidence:
+        # One signal alone: a photo stripped of EXIF, or a colour-managed export.
+        # Enough to warn on, not enough to assert.
+        return {"domain": "film_photo", "confidence": "moderate",
+                "evidence": evidence, "auto_detected": True}
+
+    return {"domain": "unknown", "confidence": "none",
+            "evidence": ["no camera EXIF and no real colour — consistent with a "
+                         "digital export, but a stripped photo looks the same"],
+            "auto_detected": False}
+
+
 def auto_quality_flags(img: LoadedImage) -> tuple[list[str], list[str]]:
     """Deterministic auto-detected quality flags + advisory notes.
 
@@ -232,16 +331,77 @@ def auto_quality_flags(img: LoadedImage) -> tuple[list[str], list[str]]:
     diagnostic -- fracture, cast, clipping, deformity, dysplasia, rotation,
     exposure -- is left to clinician declaration; the app does not claim to
     auto-detect it (that needs a validated model; audit P2). Low contrast is an
-    advisory NOTE, never a gating flag."""
+    advisory NOTE, never a gating flag.
+
+    Acquisition provenance is deliberately NOT a new quality flag. The flag
+    vocabulary is a contract pinned to case_input_schema.json, and "how was this
+    acquired" is not the same kind of thing as "what is wrong with this film" --
+    it already has its own field, `image_domain`. Detection therefore drives
+    that field (see detect_acquisition_domain) and lands here only as evidence
+    notes.
+    """
     flags: list[str] = []
     if img.width < 200 or img.height < 200:
         flags.append("IMAGE_TOO_SMALL")
     if img.laterality and str(img.laterality).upper().startswith("R"):
         flags.append("WRONG_LATERALITY")
+
     notes: list[str] = list(img.warnings)
+    domain = detect_acquisition_domain(img)
+    if domain["domain"] == "film_photo":
+        notes.extend(domain["evidence"])
     if float(img.analysis.std()) < 12:
         notes.append("low_contrast_or_near_blank")
     return flags, notes
+
+
+def resolve_image_domain(img: LoadedImage, declared: Optional[str]) -> dict:
+    """The domain to treat this image as, and how that was decided.
+
+    Detection DEFAULTS the field; it does not overrule a clinician. If the
+    clinician says "photo of a film" the answer is film_photo whatever the
+    pixels suggest -- they were in the room. If they declared nothing, or left
+    it 'unknown', detection fills it in, which is the whole point: the low-trust
+    caveat used to depend on remembering to set a dropdown.
+
+    A declared 'digital_diagnostic' that contradicts high-confidence detection
+    is honoured but reported as a conflict, because silently overriding a
+    clinician is worse than showing them the disagreement.
+    """
+    detected = detect_acquisition_domain(img)
+    declared = (declared or "").strip().lower() or None
+    if declared not in (None, "unknown", "digital_diagnostic", "compressed", "film_photo"):
+        declared = None
+
+    conflict = None
+    if declared in (None, "unknown"):
+        effective = detected["domain"] if detected["auto_detected"] else "unknown"
+        source = "auto-detected" if detected["auto_detected"] else "undetermined"
+    else:
+        effective = declared
+        source = "clinician-declared"
+        if declared == "digital_diagnostic" and detected["domain"] == "film_photo":
+            # Any confidence, not just high. Camera EXIF is routinely stripped by
+            # messaging apps -- the phone photo that motivated this had none --
+            # so colour alone is usually the whole case, and a true digital
+            # export measures a spread of 0.00. Disagreeing with a declaration
+            # of "digital diagnostic" is worth showing at that point.
+            conflict = (
+                "Declared as a digital diagnostic image, but this file shows "
+                + " and ".join(detected["evidence"])
+                + ". A scanner export does not produce those. Declaration "
+                "honoured; check the source."
+            )
+
+    return {
+        "domain": effective,
+        "source": source,
+        "declared": declared,
+        "detected": detected["domain"],
+        "confidence": detected["confidence"],
+        "evidence": detected["evidence"],
+        "conflict": conflict,
+    }
 
 
 def gate_ai_estimate(auto_flags: list[str], declared_flags: list[str]) -> dict:
