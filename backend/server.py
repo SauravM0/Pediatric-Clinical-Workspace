@@ -79,13 +79,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class _RevalidatingStatics(StaticFiles):
+    """StaticFiles that always revalidates.
+
+    Starlette sends ETag and Last-Modified but no Cache-Control. With no
+    Cache-Control a browser applies HEURISTIC caching -- typically a fraction of
+    the time since Last-Modified -- and may serve a stale file without asking.
+    Measured here: after rebuilding frontend/app.js, a fresh tab still executed
+    the previous 293,561-byte bundle while a no-store fetch of the same URL
+    returned the new 295,729-byte one.
+
+    That is a deployment problem, not just a development annoyance. app.js is
+    referenced from index.html with no version in the URL, so a clinical fix
+    could ship and clinicians keep running the code it replaced, with nothing to
+    indicate it.
+
+    ``no-cache`` means "revalidate before use", NOT "do not store": the browser
+    still keeps the file and still gets a 304 when nothing changed, so the
+    offline-first property is unaffected.
+    """
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers.setdefault("Cache-Control", "no-cache")
+        return response
+
+
 if FRONTEND_DIR.exists():
-    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+    app.mount("/static", _RevalidatingStatics(directory=FRONTEND_DIR), name="static")
     vendor_dir = FRONTEND_DIR / "vendor"
     if vendor_dir.exists():
-        # Locally vendored JS (React, Babel, Tailwind) referenced as ``vendor/*``
-        # from index.html — served here so the app is fully offline.
-        app.mount("/vendor", StaticFiles(directory=vendor_dir), name="vendor")
+        # Locally vendored JS (React, Tailwind) referenced as ``vendor/*`` from
+        # index.html — served here so the app is fully offline. These are
+        # version-pinned files that do not change, but they get the same
+        # revalidation so a vendor upgrade cannot be missed either.
+        app.mount("/vendor", _RevalidatingStatics(directory=vendor_dir), name="vendor")
 
 
 app.include_router(auth_router)
@@ -138,7 +166,11 @@ def index() -> Any:
             status_code=404,
             content={"error": "frontend_missing", "detail": str(INDEX_HTML)},
         )
-    return FileResponse(INDEX_HTML)
+    # Must revalidate. index.html carries the versioned bundle URL
+    # (static/app.js?v=<hash>, stamped by build.mjs), so a cached copy of THIS
+    # file pins the browser to whichever bundle it named when it was cached --
+    # the version query cannot help if the page announcing it is itself stale.
+    return FileResponse(INDEX_HTML, headers={"Cache-Control": "no-cache"})
 
 
 if __name__ == "__main__":

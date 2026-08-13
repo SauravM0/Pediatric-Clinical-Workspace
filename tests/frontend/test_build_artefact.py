@@ -51,7 +51,9 @@ def test_bundle_is_marked_generated():
 
 def test_index_html_loads_the_bundle_and_not_babel():
     html = INDEX_HTML.read_text(encoding="utf-8")
-    assert 'src="static/app.js"' in html, "index.html no longer loads the built bundle"
+    assert re.search(r'src="static/app\.js(\?v=[0-9a-f]+)?"', html), (
+        "index.html no longer loads the built bundle"
+    )
 
     # Check for a real Babel *reference*, not the word: the shell carries a
     # comment explaining that babel.min.js was removed, and a bare substring
@@ -90,6 +92,44 @@ def test_source_is_jsx_modules():
 
 
 # ── the freshness check itself ──────────────────────────────────────────────
+
+def test_the_bundle_url_is_cache_busted():
+    """A rebuilt bundle must reach a browser that cached the old one.
+
+    Measured before this was added: after rebuilding, a fresh tab still EXECUTED
+    the previous 293,561-byte bundle while a no-store fetch of the same URL
+    returned the new 295,729-byte one. Starlette sends ETag and Last-Modified but
+    no Cache-Control, so the browser applied heuristic caching and never asked.
+
+    For a clinical tool that is a shipping hazard: a fix deployed, and clinicians
+    still running the code it replaced with nothing on screen to say so.
+    build.mjs stamps the bundle's own hash into the URL, and --check fails if the
+    stamp and the artefact disagree.
+    """
+    html = INDEX_HTML.read_text(encoding="utf-8")
+    stamp = re.search(r'src="static/app\.js\?v=([0-9a-f]{12})"', html)
+    assert stamp, "the bundle URL carries no ?v= stamp; run npm run build"
+
+    import hashlib
+
+    digest = hashlib.sha256(BUILT_BUNDLE.read_bytes()).hexdigest()[:12]
+    assert stamp.group(1) == digest, (
+        f"index.html is stamped ?v={stamp.group(1)} but the committed bundle is "
+        f"{digest} — a browser caching the old URL would never fetch the new one"
+    )
+
+
+def test_the_server_tells_browsers_to_revalidate():
+    """The other half. The version query cannot help if the page announcing it
+    is itself served stale, so index.html and the static mounts all say
+    no-cache -- revalidate before use, NOT do-not-store, so 304s keep the
+    offline-first property intact."""
+    server = (_ROOT / "backend" / "server.py").read_text(encoding="utf-8")
+    assert '"Cache-Control": "no-cache"' in server, (
+        "index.html is served without a revalidation header"
+    )
+    assert "_RevalidatingStatics" in server, "static mounts do not revalidate"
+
 
 @pytest.mark.skipif(not _node_available(), reason="node/esbuild not installed")
 def test_bundle_matches_source():

@@ -113,6 +113,52 @@ function BoneAgePanel() {
                 {aiEstimate.quality_warning && (
                   <div style={{ fontSize:'10px', color:'#b45309', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'7px', padding:'6px 8px', marginTop:'6px', lineHeight:'1.5' }}>⚠ {aiEstimate.quality_warning}</div>
                 )}
+
+                {/* How the image source was decided, and on what evidence.
+                    Shown because the alternative — a bone age that looks the
+                    same whether it came off a scanner or off a phone — is the
+                    gap this detection exists to close. */}
+                {(aiEstimate.image_domain_conflict
+                  || aiEstimate.image_domain_source === 'auto-detected') && (() => {
+                  const conflict = aiEstimate.image_domain_conflict;
+                  const label = { film_photo: 'photo of a film',
+                                  compressed: 'compressed export',
+                                  digital_diagnostic: 'digital radiograph',
+                                  unknown: 'undetermined' };
+                  const tone = conflict
+                    ? { bg:'#fef2f2', border:'#fecaca', head:'#991b1b', body:'#b91c1c' }
+                    : { bg:'#f8fafc', border:'#e2e8f0', head:'#334155', body:'#64748b' };
+                  return (
+                    <div style={{ marginTop:'6px', background:tone.bg, border:`1px solid ${tone.border}`, borderRadius:'7px', padding:'7px 9px' }}>
+                      <div style={{ fontSize:'10px', fontWeight:'800', color:tone.head }}>
+                        {conflict
+                          ? '⚠ Declared source disagrees with the image'
+                          : `Image source detected: ${label[aiEstimate.image_domain] || aiEstimate.image_domain}`}
+                        {!conflict && aiEstimate.image_domain_confidence && (
+                          <span style={{ fontWeight:'600', color:tone.body }}> · {aiEstimate.image_domain_confidence} confidence</span>
+                        )}
+                      </div>
+                      {conflict && (
+                        <div style={{ fontSize:'10px', color:tone.body, marginTop:'3px', lineHeight:'1.5' }}>
+                          You marked this a digital radiograph; the file looks like a
+                          {' '}{label[aiEstimate.image_domain_detected] || aiEstimate.image_domain_detected}.
+                          Your declaration stands — the estimate is being treated as you marked it.
+                        </div>
+                      )}
+                      {(aiEstimate.image_domain_evidence || []).length > 0 && (
+                        <ul style={{ margin:'4px 0 0 14px', padding:0, fontSize:'9.5px', color:tone.body, lineHeight:'1.55' }}>
+                          {aiEstimate.image_domain_evidence.map((e, i) => <li key={i}>{e}</li>)}
+                        </ul>
+                      )}
+                      {!conflict && (
+                        <div style={{ fontSize:'9.5px', color:tone.body, marginTop:'4px' }}>
+                          Not what this is? Change <strong>Image source</strong> above — your
+                          choice always overrides the detection.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 {aiEstimate.population_note && (
                   <div style={{ fontSize:'10px', color:'#64748b', marginTop:'6px', lineHeight:'1.5' }}>{aiEstimate.population_note}</div>
                 )}

@@ -285,8 +285,9 @@ async def estimate(
             "glare, compression and perspective can shift the estimate. Re-acquire a "
             "direct digital / DICOM image where possible, and rely on manual TW3."
         )
-        if resolved["source"] == "auto-detected" and resolved["evidence"]:
-            quality_warning += " Detected because: " + "; ".join(resolved["evidence"]) + "."
+        # The evidence is NOT appended here. It ships structured, as
+        # image_domain_evidence, so the panel can show it as a list a clinician
+        # can scan rather than a sentence that runs off the end of the box.
     return {
         "available": True,
         "accepted": True,
