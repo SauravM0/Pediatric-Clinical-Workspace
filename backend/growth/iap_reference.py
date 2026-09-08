@@ -6,7 +6,7 @@ the authors -- Khadilkar V, et al. Indian Pediatrics 2015;52:47-55; Khadilkar
 VV & Khadilkar AV, Indian J Endocrinol Metab 2015;19(4):470-6). What *is*
 published is the full percentile table (p3/p10/p25/p50/p75/p90/p97 for height
 & weight; p3/p5/p10/p25/p50 + IOTF 23/27 adult-equivalent cutoffs for BMI) at
-0.5-year steps, 5.0-18.0y -- see actual LMS macro/*.csv, sourced directly from
+0.5-year steps, 5.0-18.0y -- see datasets/iap-lms-source/*.csv, sourced directly from
 the paper. This module fits Cole's L,M,S to those *real, published* numbers
 (holding M fixed at the exact published median, since that's ground truth and
 free to reproduce exactly; only L and S are fit, to the remaining points), then

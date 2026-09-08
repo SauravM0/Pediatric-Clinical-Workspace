@@ -5,6 +5,11 @@ train, tune, and conformally-calibrate the shipped model) and a separate
 VALIDATION set (1,425 images) the model never saw. The validation set is therefore
 a clean, truly held-out LOCKED INTERNAL TEST (Plan 5 WI-1). The large image dirs
 are gitignored; every path is overridable by env for a different machine.
+
+Layout: all corpora live under ``datasets/`` at the repo root, which is
+gitignored wholesale. Previously these sat in four differently-named top-level
+folders ("archive", "Bone+Age+Training+Set", "Bone Age Validation Set"), two of
+which held byte-identical copies of the same 9.4 GB training set.
 """
 from __future__ import annotations
 
@@ -15,10 +20,12 @@ from pathlib import Path
 
 APP_ROOT = Path(__file__).resolve().parents[3]
 
-VAL_DIR = Path(os.environ.get("RSNA_VAL_DIR", APP_ROOT / "Bone Age Validation Set"))
+DATASETS_DIR = APP_ROOT / "datasets"
+
+VAL_DIR = Path(os.environ.get("RSNA_VAL_DIR", DATASETS_DIR / "validation"))
 VAL_CSV = Path(os.environ.get("RSNA_VAL_CSV", VAL_DIR / "Validation Dataset.csv"))
-TRAIN_CSV = Path(os.environ.get("RSNA_TRAIN_CSV", APP_ROOT / "archive" / "boneage-training-dataset.csv"))
-TRAIN_DIR = Path(os.environ.get("RSNA_DATA_DIR", APP_ROOT / "Bone+Age+Training+Set" / "boneage-training-dataset"))
+TRAIN_CSV = Path(os.environ.get("RSNA_TRAIN_CSV", DATASETS_DIR / "rsna" / "train-labels.csv"))
+TRAIN_DIR = Path(os.environ.get("RSNA_DATA_DIR", DATASETS_DIR / "rsna" / "train"))
 
 
 def data_available() -> bool:

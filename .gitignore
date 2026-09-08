@@ -35,15 +35,23 @@ desktop.ini
 /.agents/
 /.claude/
 
-# Large local data assets (kept on disk, not committed).
-# Validation set is Greulich-Pyle months only - not TW3-stage usable.
-/Bone Age Validation Set/
-/Bone+Age+Training+Set/
-/archive/
-/actual LMS macro/
+# Large local data assets: every corpus lives under datasets/, never committed.
+#   datasets/rsna/train        RSNA training images (12,611) + train-labels.csv
+#   datasets/rsna/test         RSNA test images (200) + test-labels.csv
+#   datasets/validation        RSNA validation set -- the LOCKED internal test.
+#                              Greulich-Pyle months only, not TW3-stage usable.
+#   datasets/tw3-research      TW3 source PDFs for the scoring tables
+#   datasets/iap-lms-source    IAP 2015 published tables (provenance copy of
+#                              backend/growth/data/*_IAP_5_18.csv)
+# Paths are overridable per machine: RSNA_VAL_DIR, RSNA_VAL_CSV, RSNA_TRAIN_CSV,
+# RSNA_DATA_DIR (see backend/ai/validation/rsna_data.py).
+/datasets/
 
-# TW3 research PDFs (reference source for the scoring tables; large binaries).
-/TW3 research/
+# Pending deletion: the pre-move layout. `archive/boneage-training-dataset` was
+# a byte-identical copy of what is now datasets/rsna/train (12,611 files, same
+# names, matching hashes). Ignored so a stray `git add -A` cannot commit 9.4 GB
+# before it is removed; delete this line once the directory is gone.
+/archive/
 
 # Local patient database and stored radiographs (never commit PHI).
 *.db
@@ -55,8 +63,6 @@ desktop.ini
 # Regenerable training caches only (large .npz). The trained ONNX model and its
 # metadata ARE committed so the hosted/cloned app's AI screening estimate works.
 /backend/ai/models/*.npz
-/backend/ai/models/* ([0-9]).onnx
-/backend/ai/models/* ([0-9]).json
 
 # Generated diagnostics and preview artifacts.
 synthetic_hand_test.png

@@ -97,16 +97,21 @@ deprivation is fixed at 0 (a UK-only index).
 
 ```text
 backend/
-  local_bone_age.py  local baseline inference and synthetic self-test image
   server.py          FastAPI app, API routes, static serving
+  api_*.py           route modules, one per clinical domain
+  ai/                screening model, training and validation harness
+  growth/            WHO/IAP growth engine and reference data
+  tw3/               TW3-RUS scoring, tables, report pipeline
+  clinical/  cvd/  security/  monitoring/
 frontend/
   index.html         HTML shell (no application logic)
   src/               React/JSX application source — EDIT HERE
   app.js             built bundle, COMMITTED (generated; do not edit)
   vendor/            React + Tailwind, vendored for offline use
+datasets/            local image corpora — gitignored, never committed
+docs/                plans, reference material, superseded reports
 build.mjs            esbuild build for the frontend
 package.json         frontend build tooling (esbuild only)
-bone_age_server.py   backward-compatible server entrypoint
 requirements.txt     Python dependencies
 ```
 

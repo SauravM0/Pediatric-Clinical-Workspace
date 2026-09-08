@@ -39,7 +39,7 @@ from PIL import Image
 from backend.ai.boneage import IMG_SIZE, META_PATH, MODEL_PATH, _MEAN, _STD
 
 APP_ROOT = Path(__file__).resolve().parents[2]
-_DEFAULT_DIR = APP_ROOT / "Bone Age Validation Set"
+_DEFAULT_DIR = APP_ROOT / "datasets" / "validation"
 
 _ID_COLS = ("id", "image id", "imageid", "image_id", "case", "filename", "fileid")
 _AGE_COLS = ("boneage", "bone age (months)", "bone_age_months", "boneage_months",
