@@ -162,9 +162,16 @@ def _load() -> Optional[dict[tuple[str, str], WhoSeries]]:
 
 
 def reset_cache() -> None:
-    """Test seam -- the tables are read once per process in normal operation."""
+    """Test seam -- the tables are read once per process in normal operation.
+
+    Also clears who_reference's memoised lookups: this module decides WHICH
+    source answers, so changing it must invalidate anything derived from the
+    previous one. Imported locally because who_reference imports this module.
+    """
     _load.cache_clear()
     _equivalence.cache_clear()
+    from . import who_reference
+    who_reference.reset_cache()
 
 
 # ── the activation gate ─────────────────────────────────────────────────────
@@ -222,14 +229,12 @@ def _equivalence() -> dict:
     try:
         import rcpchgrowth as rg
     except ImportError:
-        return {
-            "ok": False, "checked": 0,
-            "reason": (
-                "rcpchgrowth is not installed, so equivalence cannot be measured. "
-                "That is the oracle these tables must match -- install the pinned "
-                "version, run the gate, and only then drop the dependency."
-            ),
-        }
+        # Deployed without the oracle (it is a dev-only dependency since step 7).
+        # Equivalence was measured at installation and sealed with a checksum of
+        # every table; the tables are trusted only while they are still exactly
+        # those bytes. An edited or replaced file breaks the seal and switches
+        # the tables off -- tampering is caught, it is just not re-measured.
+        return _sealed_equivalence()
 
     sex_map = {"boys": rg.MALE, "girls": rg.FEMALE}
     worst: dict[str, float] = {}
@@ -267,11 +272,52 @@ def _equivalence() -> dict:
         "worst": {k: round(v, 5) for k, v in worst.items()},
         "worst_at": worst_at,
         "tolerance": EQUIVALENCE_TOL,
+        "mode": "live",
         "reason": "ok" if ok else (
             "our WHO tables do not reproduce rcpchgrowth's output within tolerance"
             if checked else "no comparable points -- the gate proved nothing"
         ),
     }
+
+
+PROVENANCE_PATH = _DATA_DIR / "PROVENANCE.json"
+
+
+def table_checksums() -> dict[str, str]:
+    """SHA-256 of each installed table file, keyed by file name."""
+    import hashlib
+    out = {}
+    for sex in SEXES:
+        for measure in MEASURES:
+            p = table_path(measure, sex)
+            if p.exists():
+                out[p.name] = hashlib.sha256(p.read_bytes()).hexdigest()
+    return out
+
+
+def _sealed_equivalence() -> dict:
+    import json
+    try:
+        prov = json.loads(PROVENANCE_PATH.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"ok": False, "checked": 0, "mode": "sealed",
+                "reason": "rcpchgrowth is not installed and there is no readable "
+                          "PROVENANCE.json to verify the tables against"}
+    sealed = prov.get("table_sha256") or {}
+    recorded = prov.get("equivalence") or {}
+    if not sealed:
+        return {"ok": False, "checked": 0, "mode": "sealed",
+                "reason": "the installation predates sealing (no table_sha256 in "
+                          "PROVENANCE.json): re-install with rcpchgrowth present"}
+    current = table_checksums()
+    if current != sealed:
+        changed = sorted(k for k in set(current) | set(sealed) if current.get(k) != sealed.get(k))
+        return {"ok": False, "checked": 0, "mode": "sealed",
+                "reason": f"table file(s) changed since equivalence was measured: {changed}"}
+    ok = bool((prov.get("gate") or {}).get("active")) and bool(recorded.get("checked"))
+    return {"ok": ok, "mode": "sealed", "checked": recorded.get("checked", 0),
+            "worst": recorded.get("worst"), "tolerance": recorded.get("tolerance"),
+            "reason": "ok" if ok else "the recorded installation gate did not pass"}
 
 
 def lms_available() -> bool:

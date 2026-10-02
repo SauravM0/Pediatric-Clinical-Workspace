@@ -22,10 +22,12 @@ fails the export instead of shipping a bad PDF.
 """
 from __future__ import annotations
 
-from urllib.parse import urlencode
+import json
+from typing import Literal
 
-from fastapi import Depends, APIRouter, HTTPException, Query, Request
+from fastapi import Depends, APIRouter, HTTPException, Request
 from fastapi.responses import Response
+from pydantic import BaseModel, Field
 
 from backend.security.deps import clinical_access
 
@@ -41,25 +43,27 @@ _VALID_SEXES = ("boys", "girls")
 _RENDER_TIMEOUT_MS = 20_000
 
 
-@router.get("/report.pdf")
-async def get_growth_report_pdf(
-    request: Request,
-    sex: str = Query(...),
-    age: float = Query(..., ge=0.0, le=19.0),
-    height: float = Query(0.0, ge=0.0),
-    weight: float = Query(0.0, ge=0.0),
-    patient_name: str = Query("", max_length=200),
-    patient_mrn: str = Query("", max_length=100),
-    exam_date: str = Query("", max_length=40),
-) -> Response:
+class ReportRequest(BaseModel):
+    sex: Literal["boys", "girls"]
+    age: float = Field(..., ge=0.0, le=19.0)
+    height: float = Field(0.0, ge=0.0)
+    weight: float = Field(0.0, ge=0.0)
+    patient_name: str = Field("", max_length=200)
+    patient_mrn: str = Field("", max_length=100)
+    exam_date: str = Field("", max_length=40)
+
+
+@router.post("/report.pdf")
+async def get_growth_report_pdf(request: Request, body: ReportRequest) -> Response:
     """Render the growth chart report to a clean A4 PDF via headless Chromium.
 
-    Query params mirror exactly what the frontend already sends to
-    /api/growth/chart and /api/growth/point for this patient -- no new
-    clinical inputs, no recomputation here.
+    A POST, and the patient never travels in a URL. It used to be a GET with
+    patient_name, MRN and measurements in the query string -- which then sat in
+    the server's access log, in the browser history, and in the headless page's
+    own URL. The payload now goes in the request body, and reaches the report
+    page through an init script (window.__PCW_REPORT__) rather than its address.
     """
-    if sex not in _VALID_SEXES:
-        raise HTTPException(422, f"sex must be one of {_VALID_SEXES}")
+    sex = body.sex
 
     try:
         from playwright.async_api import async_playwright
@@ -73,19 +77,18 @@ async def get_growth_report_pdf(
     # Optional patient identity is passed straight through to the same
     # ?report=1 render so the exported PDF is attributable to a patient
     # (empty values simply render as a placeholder -- no new clinical inputs).
-    qs = urlencode({
-        "report": "1", "sex": sex, "age": age, "height": height, "weight": weight,
-        "patient_name": patient_name, "patient_mrn": patient_mrn, "exam_date": exam_date,
-    })
     # Self-navigation to this same server, same-origin, no external network
-    # call -- consistent with the app's "nothing leaves this computer" design
-    # (backend/server.py binds to 127.0.0.1 only).
-    target_url = f"{str(request.base_url).rstrip('/')}/?{qs}"
+    # call. Only the MODE is in the URL; the data is injected before any page
+    # script runs, as a JSON literal; json.dumps escapes quotes and backslashes,
+    # and < is escaped too so no value can ever read as markup.
+    target_url = f"{str(request.base_url).rstrip('/')}/?report=1"
+    payload = json.dumps(body.model_dump()).replace("<", "\\u003c")
 
     async with async_playwright() as pw:
         browser = await pw.chromium.launch()
         try:
             page = await browser.new_page(viewport={"width": 900, "height": 1200})
+            await page.add_init_script(f"window.__PCW_REPORT__ = {payload};")
             await page.goto(target_url, wait_until="networkidle")
 
             # #growth-chart-print always contains SOME <div> from the very first

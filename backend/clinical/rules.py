@@ -25,7 +25,6 @@ from typing import Callable, Optional
 
 from .snapshot import (
     ATTENTION,
-    INFO,
     INSUFFICIENT_DATA,
     SEVERITY_ORDER,
     URGENT,
@@ -282,20 +281,23 @@ def _disproportion(s: PatientSnapshot) -> Optional[Finding]:
     )
 
 
-@rule("BONE_AGE_DISCREPANCY", ("bone_age_years", "age_years"),
-      "Bone age more than 2 years from chronological age")
+@rule("BONE_AGE_DISCREPANCY", ("bone_age_years", "bone_age_chronological_years"),
+      "Bone age more than 2 years from chronological age at the film")
 def _bone_age(s: PatientSnapshot) -> Optional[Finding]:
-    diff = s.bone_age_years - s.age_years
+    # Against the age AT THE FILM, not the latest measurement: comparing an old
+    # film with today's age manufactures a delay equal to the film's age.
+    ca = s.bone_age_chronological_years
+    diff = s.bone_age_years - ca
     if abs(diff) <= T("bone_age_discrepancy_years"):
         return None
     word = "advanced" if diff > 0 else "delayed"
     return Finding(
         "BONE_AGE_DISCREPANCY", ATTENTION, f"Skeletal maturity {word}",
         f"Bone age {s.bone_age_years:.1f} y against chronological age "
-        f"{s.age_years:.1f} y ({diff:+.1f} y). Interpret with the method's own "
+        f"{ca:.1f} y at the film ({diff:+.1f} y). Interpret with the method's own "
         "uncertainty: the active curve is provisional and digitized, so a "
         "discrepancy near the threshold may be method error rather than biology.",
-        {"bone_age_years": s.bone_age_years, "chronological_age_years": round(s.age_years, 2),
+        {"bone_age_years": s.bone_age_years, "chronological_age_years": round(ca, 2),
          "difference_years": round(diff, 2), "method": s.bone_age_method},
         SRC("bone_age_discrepancy_years"), CONF("bone_age_discrepancy_years"),
         suggests_specialty=("paediatric endocrinology",),

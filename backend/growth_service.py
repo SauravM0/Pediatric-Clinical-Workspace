@@ -12,7 +12,7 @@ testability and reuse. ``tests/growth/test_domain_purity.py`` fails if
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from sqlalchemy import select
@@ -39,6 +39,20 @@ def _utcnow() -> datetime:
 
 def _naive(dt: datetime) -> datetime:
     return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
+
+
+# One day of slack for time zones: the exam date typed in India can be "tomorrow"
+# in UTC for a few hours.
+_FUTURE_TOLERANCE = timedelta(days=1)
+
+
+def _not_future(when: datetime, what: str) -> datetime:
+    """Refuse a clinical date in the future. A mistyped year (2062 for 2026)
+    otherwise stores silently and corrupts every velocity computed across it."""
+    when = _naive(when)
+    if when > _utcnow() + _FUTURE_TOLERANCE:
+        raise GrowthRecordError(f"{what} {when.date().isoformat()} is in the future")
+    return when
 
 
 def age_months_at(patient: Patient, when: datetime) -> Optional[float]:
@@ -75,7 +89,7 @@ def record_observation(db: Session, *, patient_id: int, obs_type: str, value: fl
     """
     patient = _require_patient(db, patient_id)
     obs = observations.validate(obs_type, value, unit)
-    when = _naive(observed_at or _utcnow())
+    when = _not_future(observed_at or _utcnow(), "measurement date")
 
     if patient.date_of_birth is not None and when < _naive(patient.date_of_birth):
         raise GrowthRecordError("observation predates the patient's date of birth")
@@ -181,8 +195,19 @@ def set_date_of_birth(db: Session, patient_id: int, date_of_birth: datetime, *,
                       actor: str = "local-user") -> int:
     """Correct a date of birth and recompute every dependent age in one step."""
     patient = _require_patient(db, patient_id)
+    new_dob = _not_future(date_of_birth, "date of birth")
+    # A birth date after a recorded measurement gives that measurement a negative
+    # age, and every centile computed from it is meaningless.
+    earliest = db.execute(
+        select(Observation.observed_at).where(Observation.patient_id == patient_id)
+        .where(Observation.status == "active").order_by(Observation.observed_at).limit(1)
+    ).scalar_one_or_none()
+    if earliest is not None and new_dob > earliest:
+        raise GrowthRecordError(
+            f"date of birth {new_dob.date().isoformat()} is after a recorded "
+            f"measurement ({earliest.date().isoformat()})")
     previous = patient.date_of_birth
-    patient.date_of_birth = _naive(date_of_birth)
+    patient.date_of_birth = new_dob
     _audit(db, assessment_id=None, patient_id=patient_id, event_type="dob_corrected",
            actor=actor,
            previous={"date_of_birth": previous.isoformat() if previous else None},
@@ -321,10 +346,24 @@ def record_puberty(db: Session, *, patient_id: int, assessed_at: Optional[dateti
             raise GrowthRecordError(f"{name} must be Tanner 1-5, got {stage}")
     if testicular_volume_ml is not None and not (0 < testicular_volume_ml <= 40):
         raise GrowthRecordError("testicular_volume_ml must be between 0 and 40")
+    # Sex-specific staging. A menarche date on a boy or a testicular volume on a
+    # girl is an entry error (usually the wrong record open), and the puberty
+    # rules would read it as a clinical fact.
+    patient = _require_patient(db, patient_id)
+    if patient.sex_at_birth == "boys" and (breast_stage is not None or menarche_date is not None):
+        raise GrowthRecordError("breast stage and menarche are recorded for girls; "
+                                "this record is male")
+    if patient.sex_at_birth == "girls" and (genital_stage is not None
+                                           or testicular_volume_ml is not None):
+        raise GrowthRecordError("genital stage and testicular volume are recorded for "
+                                "boys; this record is female")
 
+    assessed_at = _not_future(assessed_at or _utcnow(), "assessment date")
+    if menarche_date is not None:
+        _not_future(menarche_date, "menarche date")
     row = PubertyAssessment(
         patient_id=patient_id, encounter_id=encounter_id,
-        assessed_at=_naive(assessed_at or _utcnow()), breast_stage=breast_stage,
+        assessed_at=assessed_at, breast_stage=breast_stage,
         genital_stage=genital_stage, pubic_hair_stage=pubic_hair_stage,
         testicular_volume_ml=testicular_volume_ml,
         menarche_date=_naive(menarche_date) if menarche_date else None,
@@ -335,3 +374,154 @@ def record_puberty(db: Session, *, patient_id: int, assessed_at: Optional[dateti
     _audit(db, assessment_id=None, patient_id=patient_id, event_type="puberty_recorded",
            actor=actor, new={"id": row.id, "assessed_at": row.assessed_at.isoformat()})
     return row
+
+
+# ── patient registry (step 3) ───────────────────────────────────────────────
+#
+# Until step 3 a patient could only come into existence as a side effect of
+# saving a bone-age assessment, so the longitudinal record, the rules engine and
+# triage -- all keyed by patient -- were unreachable from the workspace.
+
+PARENT_HEIGHT_RANGE_CM = (100.0, 230.0)
+GESTATIONAL_AGE_RANGE_WEEKS = (22.0, 44.0)
+BIRTH_WEIGHT_RANGE_G = (300.0, 6500.0)
+PARENTAL_SOURCES = ("measured", "reported")
+SEXES = ("boys", "girls")
+
+
+def patient_summary(patient: Patient) -> dict[str, Any]:
+    return {
+        "id": patient.id, "patient_code": patient.patient_code, "name": patient.name,
+        "sex_at_birth": patient.sex_at_birth,
+        "date_of_birth": patient.date_of_birth.date().isoformat() if patient.date_of_birth else None,
+        "mother_height_cm": patient.mother_height_cm,
+        "father_height_cm": patient.father_height_cm,
+        "parental_height_source": patient.parental_height_source,
+        "gestational_age_weeks": patient.gestational_age_weeks,
+        "birth_weight_g": patient.birth_weight_g,
+    }
+
+
+def find_patient_by_code(db: Session, patient_code: str) -> Optional[Patient]:
+    code = (patient_code or "").strip()
+    if not code:
+        return None
+    return db.execute(select(Patient).where(Patient.patient_code == code)).scalar_one_or_none()
+
+
+def _check_range(name: str, value: Optional[float], bounds: tuple[float, float]) -> None:
+    if value is not None and not (bounds[0] <= value <= bounds[1]):
+        raise GrowthRecordError(f"{name} must be between {bounds[0]:g} and {bounds[1]:g}")
+
+
+def _validate_context(fields: dict[str, Any]) -> None:
+    _check_range("mother_height_cm", fields.get("mother_height_cm"), PARENT_HEIGHT_RANGE_CM)
+    _check_range("father_height_cm", fields.get("father_height_cm"), PARENT_HEIGHT_RANGE_CM)
+    _check_range("gestational_age_weeks", fields.get("gestational_age_weeks"),
+                 GESTATIONAL_AGE_RANGE_WEEKS)
+    _check_range("birth_weight_g", fields.get("birth_weight_g"), BIRTH_WEIGHT_RANGE_G)
+    src = fields.get("parental_height_source")
+    if src is not None and src not in PARENTAL_SOURCES:
+        raise GrowthRecordError(f"parental_height_source must be one of {PARENTAL_SOURCES}")
+
+
+def create_patient(db: Session, *, patient_code: str, sex: str,
+                   date_of_birth: Optional[datetime] = None, name: Optional[str] = None,
+                   actor: str = "local-user", **context: Any) -> Patient:
+    code = (patient_code or "").strip()
+    if not code or len(code) > 64:
+        raise GrowthRecordError("patient_code (MRN) is required, at most 64 characters")
+    if sex not in SEXES:
+        raise GrowthRecordError(f"sex must be one of {SEXES}")
+    if find_patient_by_code(db, code) is not None:
+        raise GrowthRecordError(f"a patient with code {code!r} already exists")
+    if date_of_birth is not None:
+        _not_future(date_of_birth, "date of birth")
+    _validate_context(context)
+    patient = Patient(patient_code=code, sex_at_birth=sex, name=(name or None),
+                      date_of_birth=_naive(date_of_birth) if date_of_birth else None,
+                      **{k: v for k, v in context.items() if v is not None})
+    db.add(patient)
+    db.flush()
+    _audit(db, assessment_id=None, patient_id=patient.id, event_type="patient_created",
+           actor=actor, new={"patient_code": code, "sex": sex})
+    return patient
+
+
+CONTEXT_FIELDS = ("mother_height_cm", "father_height_cm", "parental_height_source",
+                  "gestational_age_weeks", "birth_weight_g")
+
+
+def update_patient_context(db: Session, patient_id: int, *, actor: str = "local-user",
+                           **fields: Any) -> Patient:
+    """Set clinical context. Sex and date of birth are NOT editable here: sex
+    drives every z-score, and a date of birth change must recompute stored ages
+    (see set_date_of_birth)."""
+    patient = _require_patient(db, patient_id)
+    unknown = set(fields) - set(CONTEXT_FIELDS)
+    if unknown:
+        raise GrowthRecordError(f"not editable here: {sorted(unknown)}")
+    _validate_context(fields)
+    previous = {k: getattr(patient, k) for k in fields}
+    for k, v in fields.items():
+        setattr(patient, k, v)
+    db.flush()
+    _audit(db, assessment_id=None, patient_id=patient_id, event_type="patient_context_updated",
+           actor=actor, previous=previous, new=fields)
+    return patient
+
+
+# Measurements a clinician takes at one visit. BMI is NOT accepted from the
+# client: it is derived here from the same visit's height and weight, so it can
+# never disagree with them.
+VISIT_FIELDS = ("height", "weight", "head_circumference", "sitting_height",
+                "arm_span", "systolic_bp", "diastolic_bp")
+
+
+def record_visit_measurements(db: Session, *, patient_id: int, observed_at: datetime,
+                              values: dict[str, Optional[float]],
+                              allow_implausible_change: bool = False,
+                              actor: str = "local-user") -> dict[str, Any]:
+    """Record one visit's measurements ALL-OR-NOTHING.
+
+    Any invalid value raises and, because the request session rolls back on
+    error, nothing from the visit is stored -- a height saved without its weight
+    would leave a BMI gap and a half-recorded visit.
+    """
+    patient = _require_patient(db, patient_id)
+    if patient.date_of_birth is None:
+        raise GrowthRecordError(
+            "the record has no date of birth: ages (and so every centile and "
+            "velocity) cannot be computed. Set it first.")
+    entered = {k: v for k, v in values.items() if v is not None}
+    unknown = set(entered) - set(VISIT_FIELDS)
+    if unknown:
+        raise GrowthRecordError(f"unknown measurement(s): {sorted(unknown)}")
+    if not entered:
+        raise GrowthRecordError("no measurement entered")
+    if ("systolic_bp" in entered) != ("diastolic_bp" in entered):
+        raise GrowthRecordError("record systolic and diastolic BP together")
+    if "systolic_bp" in entered and entered["diastolic_bp"] >= entered["systolic_bp"]:
+        raise GrowthRecordError("diastolic BP must be lower than systolic")
+
+    encounter = create_encounter(db, patient_id=patient_id, occurred_at=observed_at,
+                                 reason="measurements")
+    saved, warnings = [], []
+    for key in VISIT_FIELDS:
+        if key not in entered:
+            continue
+        row, w = record_observation(
+            db, patient_id=patient_id, obs_type=key, value=entered[key],
+            observed_at=observed_at, encounter_id=encounter.id,
+            allow_implausible_change=allow_implausible_change, actor=actor)
+        saved.append({"obs_type": key, "value": row.value, "unit": row.unit})
+        warnings += w
+    if "height" in entered and "weight" in entered:
+        bmi = entered["weight"] / (entered["height"] / 100.0) ** 2
+        row, w = record_observation(
+            db, patient_id=patient_id, obs_type="bmi", value=round(bmi, 2),
+            observed_at=observed_at, encounter_id=encounter.id, method="derived",
+            note="derived from same-visit height and weight", actor=actor)
+        saved.append({"obs_type": "bmi", "value": row.value, "unit": row.unit, "derived": True})
+        warnings += w
+    return {"encounter_id": encounter.id, "saved": saved, "warnings": warnings}

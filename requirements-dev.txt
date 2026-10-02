@@ -1,8 +1,17 @@
-# Development / test tooling only. Not required to run the app.
-pytest>=8.0
-# FastAPI's TestClient (starlette) needs httpx as its transport; the bone-age API
-# tests import fastapi.testclient. Runtime deps (fastapi, sqlalchemy, onnxruntime)
-# live in requirements.txt; this is the only extra the test suite needs.
-httpx>=0.27
-# Used once to read the scanned TW3 research PDFs during table reconstruction.
-pymupdf>=1.24
+# Development and test tooling. Not needed to RUN the app.
+#
+#   pip install -r requirements.txt -r requirements-dev.txt
+#   python -m pytest
+#
+# Three packages, about 60 MB on top of the runtime set.
+pytest==9.1.1
+# FastAPI's TestClient (starlette) needs httpx as its transport; the API suites
+# import fastapi.testclient.
+httpx==0.28.1
+# The WHO equivalence ORACLE, not a runtime dependency (step 7).
+# WHO's own LMS tables answer at run time (backend/growth/data/who_lms/), sealed
+# by checksum at installation. This package (AGPL-3.0) is needed only to
+# re-measure equivalence when the tables are re-installed, and by the parity
+# tests for the local LMS transform. Pinned exactly: the gate compares against
+# THIS version's output.
+rcpchgrowth==4.5.0

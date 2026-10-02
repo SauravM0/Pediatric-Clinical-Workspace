@@ -10,10 +10,8 @@ published is the full percentile table (p3/p10/p25/p50/p75/p90/p97 for height
 the paper. This module fits Cole's L,M,S to those *real, published* numbers
 (holding M fixed at the exact published median, since that's ground truth and
 free to reproduce exactly; only L and S are fit, to the remaining points), then
-feeds every subsequent measurement/z-score calculation through rcpchgrowth's
-generic LMS functions (lms_core) -- so the fitting is ours (necessarily, since
-no one has released the original coefficients), but the actual clinical
-computation is rcpchgrowth's tested implementation, exactly as for WHO.
+feeds every subsequent measurement/z-score calculation through the shared LMS
+transform in lms_core -- the same code, bit for bit, that scores WHO.
 
 This is fit once at import time and cached; it is not a per-request cost.
 
@@ -115,7 +113,7 @@ def _fit_row(row: dict, zmap: dict[int, float]) -> tuple[float, float, float]:
 
 def _load_csv(path: Path, pct_cols: list[int]) -> dict[float, dict]:
     rows: dict[float, dict] = {}
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8-sig") as f:
         for r in csv.DictReader(f):
             age = float(r["age_years"])
             rows[age] = {p: float(r[f"p{p}"]) for p in pct_cols}
@@ -125,7 +123,7 @@ def _load_csv(path: Path, pct_cols: list[int]) -> dict[float, dict]:
 def _load_bmi_csv(path: Path) -> tuple[dict[float, dict], dict[float, tuple[float, float]]]:
     rows: dict[float, dict] = {}
     cutoffs: dict[float, tuple[float, float]] = {}
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8-sig") as f:
         for r in csv.DictReader(f):
             age = float(r["age_years"])
             rows[age] = {p: float(r[f"p{p}"]) for p in (3, 5, 10, 25, 50)}

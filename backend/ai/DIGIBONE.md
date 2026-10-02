@@ -180,3 +180,41 @@ checked rather than assumed.
 **Does** make the segmental output meaningful: separate short-bone, carpal and
 wrist estimates map onto the per-bone UI that already exists, so a reader can see
 *where* the maturity signal is coming from instead of one opaque number.
+
+---
+
+## Measured on 19 September 2026 — evaluation is not yet possible
+
+Weights downloaded from the v1.0 releases (`full_hand_age_{m,f}.pth`, and the
+RSNA baselines `full_hand_boneage{,_girl}.pth`); every SHA-256 matched GitHub's
+published digest. None of digiBONE's code was executed: the network was rebuilt
+from torchvision's `densenet161`, and the weights were read with torch's
+restricted unpickler, allow-listing only 11 standard torch/torchvision classes
+(the baseline files are pickled whole-model objects, never loaded with
+`weights_only=False`). Files live in `datasets/digibone/` (gitignored).
+
+**Finding 1 — "only the last layer was fine-tuned" is not what the weights show.**
+Compared tensor by tensor, the Indian models differ from the RSNA baselines in
+the classifier **and in all 161 batch-norm layers** (affine parameters and
+running statistics); only the 160 convolution kernels are identical. Batch-norm
+running statistics encode the training films' intensity distribution, so the
+Indian models are adapted to HCJMRI's films, not only to Indian children.
+
+**Finding 2 — the training preprocessing is not reproducible from the repo.**
+With the preprocessing in `SGP_bone_age.py`, digiBONE's *own RSNA-trained
+baseline* scores 19.5 months MAE on the locked RSNA test (boys > 15 y: 43.8),
+where a model trained on RSNA should score roughly 5–8. Probing normalisations
+(mean 0/std 1, 0.1925/0.1435, ImageNet) × padding on **RSNA training images**
+(never the locked test) found no configuration that reaches training-level
+error: best 7.2 months (boys) / 9.5 (girls), with a persistent −6 to −9 month
+bias. Something in the training pipeline — cropping, contrast handling, or a
+label convention — is not in the published code.
+
+**Consequence.** The figure obtained for the Indian full-hand models on the
+locked test (13.2 months vs this product's 8.99) measures our guess at their
+pipeline, not digiBONE, and **must not be quoted**. digiBONE stays off.
+
+**What would unblock it:** the authors' exact training/inference preprocessing
+(ask in the same message as the IAP/velocity request — see
+`validation/REFERENCE-DATA-ACTION-PACK.md`), and then an evaluation on the clinic's
+own dual-read cohort, which is the population the Indian fine-tuning targets.

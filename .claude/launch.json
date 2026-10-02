@@ -9,6 +9,12 @@
       "autoPort": true
     },
     {
+      "name": "clinical-workspace-scratch-db",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["-c", "import os; os.environ['TW3_DB_PATH']=r'C:/Users/Alexa/AppData/Local/Temp/claude/C--Users-Alexa-Desktop-workplace/69f2c062-0b56-454b-83d9-c617c4195d1a/scratchpad/verify.db'; os.environ['PORT']='8079'; import runpy; runpy.run_module('backend.server', run_name='__main__')"],
+      "port": 8079
+    },
+    {
       "name": "growth-qa-static",
       "runtimeExecutable": ".venv/Scripts/python.exe",
       "runtimeArgs": ["-m", "http.server", "8078"],

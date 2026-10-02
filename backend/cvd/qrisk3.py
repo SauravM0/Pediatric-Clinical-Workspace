@@ -20,7 +20,6 @@ interpret alongside Indian guidance (Lipid Association of India / ICMR).
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 QRISK3_ELIGIBLE_AGE = (25, 84)
 
@@ -170,11 +169,24 @@ def qrisk3(patient: dict) -> dict:
     risk = max(0.0, min(100.0, risk))
 
     band = "high" if risk >= 20 else "moderate" if risk >= 10 else "low"
+
+    # QRISK3's "healthy person" comparison: same age, sex and ethnicity with
+    # optimal modifiable factors (BMI 25, cholesterol ratio 4.0, SBP 125, no
+    # smoking, diabetes or conditions). Was computed only in the browser.
+    healthy = {"age": age, "bmi": 25.0, "ethnicity": p.get("ethnicity", 1), "smoke": 0,
+               "diabetes": 0, "cholesterol_ratio": 4.0, "systolic_bp": 125.0,
+               "sbp_sd": 0.0, "townsend": 0.0}
+    healthy_risk = 100.0 * (1.0 - M["survivor"] ** math.exp(_linear_predictor(healthy, M, is_female)))
+
     return {
         "available": True,
         "eligible": True,
         "risk_percent": round(risk, 1),
         "band": band,
+        "healthy_person_percent": round(max(0.0, min(100.0, healthy_risk)), 1),
+        # The model caps BMI to 20-40; outside that the score treats the patient
+        # as if at the cap, which the clinician should know.
+        "bmi_clamped": not (20.0 <= bmi <= 40.0),
         "imputed_fields": imputed,
         "model": "QRISK3-2017 (ClinRisk, UK adult cohort)",
         "note": ("UK-derived adult model; not India-specific. Interpret alongside "

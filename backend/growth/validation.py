@@ -374,7 +374,7 @@ def check_source_reproduction() -> dict:
             max_err = 0.0
             boundary_err = 0.0
             reconstructed_err = 0.0
-            with open(path, newline="") as f:
+            with open(path, newline="", encoding="utf-8-sig") as f:
                 for row in _csv.DictReader(f):
                     age = float(row["age_years"])
                     for c in (3, 10, 25, 50, 75, 90, 97):

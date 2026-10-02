@@ -9,15 +9,13 @@ blocked — a repeat study of the same child is legitimate.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
-from typing import Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.config import RADIOGRAPH_DIR
 from backend.imaging import image_hash, load_bytes, quality_precheck, store_radiograph
-from backend.models import Radiograph, TW3Assessment
+from backend.models import Radiograph
 from backend.tw3 import IMAGE_DOMAINS, AssessmentStatus
 from backend.assessment_service import AssessmentError, _audit, get_assessment
 

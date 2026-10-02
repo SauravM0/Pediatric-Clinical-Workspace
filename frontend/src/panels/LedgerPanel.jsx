@@ -7,17 +7,27 @@
 import { useLedger } from "../state.jsx";
 
 function LedgerPanel() {
-  const { age, albuminuria, assessment, chronicityStatus, creatinine, height, logCurrentData, setTimeline, timeline, weight } = useLedger();
+  const { age, albuminuria, assessment, canLogSnapshot, chronicityStatus, creatinine, height, logCurrentData, setTimeline, timeline, weight } = useLedger();
   return (
       <div style={{ flex:1, display:'flex', flexDirection:'column', gap:'16px' }}>
         <div className="timeline-header">
           <div>
             <h3 style={{ fontSize:'13px', fontWeight:'800', color:'#334155' }}>CKD Progression Ledger</h3>
             <p style={{ fontSize:'11px', color:'#94a3b8', marginTop:'3px' }}>Session snapshots — chronicity assessment over ≥ 90 days</p>
+            {/* Held in browser memory only. Saying so matters: a clinician who logs
+                results here and reloads loses them, with nothing to warn them. */}
+            <p style={{ fontSize:'10.5px', color:'#b45309', marginTop:'4px', fontWeight:700 }}>
+              Not saved: snapshots are cleared when the page reloads. Use the Patient Record tab for saved measurements.
+            </p>
           </div>
           <div className="timeline-actions">
-            <button onClick={logCurrentData} style={{ padding:'7px 16px', background:'#4f46e5', color:'white', border:'none', borderRadius:'9px', fontSize:'12px', fontWeight:'700', cursor:'pointer', boxShadow:'0 1px 4px rgba(79,70,229,0.3)', transition:'background 0.15s' }}
-              onMouseEnter={e=>e.target.style.background='#4338ca'} onMouseLeave={e=>e.target.style.background='#4f46e5'}>
+            {/* Disabled until the renal inputs are really entered and plausible: a
+                snapshot used to record the placeholder values (creatinine 0.50,
+                height 131.5) as if they were this patient's results. */}
+            <button onClick={logCurrentData} disabled={!canLogSnapshot}
+              title={canLogSnapshot ? 'Record the current values' : 'Enter age, sex, height and serum creatinine (within plausible ranges) first'}
+              style={{ padding:'7px 16px', background: canLogSnapshot ? '#4f46e5' : '#cbd5e1', color:'white', border:'none', borderRadius:'9px', fontSize:'12px', fontWeight:'700', cursor: canLogSnapshot ? 'pointer' : 'not-allowed', boxShadow:'0 1px 4px rgba(79,70,229,0.3)', transition:'background 0.15s' }}
+              onMouseEnter={e=>{ if (canLogSnapshot) e.target.style.background='#4338ca'; }} onMouseLeave={e=>{ if (canLogSnapshot) e.target.style.background='#4f46e5'; }}>
               + Log Snapshot
             </button>
             {timeline.length > 0 && (
@@ -95,7 +105,7 @@ function LedgerPanel() {
                     <td style={{ padding:'10px 12px', fontWeight:'700', color:'#475569' }}>{item.creatinine}</td>
                     <td style={{ padding:'10px 12px', fontWeight:'800', color:'#4f46e5' }}>{item.egfr}</td>
                     <td style={{ padding:'10px 12px' }}>
-                      <span style={{ padding:'2px 8px', borderRadius:'99px', fontSize:'10px', fontWeight:'700', background:'#eef2ff', color:'#4338ca', border:'1px solid #c7d2fe' }}>{item.albuminuria}</span>
+                      <span style={{ padding:'2px 8px', borderRadius:'99px', fontSize:'10px', fontWeight:'700', background:'#eef2ff', color:'#4338ca', border:'1px solid #c7d2fe' }}>{item.albuminuria || 'not recorded'}</span>
                     </td>
                     <td style={{ padding:'10px 12px', fontWeight:'700', color:'#059669' }}>{item.fib4 !== null ? item.fib4 : '—'}</td>
                   </tr>

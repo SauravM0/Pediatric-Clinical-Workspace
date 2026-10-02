@@ -3,8 +3,11 @@
 A SOFT sanity check: does our accumulated, clinician-confirmed TW3 bone-age
 distribution look plausible against a published cohort? This is NEVER a release
 gate and NEVER a patient-facing conclusion -- the study population is external
-(likely not Indian) and to be confirmed. See
-``plans/REFERENCE-cpp-skeletal-maturation-study.md``.
+(likely not Indian) and to be confirmed. The study: a cross-sectional comparison
+of central precocious puberty (n = 70) vs controls (n = 48), all about 8 years
+old, on TW3 hand-wrist, SMI and CVMI. Its exact citation is still unconfirmed
+(tables supplied without a reference; the design suggests a Korean orthodontic
+or paediatric journal), so treat these priors as provisional.
 
 Encodes the study's TW3 bone-age band distributions (its Table A) and its
 qualitative maturity findings (SMI discriminates CPP; CVMI does not at ~8y).

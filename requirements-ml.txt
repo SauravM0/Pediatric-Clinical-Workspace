@@ -1,0 +1,23 @@
+# OPTIONAL: retraining the bone-age screening model. Never needed to run the app.
+#
+# The clinic install runs the shipped ONNX model through onnxruntime (in
+# requirements.txt). PyTorch is only for producing a NEW model, and it is by far
+# the heaviest thing in this project: torch + torchvision + their dependencies
+# (sympy, networkx, jinja2, fsspec, filelock, mpmath) come to about 620 MB, more
+# than twice the entire runtime environment. That is why it lives in its own file.
+#
+# Install into a SEPARATE environment, from the CPU wheel index:
+#   python -m venv .venv-ml
+#   .venv-ml/Scripts/pip install -r requirements.txt -r requirements-ml.txt \
+#       --extra-index-url https://download.pytorch.org/whl/cpu
+#
+# Used by: backend/ai/train_boneage.py, train_localizer.py, train_stager.py,
+# convert_digibone.py. See backend/ai/RETRAIN.md for the procedure and the gate
+# a new model must pass (it must beat MAE 8.99 months on the locked test set).
+#
+# Unpinned on purpose: a training run is reproduced from the recipe recorded in
+# backend/ai/training_recipe.json, not from this file, and the CPU wheel index
+# carries different build tags per platform.
+torch
+torchvision
+onnx          # ONNX export from the legacy torch exporter

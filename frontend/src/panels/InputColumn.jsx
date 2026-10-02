@@ -1,8 +1,13 @@
 /**
  * The left-hand input column (M6 panel extraction).
  *
- * Three cards -- demographics, clinical labs, FRAX risk factors -- and the last
- * large markup block that was still inline in App.
+ * Two cards -- demographics and clinical labs -- and the last large markup block
+ * that was still inline in App. The FRAX risk factors used to be a third card;
+ * they fed an invented formula and now belong to the official FRAX calculator,
+ * whose result is recorded on the FRAX tab.
+ *
+ * Every numeric field shows a rangeProblem() message when its value is outside
+ * a physiologically plausible range, and the panels refuse to compute from it.
  *
  * Not a panel in the tab sense: it is the EDITOR for the measurements every tab
  * reads, and it stays on screen whichever tab is open. That is why it is the
@@ -10,26 +15,26 @@
  * demographics and labs. Everything else reads derived metrics.
  *
  * The cards de-emphasise rather than disable when the active tab does not use
- * them (`labsRelevant` / `fraxRelevant`): results still recalculate as you type,
+ * them (`labsRelevant`): results still recalculate as you type,
  * so a clinician entering data out of order is never blocked -- the dimming is a
  * hint about relevance, not a gate.
  */
 import { useInputs } from "../state.jsx";
-import { FraxToggleRow, InputWithUnit } from "../ui.jsx";
+import { InputWithUnit } from "../ui.jsx";
+import { rangeProblem } from "../clinicalRanges.js";
 
 function InputColumn() {
   const {
     age, handleAgeChange, dob, handleDobChange, ageParts,
     gender, setGender, height, setHeight, weight, setWeight,
-    labsRelevant, fraxRelevant,
+    labsRelevant,
     creatinine, setCreatinine, albuminuria, setAlbuminuria,
     systolic, setSystolic, diastolic, setDiastolic,
     ast, setAst, alt, setAlt, platelets, setPlatelets,
-    prevFracture, setPrevFracture, parentHipFracture, setParentHipFracture,
-    smoking, setSmoking, glucocorticoids, setGlucocorticoids,
-    rheumatoid, setRheumatoid, secondaryOsteo, setSecondaryOsteo,
-    alcohol, setAlcohol,
   } = useInputs();
+  // Diastolic at or above systolic is an entry error, not a blood pressure.
+  const bpOrderProblem = (systolic !== "" && diastolic !== "" && diastolic >= systolic)
+    ? 'Diastolic must be lower than systolic' : null;
 
   return (
     <div className="input-column">
@@ -55,6 +60,7 @@ function InputColumn() {
                 unit="yrs"
                 unitPosition="right"
                 accent="#4f46e5"
+                problem={rangeProblem('age', age)}
               />
               <div style={{ minWidth:0 }}>
                 <label className="field-label">Date of Birth</label>
@@ -95,8 +101,8 @@ function InputColumn() {
 
           {/* Height + Weight */}
           <div className="form-grid">
-            <InputWithUnit label="Height" value={height} onChange={e => setHeight(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="cm" unit="cm" />
-            <InputWithUnit label="Weight" value={weight} onChange={e => setWeight(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="kg" unit="kg" />
+            <InputWithUnit label="Height" value={height} onChange={e => setHeight(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="cm" unit="cm" problem={rangeProblem('height', height)} />
+            <InputWithUnit label="Weight" value={weight} onChange={e => setWeight(e.target.value === "" ? "" : parseFloat(e.target.value))} placeholder="kg" unit="kg" problem={rangeProblem('weight', weight)} />
           </div>
         </div>
       </div>
@@ -118,6 +124,7 @@ function InputColumn() {
             step="0.01"
             unit="mg/dL"
             accent="#0891b2"
+            problem={rangeProblem('creatinine', creatinine)}
           />
 
           {/* Albuminuria */}
@@ -135,8 +142,8 @@ function InputColumn() {
 
           {/* BP */}
           <div className="form-grid">
-            <InputWithUnit label="Systolic BP" value={systolic} onChange={e => setSystolic(e.target.value === "" ? "" : parseInt(e.target.value))} placeholder="mmHg" unit="mmHg" />
-            <InputWithUnit label="Diastolic BP" value={diastolic} onChange={e => setDiastolic(e.target.value === "" ? "" : parseInt(e.target.value))} placeholder="mmHg" unit="mmHg" />
+            <InputWithUnit label="Systolic BP" value={systolic} onChange={e => setSystolic(e.target.value === "" ? "" : parseInt(e.target.value))} placeholder="mmHg" unit="mmHg" problem={rangeProblem('systolic', systolic)} />
+            <InputWithUnit label="Diastolic BP" value={diastolic} onChange={e => setDiastolic(e.target.value === "" ? "" : parseInt(e.target.value))} placeholder="mmHg" unit="mmHg" problem={rangeProblem('diastolic', diastolic) || bpOrderProblem} />
           </div>
 
           {/* Liver enzymes */}
@@ -144,10 +151,10 @@ function InputColumn() {
             <label className="field-label" style={{ marginBottom:'10px' }}>Hepatic Enzymes & Platelets</label>
             <div className="liver-grid">
               {[
-                ['AST', 'SGOT · U/L', ast, e => setAst(e.target.value === "" ? "" : parseFloat(e.target.value))],
-                ['ALT', 'SGPT · U/L', alt, e => setAlt(e.target.value === "" ? "" : parseFloat(e.target.value))],
-                ['PLT', '×10³ / µL', platelets, e => setPlatelets(e.target.value === "" ? "" : parseFloat(e.target.value))],
-              ].map(([lbl, sub, val, fn]) => (
+                ['AST', 'SGOT · U/L', ast, e => setAst(e.target.value === "" ? "" : parseFloat(e.target.value)), 'ast'],
+                ['ALT', 'SGPT · U/L', alt, e => setAlt(e.target.value === "" ? "" : parseFloat(e.target.value)), 'alt'],
+                ['PLT', '×10³ / µL', platelets, e => setPlatelets(e.target.value === "" ? "" : parseFloat(e.target.value)), 'platelets'],
+              ].map(([lbl, sub, val, fn, field]) => (
                 <div key={lbl} style={{ display:'flex', flexDirection:'column', alignItems:'stretch' }}>
                   <span style={{ fontSize:'12px', fontWeight:'800', color:'#334155', textAlign:'center', display:'block', marginBottom:'2px' }}>{lbl}</span>
                   <span style={{ fontSize:'9px', fontWeight:'600', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em', textAlign:'center', display:'block', marginBottom:'6px' }}>{sub}</span>
@@ -157,30 +164,15 @@ function InputColumn() {
                     value={val}
                     onChange={fn}
                     className="input-field"
-                    style={{ textAlign:'center', padding:'9px 8px', width:'100%', boxSizing:'border-box' }}
+                    aria-invalid={rangeProblem(field, val) ? true : undefined}
+                    style={{ textAlign:'center', padding:'9px 8px', width:'100%', boxSizing:'border-box',
+                             ...(rangeProblem(field, val) ? { borderColor:'#f87171', background:'#fff7f7' } : {}) }}
                   />
+                  {rangeProblem(field, val) && <div role="alert" style={{ fontSize:'10px', color:'#b91c1c', marginTop:'4px', lineHeight:'1.3', textAlign:'center' }}>{rangeProblem(field, val)}</div>}
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Card: FRAX */}
-      <div className={`card${fraxRelevant ? '' : ' section-dim'}`} style={{ padding:'20px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:'14px', paddingBottom:'12px', borderBottom:'1px solid #f1f5f9' }}>
-          <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#d97706', flexShrink:0 }}></div>
-          <span className="section-label">FRAX Risk Factors</span>
-          <span style={{ marginLeft:'auto', fontSize:'9px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em' }}>India · No BMD</span>
-        </div>
-        <div>
-          <FraxToggleRow label="Previous Fracture" value={prevFracture} setter={setPrevFracture} />
-          <FraxToggleRow label="Parent Hip Fracture" value={parentHipFracture} setter={setParentHipFracture} />
-          <FraxToggleRow label="Current Smoking" value={smoking} setter={setSmoking} />
-          <FraxToggleRow label="Glucocorticoids" value={glucocorticoids} setter={setGlucocorticoids} />
-          <FraxToggleRow label="Rheumatoid Arthritis" value={rheumatoid} setter={setRheumatoid} />
-          <FraxToggleRow label="Secondary Osteoporosis" value={secondaryOsteo} setter={setSecondaryOsteo} />
-          <FraxToggleRow label="Alcohol ≥ 3 units/day" value={alcohol} setter={setAlcohol} />
         </div>
       </div>
 

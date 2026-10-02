@@ -24,9 +24,9 @@
  */
 function useBoneAgeHandlers(s) {
   const {
-    adjReviewer, age, aiEstimate, approverName, assessment, boxes,
+    adjReviewer, age, aiEstimate, assessment, boxes, sexEntered, ageEntered,
     boxesRef, carpalStages, coverage, declaredFlags, estimateDomain,
-    evalAge, evalGender, fbAge, fbConfidence, fbMethod, fbNote, fbRater,
+    fbAge, fbConfidence, fbMethod, fbNote, fbRater,
     height, lastFilm, locDrag, locImg, locRef, ltTables, monitoring,
     patientCode, radiograph, rusStages, setAdjBusy, setAdjItems,
     setAdjMsg, setAiBusy, setAiEstimate, setAssessment, setBoneAge,
@@ -47,7 +47,9 @@ function useBoneAgeHandlers(s) {
   // licensed tables exist, so this is the data-collection stream (directive §7, §11).
   const saveDraft = async () => {
     if (!patientCode.trim()) { setLcMsg({ type:'err', text:'Enter a patient code to save.' }); return; }
-    if (evalGender !== 'boys' && evalGender !== 'girls') { setLcMsg({ type:'err', text:'Set biological sex first.' }); return; }
+    // sexEntered, not evalGender: evalGender falls back to 'girls', so this
+    // guard never fired and an unset sex was SAVED as girls.
+    if (!sexEntered) { setLcMsg({ type:'err', text:'Set biological sex first.' }); return; }
     const carpalEntries = Object.entries(carpalStages).map(([n, g]) => [carpalCode(n), g]);
     if (Object.keys(rusStages).length === 0 && carpalEntries.length === 0) {
       setLcMsg({ type:'err', text:'Grade at least one bone.' }); return;
@@ -57,8 +59,8 @@ function useBoneAgeHandlers(s) {
       let a = assessment;
       if (!a || a.assessment_status === 'approved' || a.assessment_status === 'superseded') {
         const res = await fetch(LC_API, { method:'POST', headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify({ patient_code: patientCode.trim(), sex: evalGender,
-            chronological_age_years: age !== "" ? Number(age) : null,
+          body: JSON.stringify({ patient_code: patientCode.trim(), sex: sexEntered,
+            chronological_age_years: ageEntered,
             stage_system: 'tw3-letters' }) });
         if (!res.ok) throw new Error((await res.json()).detail || 'create failed');
         a = await res.json();
@@ -87,16 +89,38 @@ function useBoneAgeHandlers(s) {
     setRusStages(rus); setCarpalStages(carp); setBoxes(bx);
   };
 
+  // True when the grids differ from what is saved on the record. Calculate and
+  // Approve act on the SAVED staging, so they are refused until it is saved;
+  // otherwise a clinician could approve a bone age for grades not on screen.
+  const unsavedStaging = (() => {
+    if (!assessment) return false;
+    const saved = {};
+    (assessment.bones || []).forEach(b => { if (b.confirmed_stage) saved[b.bone_code] = b.confirmed_stage; });
+    const grid = { ...rusStages };
+    Object.entries(carpalStages).forEach(([n, g]) => { grid[carpalCode(n)] = g; });
+    for (const k of new Set([...Object.keys(saved), ...Object.keys(grid)])) {
+      if (saved[k] !== grid[k]) return true;
+    }
+    return false;
+  })();
+  const SAVE_FIRST = 'Save the annotation first: the grades on screen differ from the saved record.';
+
   const calculateAssessment = async () => {
-    if (!assessment) return; setLcBusy(true); setLcMsg(null);
+    if (!assessment) return;
+    if (unsavedStaging) { setLcMsg({ type:'err', text: SAVE_FIRST }); return; }
+    setLcBusy(true); setLcMsg(null);
     try {
       const res = await fetch(`${LC_API}/${assessment.id}/calculate`, { method:'POST' });
       const d = await res.json();
       if (!res.ok) { setLcMsg({ type:'err', text: d.detail || 'calculate failed' }); }
       else {
+        // NOT copied into the workspace bone age: an unapproved calculation is
+        // for review only. Approve is what makes it the patient's bone age.
         setAssessment(d);
-        if (d.bone_age_years != null) { setBoneAge(Number(d.bone_age_years.toFixed(1))); setBoneAgeSource('rus'); }
-        setLcMsg({ type:'ok', text:`Calculated · RUS ${d.total_rus_score} → ${d.bone_age_years} yr` });
+        const rus = d.total_rus_score != null ? `RUS ${d.total_rus_score} → ` : '';
+        setLcMsg({ type:'ok', text: d.bone_age_years != null
+          ? `Calculated · ${rus}${d.bone_age_years.toFixed(1)} yr · review it, then Approve`
+          : 'Calculated, but no bone age was produced' });
       }
     } catch (e) { setLcMsg({ type:'err', text: String(e.message || e) }); }
     finally { setLcBusy(false); }
@@ -104,14 +128,32 @@ function useBoneAgeHandlers(s) {
 
   const approveAssessment = async () => {
     if (!assessment) return;
-    if (!approverName.trim()) { setLcMsg({ type:'err', text:'Enter the approving doctor name.' }); return; }
+    if (unsavedStaging) { setLcMsg({ type:'err', text: SAVE_FIRST }); return; }
+    if (assessment.assessment_status !== 'ready_for_review' || assessment.bone_age_years == null) {
+      setLcMsg({ type:'err', text:'Calculate first: only a calculated bone age can be approved.' }); return;
+    }
+    // Approval lets this bone age reach the clinical rules and locks the record
+    // (corrections need a revision), so it is confirmed explicitly.
+    const ok = window.confirm(
+      `Approve bone age ${assessment.bone_age_years.toFixed(1)} years for patient ` +
+      `${assessment.patient_code || patientCode.trim()} (record #${assessment.id}, rev ${assessment.revision})?\n\n` +
+      'The record will be locked and this bone age will be used by the clinical rules. ' +
+      'Corrections afterwards need "Open revision".');
+    if (!ok) return;
+    // No typed approver name: the backend signs with the session identity and
+    // ignored any name sent, so asking for one implied a signature it never made.
     setLcBusy(true); setLcMsg(null);
     try {
       const res = await fetch(`${LC_API}/${assessment.id}/approve`, { method:'POST',
-        headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ approved_by: approverName.trim() }) });
+        headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({}) });
       const d = await res.json();
       if (!res.ok) setLcMsg({ type:'err', text: d.detail || 'approve failed' });
-      else { setAssessment(d); setLcMsg({ type:'ok', text:`Approved by ${d.approved_by}` }); }
+      else {
+        setAssessment(d);
+        if (d.bone_age_years != null) { setBoneAge(Number(d.bone_age_years.toFixed(1))); setBoneAgeSource('rus'); }
+        setLcMsg({ type:'ok', text:`Approved by ${d.approved_by} · bone age ` +
+          `${d.bone_age_years != null ? d.bone_age_years.toFixed(1) + ' yr' : '—'} now in use` });
+      }
     } catch (e) { setLcMsg({ type:'err', text: String(e.message || e) }); }
     finally { setLcBusy(false); }
   };
@@ -149,8 +191,8 @@ function useBoneAgeHandlers(s) {
         method: fbMethod,
         confidence: fbConfidence,
         rater_id: fbRater || null,
-        sex: (evalGender === 'boys' || evalGender === 'girls') ? evalGender : null,
-        chronological_age_years: evalAge || null,
+        sex: sexEntered,
+        chronological_age_years: ageEntered,
         ai_estimate_years: (aiEstimate && aiEstimate.bone_age_years != null) ? aiEstimate.bone_age_years : null,
         ai_model_version: (aiEstimate && aiEstimate.model_version) || null,
         radiograph_id: (radiograph && radiograph.id) || null,
@@ -167,12 +209,13 @@ function useBoneAgeHandlers(s) {
   };
 
   const runEstimate = async (fileObj, flags) => {
-    if (evalGender !== 'boys' && evalGender !== 'girls') { setAiEstimate({ error:'Set biological sex in Demographics first.' }); return; }
+    // The model takes sex as an input: never run it on the 'girls' fallback.
+    if (!sexEntered) { setAiEstimate({ error:'Set biological sex in Demographics first.' }); return; }
     const useFlags = flags || declaredFlags;
     setLastFilm(fileObj);
     setAiBusy(true); setAiEstimate(null);
     try {
-      const fd = new FormData(); fd.append('file', fileObj); fd.append('sex', evalGender);
+      const fd = new FormData(); fd.append('file', fileObj); fd.append('sex', sexEntered);
       fd.append('image_domain', estimateDomain); fd.append('declared_flags', useFlags.join(','));
       const res = await fetch('/api/bone-age/estimate', { method:'POST', body: fd });
       const d = await res.json();
@@ -318,11 +361,13 @@ function useBoneAgeHandlers(s) {
     });
   };
   const useGridAsReference = () => {
+    // A reference case proves the licensed tables; it must carry the real sex.
+    if (!sexEntered) { setLtMsg({ type:'err', text:'Set biological sex before capturing a reference case.' }); return; }
     const rus = { ...rusStages };
     const carp = {}; Object.entries(carpalStages).forEach(([n,g]) => carp[carpalCode(n)] = g);
     setLtTables(prev => {
       const t = JSON.parse(JSON.stringify(prev || _emptyLt()));
-      t.reference_cases = [{ id:'clinic-ref-1', sex: evalGender === 'girls' ? 'girls' : 'boys',
+      t.reference_cases = [{ id:'clinic-ref-1', sex: sexEntered,
         rus_stages: rus, carpal_stages: carp,
         expected: (t.reference_cases[0] && t.reference_cases[0].expected) || { rus_score:null, twiii_rus_age_years:null },
         tolerance_years: 0.3 }];
@@ -452,11 +497,11 @@ function useBoneAgeHandlers(s) {
     cursor: disabled ? 'not-allowed' : 'pointer' });
 
   return {
-    LC_API, lcLocked, saveDraft, bonesIntoGrids, calculateAssessment,
+    LC_API, lcLocked, unsavedStaging, saveDraft, bonesIntoGrids, calculateAssessment,
     approveAssessment, reviseAssessment, toggleAudit, submitFeedback,
     runEstimate, toggleDeclaredFlag, attachImage, loadCoverage,
-    loadMonitoring, loadLocalCohort, loadAdjudication, resolveAdjudication, _emptyLt,
-    loadLetterTables, setLtPoint, curveToText, parseCurve, setLtCurve,
+    loadMonitoring, loadLocalCohort, loadAdjudication, resolveAdjudication,
+    loadLetterTables, setLtPoint, curveToText, setLtCurve,
     setLtSexCurve, useGridAsReference, setRefExpected, saveLetterTables,
     setImageDomain, analysisUrl, localizeBones, addOrSelectBox, clearBox,
     saveBoxes, startBoxDrag, onLocMove, endLocDrag, lcBtn,

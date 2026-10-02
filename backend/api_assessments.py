@@ -63,7 +63,10 @@ class SetGradeReq(BaseModel):
 
 
 class ApproveReq(BaseModel):
-    approved_by: str = Field(..., min_length=1, max_length=120)
+    # Accepted for backward compatibility and IGNORED: approval is attributed to
+    # the session identity (see approve()). Optional so a client is not forced to
+    # send a name that has no effect.
+    approved_by: Optional[str] = Field(None, max_length=120)
 
 
 class DomainReq(BaseModel):

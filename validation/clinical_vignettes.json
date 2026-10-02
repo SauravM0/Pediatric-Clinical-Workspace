@@ -1,0 +1,171 @@
+{
+  "purpose": "Golden clinical vignettes. Each expected value was derived BY HAND from the published equation or table (derivation field), independently of the code, and then confirmed against the system. They are run by tests/validation/test_clinical_vignettes.py and by `python -m backend.release_check`. A vignette counts toward release only once a clinician has reviewed it and filled in `signoff` (agrees: true/false, name, date). Do not change an expected value to make a failing vignette pass: a failure means the code or the vignette is wrong, and which one must be established from the source.",
+  "version": 1,
+  "vignettes": [
+    {
+      "id": "RENAL-01",
+      "module": "egfr",
+      "description": "8-year-old boy, height 128 cm, creatinine 0.5 mg/dL: normal paediatric eGFR",
+      "inputs": {"age": 8, "sex": "boys", "scr_mg_dl": 0.5, "height_cm": 128},
+      "expected": {"available": true, "equation": "Bedside Schwartz (2009)", "egfr": 105.7, "gfr_category": "G1"},
+      "tolerance": 0.1,
+      "derivation": "Bedside Schwartz: 0.413 x 128 / 0.5 = 105.73 mL/min/1.73 m2 -> KDIGO G1 (>= 90).",
+      "source": "Schwartz GJ et al. J Am Soc Nephrol 2009;20:629-37; KDIGO 2012/2024",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "RENAL-02",
+      "module": "egfr",
+      "description": "10-year-old boy, height 140 cm, creatinine 1.6 mg/dL: CKD stage G3b",
+      "inputs": {"age": 10, "sex": "boys", "scr_mg_dl": 1.6, "height_cm": 140},
+      "expected": {"available": true, "equation": "Bedside Schwartz (2009)", "egfr": 36.1, "gfr_category": "G3b"},
+      "tolerance": 0.1,
+      "derivation": "0.413 x 140 / 1.6 = 36.14 -> G3b (30-44).",
+      "source": "Schwartz 2009; KDIGO",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "RENAL-03",
+      "module": "egfr",
+      "description": "50-year-old woman, creatinine 0.7 mg/dL (adult equation)",
+      "inputs": {"age": 50, "sex": "girls", "scr_mg_dl": 0.7},
+      "expected": {"available": true, "equation": "CKD-EPI 2021 (race-free)", "egfr": 105.3, "gfr_category": "G1"},
+      "tolerance": 0.1,
+      "derivation": "Female: kappa 0.7, alpha -0.241. Scr/kappa = 1, so both min/max terms are 1. 142 x 0.9938^50 (0.73275) x 1.012 = 105.30.",
+      "source": "Inker LA et al. N Engl J Med 2021;385:1737-49",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "RENAL-04",
+      "module": "egfr",
+      "description": "60-year-old man, creatinine 1.5 mg/dL: G3a",
+      "inputs": {"age": 60, "sex": "boys", "scr_mg_dl": 1.5},
+      "expected": {"available": true, "equation": "CKD-EPI 2021 (race-free)", "egfr": 53.0, "gfr_category": "G3a"},
+      "tolerance": 0.1,
+      "derivation": "Male: kappa 0.9. Scr/kappa = 1.6667; max term 1.6667^-1.200 = 0.54172; 0.9938^60 = 0.68857. 142 x 0.54172 x 0.68857 = 52.97 -> G3a (45-59).",
+      "source": "Inker 2021",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "RENAL-05",
+      "module": "egfr",
+      "description": "6-month-old infant: no creatinine equation is validated, so none is applied",
+      "inputs": {"age": 0.5, "sex": "boys", "scr_mg_dl": 0.3, "height_cm": 65},
+      "expected": {"available": false},
+      "tolerance": 0,
+      "derivation": "Creatinine eGFR equations are not validated under 1 year (GFR maturation). Expected behaviour is a refusal, not a number.",
+      "source": "Schwartz 2009 derivation cohort (age >= 1 y)",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "LIVER-01",
+      "module": "fib4",
+      "description": "Age 50, AST 40, ALT 36, platelets 200: indeterminate",
+      "inputs": {"age": 50, "ast": 40, "alt": 36, "platelets": 200},
+      "expected": {"fib4": 1.67, "category": "indeterminate"},
+      "tolerance": 0.005,
+      "derivation": "50 x 40 / (200 x sqrt 36 = 1200) = 1.667 -> between 1.30 and 2.67.",
+      "source": "Sterling RK et al. Hepatology 2006;43:1317-25",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "LIVER-02",
+      "module": "fib4",
+      "description": "Age 70, AST 30, ALT 25, platelets 150: high risk",
+      "inputs": {"age": 70, "ast": 30, "alt": 25, "platelets": 150},
+      "expected": {"fib4": 2.8, "category": "high"},
+      "tolerance": 0.005,
+      "derivation": "70 x 30 / (150 x sqrt 25 = 750) = 2.80 -> >= 2.67. (Age >= 65 raises only the LOW cut-off, to 2.0.)",
+      "source": "Sterling 2006; McPherson S et al. Am J Gastroenterol 2017;112:740-51",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "LIVER-03",
+      "module": "fib4",
+      "description": "Age 40, AST 20, ALT 20, platelets 300: low risk",
+      "inputs": {"age": 40, "ast": 20, "alt": 20, "platelets": 300},
+      "expected": {"fib4": 0.6, "category": "low"},
+      "tolerance": 0.005,
+      "derivation": "40 x 20 / (300 x 4.472 = 1341.6) = 0.596 -> < 1.30.",
+      "source": "Sterling 2006",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "LIVER-04",
+      "module": "fib4",
+      "description": "Age 12: FIB-4 is not validated in children, so no risk category is given",
+      "inputs": {"age": 12, "ast": 40, "alt": 30, "platelets": 250},
+      "expected": {"fib4": 0.35, "category": null},
+      "tolerance": 0.005,
+      "derivation": "12 x 40 / (250 x 5.477 = 1369.3) = 0.35. Age is in the numerator, so a child's score is low by construction; the category must be withheld.",
+      "source": "Sterling 2006 (adult derivation cohort)",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "BP-01",
+      "module": "bp",
+      "description": "15-year-old, 125/75 mmHg: elevated (AAP 2017, age >= 13)",
+      "inputs": {"age": 15, "sbp": 125, "dbp": 75},
+      "expected": {"category": "elevated", "map": 91.7},
+      "tolerance": 0.05,
+      "derivation": "AAP 2017 static thresholds from 13 y: 120-129 / < 80 = elevated. MAP = 75 + (125 - 75)/3 = 91.67.",
+      "source": "Flynn JT et al. Pediatrics 2017;140:e20171904, Table 3",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "BP-02",
+      "module": "bp",
+      "description": "40-year-old, 142/85 mmHg: stage 2 (ACC/AHA 2017)",
+      "inputs": {"age": 40, "sbp": 142, "dbp": 85},
+      "expected": {"category": "stage2", "map": 104.0},
+      "tolerance": 0.05,
+      "derivation": "SBP >= 140 -> stage 2 (the higher of the two categories applies). MAP = 85 + 57/3 = 104.0.",
+      "source": "Whelton PK et al. Hypertension 2018;71:e13-e115",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "BP-03",
+      "module": "bp",
+      "description": "30-year-old, 185/100 mmHg: severe elevation",
+      "inputs": {"age": 30, "sbp": 185, "dbp": 100},
+      "expected": {"category": "severe", "map": 128.3},
+      "tolerance": 0.05,
+      "derivation": "SBP >= 180 -> severe. MAP = 100 + 85/3 = 128.33.",
+      "source": "Whelton 2018",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "GROWTH-01",
+      "module": "who",
+      "description": "WHO median height, boys, 36 months",
+      "inputs": {"measure": "height", "sex": "boys", "age_years": 3.0, "z": 0.0},
+      "expected": {"value": 96.0835},
+      "tolerance": 0.01,
+      "derivation": "WHO Child Growth Standards 2006, length/height-for-age boys, month 36: M = 96.0835 cm.",
+      "source": "WHO Multicentre Growth Reference Study Group, 2006",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "GROWTH-02",
+      "module": "who",
+      "description": "WHO median weight, girls, 12 months",
+      "inputs": {"measure": "weight", "sex": "girls", "age_years": 1.0, "z": 0.0},
+      "expected": {"value": 8.9481},
+      "tolerance": 0.01,
+      "derivation": "WHO 2006 weight-for-age girls, month 12: M = 8.9481 kg.",
+      "source": "WHO 2006",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    },
+    {
+      "id": "GROWTH-03",
+      "module": "who",
+      "description": "WHO median weight, boys, 12 months",
+      "inputs": {"measure": "weight", "sex": "boys", "age_years": 1.0, "z": 0.0},
+      "expected": {"value": 9.6479},
+      "tolerance": 0.01,
+      "derivation": "WHO 2006 weight-for-age boys, month 12: M = 9.6479 kg.",
+      "source": "WHO 2006",
+      "signoff": {"agrees": null, "clinician": null, "date": null, "comment": null}
+    }
+  ]
+}

@@ -29,9 +29,10 @@
         //  The 13 RUS bones are graded 1–8 by the clinician; the deterministic engine
         //  (backend/tw3/scoring.py) sums the sex-specific points → RUS maturity score →
         //  bone age. The frontend NEVER re-implements the scoring: it fetches the bone
-        //  list + allowed grades from /api/bone-age/config and posts confirmed grades to
-        //  /api/bone-age/score (single source of truth — directive §38). The score→age
-        //  curve is currently PROVISIONAL (digitized); the backend flags this.
+        //  list + allowed grades from /api/bone-age/config, and a saved assessment is
+        //  scored by /api/bone-age/assessments/{id}/calculate (single source of truth,
+        //  directive §38). The score→age curve is currently PROVISIONAL (digitized);
+        //  the backend flags this.
         //
         //  The skeletal adult-height prediction below still needs a clinician-supplied
         //  "% of adult height attained by bone age" reference; leaving it empty disables

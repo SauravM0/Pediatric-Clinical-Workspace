@@ -49,7 +49,7 @@ def parse_csv(path: Path) -> dict[float, dict[str, float]]:
     Values are floats, so a whitespace/line-ending/column-reorder change does not
     alter the parsed content -- only a changed number does."""
     rows: dict[float, dict[str, float]] = {}
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8-sig") as f:
         for row in csv.DictReader(f):
             age = float(row["age_years"])
             rows[age] = {

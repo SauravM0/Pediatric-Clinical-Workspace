@@ -89,10 +89,17 @@ class PatientSnapshot:
     genital_stage: Optional[int] = None
     pubic_hair_stage: Optional[int] = None
     testicular_volume_ml: Optional[float] = None
+    # True if menarche was recorded at ANY assessment -- it is a one-way event,
+    # and a later visit that did not re-enter the date must not un-reach it.
     menarche_reached: Optional[bool] = None
 
+    # From the latest APPROVED bone-age assessment only.
     bone_age_years: Optional[float] = None
     bone_age_method: Optional[str] = None
+    # Chronological age WHEN THE FILM WAS TAKEN. A bone age is compared with this,
+    # never with today's age: a two-year-old film compared with today reads as
+    # two years of delay that is not there.
+    bone_age_chronological_years: Optional[float] = None
 
     arm_span_cm: Optional[float] = None
     sitting_height_cm: Optional[float] = None

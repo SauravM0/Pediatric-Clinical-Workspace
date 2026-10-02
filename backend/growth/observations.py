@@ -15,7 +15,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
-from . import measures
 
 
 @dataclass(frozen=True)
@@ -77,8 +76,3 @@ def validate(key: str, value: float, unit: str | None = None) -> ObservationType
     if unit is not None and unit != obs.unit:
         raise ObservationError(f"{key}: unit must be {obs.unit!r}, got {unit!r}")
     return obs
-
-
-def charted_types() -> tuple[str, ...]:
-    """Observation types that have a growth-chart reference today."""
-    return tuple(o.key for o in _ALL if o.charted and measures.is_valid(o.key))

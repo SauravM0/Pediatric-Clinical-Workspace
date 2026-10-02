@@ -51,7 +51,7 @@ _CONTEXT_AGES_WHO = (0.5, 2.0)
 def _load_published_rows(sex_file: str, measure: str) -> list[dict]:
     fname = f"{sex_file}_{_MEASURE_FILE_PART[measure]}_IAP_5_18.csv"
     path = iap._DATA_DIR / fname
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8-sig") as f:
         return list(csv.DictReader(f))
 
 

@@ -23,6 +23,8 @@ MODEL_PATH = _MODELS_DIR / "boneage_gp.onnx"
 META_PATH = _MODELS_DIR / "boneage_gp.json"
 
 IMG_SIZE = 160
+# Bone-age labels in the RSNA training set (min, max), months.
+TRAINING_LABEL_RANGE_MONTHS = (1.0, 228.0)
 _MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 _STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 
@@ -101,8 +103,14 @@ def predict_months(image: Image.Image | bytes, is_male: bool) -> Optional[dict]:
     policy = _registry.resolve_interval_policy(spec)
     sex = np.array([[1.0 if is_male else 0.0]], dtype=np.float32)
     inputs = {i.name: v for i, v in zip(sess.get_inputs(), (x, sex))}
-    months = float(sess.run(None, inputs)[0].reshape(-1)[0])
-    months = max(0.0, min(months, 240.0))
+    raw_months = float(sess.run(None, inputs)[0].reshape(-1)[0])
+    # Outside the ages the model was trained on (RSNA labels span 1-228 months)
+    # the output is extrapolation, not an estimate. It used to be clamped to
+    # 0-240 SILENTLY, so a film the model could not place still read as a
+    # precise age. Clamp for display, but say so.
+    outside_training_range = not (TRAINING_LABEL_RANGE_MONTHS[0] <= raw_months
+                                  <= TRAINING_LABEL_RANGE_MONTHS[1])
+    months = max(0.0, min(raw_months, 240.0))
 
     # Patient-level uncertainty (directive S-BA-5). Prefer a split-CONFORMAL
     # interval calibrated on the held-out val set (guaranteed >= coverage), which
@@ -126,6 +134,13 @@ def predict_months(image: Image.Image | bytes, is_male: bool) -> Optional[dict]:
 
     return {
         "bone_age_months": round(months),
+        "outside_training_range": outside_training_range,
+        "range_warning": (
+            f"The model's raw output ({raw_months / 12:.1f} y) is outside the ages it was "
+            f"trained on ({TRAINING_LABEL_RANGE_MONTHS[0] / 12:.1f}-"
+            f"{TRAINING_LABEL_RANGE_MONTHS[1] / 12:.0f} y): treat it as unreliable and "
+            "grade the bones manually."
+        ) if outside_training_range else None,
         "bone_age_years": round(months / 12, 1),
         "model_version": meta.get("model_version", "boneage-gp-unknown"),
         "model_id": resolution["model_id"],

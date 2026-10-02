@@ -168,15 +168,3 @@ def revoke_all_for_user(db: Session, user_id: int) -> int:
     for row in rows:
         row.revoked_at = now
     return len(rows)
-
-
-def purge_expired(db: Session) -> int:
-    """Delete sessions well past expiry. Housekeeping only -- expiry is enforced
-    at resolve time, so this is not a security control."""
-    cutoff = _naive(_utcnow() - timedelta(days=7))
-    rows = db.execute(
-        select(UserSession).where(UserSession.expires_at < cutoff)
-    ).scalars().all()
-    for row in rows:
-        db.delete(row)
-    return len(rows)

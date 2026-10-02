@@ -1,0 +1,98 @@
+/* Plain-CSS replica of the "WHO 2006 & IAP 2015 combined Charts 0-18 Years" wall charts.
+   Every position is a percentage of the page, and every font size is a multiple of --k
+   (one original-image pixel at the current page width), so the whole sheet scales together. */
+
+body { margin: 0; background: #fff; }
+
+.page {
+  --k: calc(100cqw / var(--W));
+  --ink: #111;
+  --minor: #cfccb2;
+  --major: #7d7a52;
+  --paper: #fffff4;
+  position: relative;
+  container-type: inline-size;
+  width: 100%;
+  max-width: calc(var(--W) * 1px);
+  aspect-ratio: var(--W) / var(--H);
+  margin: 0 auto;
+  background: var(--bg);
+  font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+  color: var(--ink);
+  overflow: hidden;
+}
+.page * { box-sizing: border-box; }
+.page > * { position: absolute; }
+
+/* ---- title ---- */
+.title {
+  background: #fff; display: flex; align-items: center; justify-content: center;
+  font-family: Arial, Helvetica, sans-serif; font-size: calc(var(--k) * 26); white-space: nowrap;
+}
+
+/* ---- grid paper ----
+   minor boxes: --nx across (every 0.25 y), --ny up (every 1 unit)
+   bold lines : --mx across (every 1 y),    --my up (every 5 units)               */
+.plot {
+  background:
+    linear-gradient(to right,  var(--major) 1px, transparent 1px) 0 0 / calc(100% / var(--mx)) 100%,
+    linear-gradient(to bottom, var(--major) 1px, transparent 1px) 0 0 / 100% calc(100% / var(--my)),
+    linear-gradient(to right,  var(--minor) 1px, transparent 1px) 0 0 / calc(100% / var(--nx)) 100%,
+    linear-gradient(to bottom, var(--minor) 1px, transparent 1px) 0 0 / 100% calc(100% / var(--ny)),
+    var(--paper);
+  border-right: 1px solid var(--major);
+  border-top: 1px solid var(--major);
+}
+.plot > * { position: absolute; }
+.curves { inset: 0; width: 100%; height: 100%; overflow: visible; }
+.curves path { fill: none; stroke: #111; stroke-width: 1.25px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.curves path.red { stroke: #c93a3a; stroke-width: 3px; }
+
+.yticks, .xticks, .ends { inset: 0; }
+.yticks span, .xticks span, .ends span { position: absolute; white-space: nowrap; }
+.yticks span { right: 100%; padding-right: calc(var(--k) * 7); transform: translateY(-50%); font-size: calc(var(--k) * var(--yfs)); }
+.xticks span { top: 100%; padding-top: calc(var(--k) * 5); transform: translateX(-50%); font-size: calc(var(--k) * var(--yfs)); }
+.ends span { left: 100%; padding-left: calc(var(--k) * 8); transform: translateY(-50%); font-size: calc(var(--k) * 13); }
+.ends span.red { color: #d11f2e; font-weight: 700; }
+
+.ylabel, .xlabel { font-weight: 700; white-space: nowrap; transform: translate(-50%, -50%); font-size: calc(var(--k) * 21); }
+.ylabel { transform: translate(-50%, -50%) rotate(-90deg); font-size: calc(var(--k) * 18); }
+
+/* ---- BMI quick-assessment inset ---- */
+.inset { background: var(--insetbg, var(--bg)); }
+.inset-title { position: absolute; left: 0; right: 0; top: 2%; text-align: center; font-weight: 700; font-size: calc(var(--k) * 11.5); }
+.iplot {
+  background:
+    linear-gradient(to right,  #d6d6d6 1px, transparent 1px) 0 0 / calc(100% / var(--inx)) 100%,
+    linear-gradient(to bottom, #d6d6d6 1px, transparent 1px) 0 0 / 100% calc(100% / var(--iny)),
+    #fff;
+  border-right: 1px solid #d6d6d6; border-top: 1px solid #d6d6d6;
+}
+.iplot > * { position: absolute; }
+.iplot svg { inset: 0; width: 100%; height: 100%; overflow: visible; }
+.iplot path { fill: none; stroke-width: 1.6px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.iplot .uw { stroke: #111; }
+.iplot .ow { stroke: var(--ow, #f0c43c); }
+.iplot .ob { stroke: var(--ob, #c42b2b); }
+.yt, .xt { inset: 0; }
+.yt span, .xt span { position: absolute; white-space: nowrap; font-size: calc(var(--k) * 10.5); color: #333; }
+.yt span { right: 100%; padding-right: calc(var(--k) * 4); transform: translateY(-50%); }
+.xt span { top: 100%; padding-top: calc(var(--k) * 4); transform: translateX(-50%); }
+.legend { right: 2%; bottom: 3%; background: #fff; padding: calc(var(--k) * 2) calc(var(--k) * 6); font-size: calc(var(--k) * 10.5); line-height: 1.25; }
+.tag { transform: translate(-50%, -50%); font-size: calc(var(--k) * 14); }
+.iylabel { transform: translate(-50%, -50%) rotate(-90deg); font-weight: 700; font-size: calc(var(--k) * 10.5); white-space: nowrap; }
+.ixlabel { transform: translate(-50%, -50%); font-weight: 700; font-size: calc(var(--k) * 10.5); white-space: nowrap; }
+
+/* ---- MPH percentile calculator ---- */
+.mph-title { position: absolute; left: 0; right: 0; top: 0; text-align: center; font-weight: 700; font-size: calc(var(--k) * 14); line-height: 1.05; }
+.mph table { position: absolute; left: 0; top: calc(var(--k) * var(--headgap)); width: 100%; border-collapse: collapse; background: #fff; table-layout: fixed; }
+.mph th { height: calc(var(--k) * var(--headh)); font-size: calc(var(--k) * 12.5); font-weight: 700; line-height: 1.15; padding: 0; background: #fff; }
+.mph td { height: calc(var(--k) * var(--rowh)); padding: 0 calc(var(--k) * 5); font-size: calc(var(--k) * 13); font-weight: 600; border-bottom: 1px solid #cfd2d6; line-height: 1; }
+.mph col, .mph th:nth-child(1), .mph td:nth-child(1), .mph th:nth-child(3), .mph td:nth-child(3) { width: 35%; }
+.mph td.f { text-align: right; border-right: calc(var(--k) * 1.6) solid #2b2b2b; }
+.mph td.m { text-align: left; border-left: calc(var(--k) * 1.6) solid #2b2b2b; }
+.mph td.c { text-align: center; position: relative; z-index: 3; }
+.mph .bar { position: absolute; left: 51.6%; width: calc(var(--k) * 3.4); top: calc(var(--k) * (var(--headgap) + var(--headh))); height: calc(var(--k) * var(--barh)); background: var(--mphbar); z-index: 2; transform: translateX(-50%); }
+
+/* ---- footnote ---- */
+.foot { font-family: Arial, Helvetica, sans-serif; font-size: calc(var(--k) * 12.6); line-height: calc(var(--k) * 14.4); white-space: nowrap; }

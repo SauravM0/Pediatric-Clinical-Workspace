@@ -42,6 +42,10 @@ from sqlalchemy import String, TypeDecorator
 log = logging.getLogger(__name__)
 
 ENV_KEY = "PCW_ENCRYPTION_KEY"
+# Preferred: a path to a file holding the key, kept OUTSIDE the app folder (a USB
+# key, another drive, an admin-only folder). Then a copied app directory --
+# database plus .env -- no longer carries the key that unlocks it.
+ENV_KEY_FILE = "PCW_ENCRYPTION_KEY_FILE"
 _PREFIX = "enc:v1:"
 _NONCE_BYTES = 12  # GCM standard; never reused because it is random per write
 _KEY_BYTES = 32
@@ -56,9 +60,40 @@ def generate_key() -> str:
     return base64.b64encode(os.urandom(_KEY_BYTES)).decode("ascii")
 
 
+def _raw_key() -> tuple[str, str]:
+    """(base64 key or "", where it came from: 'file' | 'env' | 'none')."""
+    path = os.environ.get(ENV_KEY_FILE, "").strip()
+    if path:
+        try:
+            with open(path, encoding="utf-8") as fh:
+                return fh.read().strip(), "file"
+        except OSError as exc:
+            raise EncryptionError(f"{ENV_KEY_FILE} is set but unreadable ({exc})") from exc
+    raw = os.environ.get(ENV_KEY, "").strip()
+    return raw, ("env" if raw else "none")
+
+
+def key_location() -> dict:
+    """Where the key lives, and whether that defeats the purpose.
+
+    The key protects a COPIED database. If it sits inside the application folder
+    -- in the .env file or a key file there -- copying the folder copies both.
+    """
+    from pathlib import Path
+    app_root = Path(__file__).resolve().parents[2]
+    raw, source = _raw_key()
+    beside = False
+    if source == "file":
+        beside = app_root in Path(os.environ[ENV_KEY_FILE]).resolve().parents
+    elif source == "env":
+        env_file = app_root / ".env"
+        beside = env_file.exists() and ENV_KEY in env_file.read_text(encoding="utf-8", errors="ignore")
+    return {"source": source, "inside_app_folder": beside}
+
+
 @lru_cache(maxsize=1)
 def _key() -> bytes | None:
-    raw = os.environ.get(ENV_KEY, "").strip()
+    raw, _source = _raw_key()
     if not raw:
         return None
     try:

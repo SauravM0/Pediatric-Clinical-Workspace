@@ -1,20 +1,36 @@
-"""Cole's LMS math, delegated to rcpchgrowth's generic (reference-agnostic)
-implementation rather than a locally hand-rolled copy.
+"""Cole's LMS transform (Cole TJ, Green PJ. Stat Med 1992;11:1305-19):
 
-rcpchgrowth.global_functions.z_score / measurement_for_z implement exactly:
     Z = ((X/M)^L - 1) / (L*S)              if L != 0
     Z = ln(X/M) / S                        if L == 0
-    X = M*(1 + L*S*Z)^(1/L)                if L != 0
+    X = M*(1 + L*S*Z)^(1/L)                if L != 0   (None if 1+L*S*Z < 0)
     X = M*exp(S*Z)                         if L == 0
-which is the CDC/WHO-specified LMS transform. They take raw L, M, S directly,
-so the same functions serve both the WHO lookups (where rcpchgrowth already
-knows the L,M,S internally) and our locally-fit IAP 2015 L,M,S (where it
-doesn't) -- one validated implementation for both reference populations.
+
+Implemented here rather than imported (step 7). It used to delegate to
+rcpchgrowth.global_functions, which made an AGPL-3.0 package a hard runtime
+dependency for four lines of published arithmetic. The operations below are
+the SAME operations in the SAME order as that implementation, so results are
+bit-identical -- tests/growth/test_lms_core_parity.py compares the two across a
+dense grid of L, M, S and z whenever rcpchgrowth is installed (it now lives in
+requirements-dev.txt only).
 """
 from __future__ import annotations
 
-from rcpchgrowth.global_functions import z_score as _z_score
-from rcpchgrowth.global_functions import measurement_for_z as _measurement_for_z
+import math
+
+
+def _z_score(l: float, m: float, s: float, observation: float) -> float:
+    if l != 0.0:
+        return (((observation / m) ** l) - 1) / (l * s)
+    return math.log(observation / m) / s
+
+
+def _measurement_for_z(z: float, l: float, m: float, s: float) -> float | None:
+    if l != 0.0:
+        first_step = 1 + (l * s * z)
+        if first_step < 0:
+            return None      # no real power exists; not a measurement
+        return (first_step ** (1 / l)) * m
+    return math.exp(s * z) * m
 
 
 def lms_z_score(value: float, l: float, m: float, s: float) -> float | None:

@@ -3,13 +3,15 @@
  *
  * QRISK3-2017. Unusual among the panels in owning its OWN inputs (the
  * sixteen risk-factor toggles are not shared), so most of its slice is
- * setters rather than derived values.
+ * setters rather than derived values. The score itself comes from the backend
+ * (backend/cvd/qrisk3.py), which also reports every defaulted input.
  */
 import { useQrisk } from "../state.jsx";
-import { ProbBar, StatusBadge, SectionHeader, FraxToggleRow, InputWithUnit, heroTone } from "../ui.jsx";
+import { ProbBar, StatusBadge, SectionHeader, YesNoToggleRow, InputWithUnit, heroTone } from "../ui.jsx";
+import { rangeProblem } from "../clinicalRanges.js";
 
 function QriskPanel() {
-  const { age, cholRatio, diabetes, ethnicity, evalGender, height, qAF, qAtypAntipsy, qCKD, qCortico, qED, qFhCvd, qMigraine, qRA, qSLE, qSMI, qTreatedHtn, qriskMetrics, sbpSD, setCholRatio, setDiabetes, setEthnicity, setQAF, setQAtypAntipsy, setQCKD, setQCortico, setQED, setQFhCvd, setQMigraine, setQRA, setQSLE, setQSMI, setQTreatedHtn, setSbpSD, setSmokeCat, smokeCat, systolic, weight } = useQrisk();
+  const { cholRatio, diabetes, ethnicity, evalGender, qAF, qAtypAntipsy, qCKD, qCortico, qED, qFhCvd, qMigraine, qRA, qSLE, qSMI, qTreatedHtn, qriskMetrics, sbpSD, setCholRatio, setDiabetes, setEthnicity, setQAF, setQAtypAntipsy, setQCKD, setQCortico, setQED, setQFhCvd, setQMigraine, setQRA, setQSLE, setQSMI, setQTreatedHtn, setSbpSD, setSmokeCat, smokeCat } = useQrisk();
   return (
       <div style={{ flex:1, display:'flex', flexDirection:'column' }}>
         <SectionHeader
@@ -62,24 +64,24 @@ function QriskPanel() {
             </div>
           </div>
           <div className="split-grid">
-            <InputWithUnit label="Total : HDL Cholesterol ratio" value={cholRatio} onChange={e => setCholRatio(e.target.value)} placeholder="e.g. 4.0" step="0.1" unit="ratio" />
-            <InputWithUnit label="SBP variability (SD, optional)" value={sbpSD} onChange={e => setSbpSD(e.target.value)} placeholder="mmHg SD" step="0.1" unit="SD" />
+            <InputWithUnit label="Total : HDL Cholesterol ratio" value={cholRatio} onChange={e => setCholRatio(e.target.value)} placeholder="e.g. 4.0" step="0.1" unit="ratio" problem={rangeProblem('cholRatio', cholRatio)} />
+            <InputWithUnit label="SBP variability (SD, optional)" value={sbpSD} onChange={e => setSbpSD(e.target.value)} placeholder="mmHg SD" step="0.1" unit="SD" problem={rangeProblem('sbpSD', sbpSD)} />
           </div>
           <div style={{ fontSize:'10px', color:'#94a3b8', lineHeight:'1.5' }}>
             Uses BMI (from height/weight) and systolic BP from the left panel. Blank cholesterol ratio / SBP-SD contribute neutrally (QRISK3 convention). Townsend deprivation is set to 0 (UK-only index).
           </div>
           <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:'10px', padding:'6px 14px' }}>
-            <FraxToggleRow label="Atrial fibrillation" value={qAF} setter={setQAF} />
-            <FraxToggleRow label="On BP treatment" value={qTreatedHtn} setter={setQTreatedHtn} />
-            <FraxToggleRow label="CKD stage 3–5" value={qCKD} setter={setQCKD} />
-            <FraxToggleRow label="Rheumatoid arthritis" value={qRA} setter={setQRA} />
-            <FraxToggleRow label="Migraine" value={qMigraine} setter={setQMigraine} />
-            <FraxToggleRow label="SLE (lupus)" value={qSLE} setter={setQSLE} />
-            <FraxToggleRow label="Severe mental illness" value={qSMI} setter={setQSMI} />
-            <FraxToggleRow label="Atypical antipsychotics" value={qAtypAntipsy} setter={setQAtypAntipsy} />
-            <FraxToggleRow label="Regular corticosteroids" value={qCortico} setter={setQCortico} />
-            {evalGender === 'boys' && <FraxToggleRow label="Erectile dysfunction" value={qED} setter={setQED} />}
-            <FraxToggleRow label="Family history of CVD" value={qFhCvd} setter={setQFhCvd} />
+            <YesNoToggleRow label="Atrial fibrillation" value={qAF} setter={setQAF} />
+            <YesNoToggleRow label="On BP treatment" value={qTreatedHtn} setter={setQTreatedHtn} />
+            <YesNoToggleRow label="CKD stage 3–5" value={qCKD} setter={setQCKD} />
+            <YesNoToggleRow label="Rheumatoid arthritis" value={qRA} setter={setQRA} />
+            <YesNoToggleRow label="Migraine" value={qMigraine} setter={setQMigraine} />
+            <YesNoToggleRow label="SLE (lupus)" value={qSLE} setter={setQSLE} />
+            <YesNoToggleRow label="Severe mental illness" value={qSMI} setter={setQSMI} />
+            <YesNoToggleRow label="Atypical antipsychotics" value={qAtypAntipsy} setter={setQAtypAntipsy} />
+            <YesNoToggleRow label="Regular corticosteroids" value={qCortico} setter={setQCortico} />
+            {evalGender === 'boys' && <YesNoToggleRow label="Erectile dysfunction" value={qED} setter={setQED} />}
+            <YesNoToggleRow label="Family history of CVD" value={qFhCvd} setter={setQFhCvd} />
           </div>
         </div>
 
@@ -101,25 +103,30 @@ function QriskPanel() {
           </div>
         )}
 
-        {/* Imputed-input disclosure — never a precise-looking score from incomplete data (audit F-3) */}
-        {qriskMetrics.risk !== null && (() => {
-          const imp = [];
-          if (qriskMetrics.missingRatio) imp.push('cholesterol ratio');
-          if (systolic === '') imp.push('systolic BP');
-          if (sbpSD === '') imp.push('SBP variability (SD)');
-          return imp.length ? (
-            <div style={{ marginTop:'10px', fontSize:'10.5px', color:'#92400e', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'7px 10px', lineHeight:'1.5' }}>
-              ⚠ Estimated with defaulted inputs: <strong>{imp.join(', ')}</strong>. Enter these for a patient-specific score.
-            </div>
-          ) : null;
-        })()}
+        {/* Imputed-input disclosure — the BACKEND lists every defaulted input,
+            so a precise-looking score is never produced silently (audit F-3). */}
+        {qriskMetrics.risk !== null && qriskMetrics.imputed.length > 0 && (
+          <div style={{ marginTop:'10px', fontSize:'10.5px', color:'#92400e', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'7px 10px', lineHeight:'1.5' }}>
+            ⚠ Estimated with defaulted inputs: <strong>{qriskMetrics.imputed.join(', ')}</strong>. Enter these for a patient-specific score.
+          </div>
+        )}
+        {qriskMetrics.risk !== null && qriskMetrics.bmiClamped && (
+          <div style={{ marginTop:'8px', fontSize:'10.5px', color:'#92400e', background:'#fffbeb', border:'1px solid #fde68a', borderRadius:'8px', padding:'7px 10px', lineHeight:'1.5' }}>
+            ⚠ BMI is outside QRISK3's 20–40 kg/m² range; the model scores it as if at the nearest limit.
+          </div>
+        )}
 
         {/* Eligibility gate — QRISK3 is validated only for adults 25–84 (audit F-3) */}
         {qriskMetrics.risk === null && (
           <div style={{ marginTop:'16px', background:'#fef2f2', border:'1.5px solid #fecaca', borderRadius:'12px', padding:'14px 16px' }}>
-            <div style={{ fontSize:'12px', fontWeight:'800', color:'#991b1b' }}>QRISK3 not applicable</div>
+            <div style={{ fontSize:'12px', fontWeight:'800', color:'#991b1b' }}>
+              {qriskMetrics.inAgeRange && qriskMetrics.bodySizeOk && qriskMetrics.loading ? 'Calculating…' : 'QRISK3 not applicable'}
+            </div>
             <div style={{ fontSize:'11px', color:'#b91c1c', marginTop:'4px', lineHeight:'1.5' }}>
-              {!qriskMetrics.inAgeRange ? 'QRISK3 is validated only for adults aged 25–84. This patient is outside that range — no score is shown.' : 'Enter height and weight (BMI) to compute the score.'}
+              {!qriskMetrics.inAgeRange ? 'QRISK3 is validated only for adults aged 25–84 (age and sex must be entered). No score is shown.'
+                : !qriskMetrics.bodySizeOk ? 'Enter height and weight (BMI) to compute the score.'
+                : qriskMetrics.error ? `Calculation failed: ${qriskMetrics.error}`
+                : qriskMetrics.reason || ''}
             </div>
           </div>
         )}

@@ -35,14 +35,40 @@ log = logging.getLogger(__name__)
 
 
 def auth_disabled() -> bool:
-    return os.environ.get("PCW_AUTH_DISABLED", "").strip().lower() in ("1", "true", "yes")
+    """Authentication is OFF by default. This is a deliberate product decision.
+
+    The owner asked for sign-in to be removed from the workspace permanently, so
+    the default is inverted rather than left to a gitignored .env file -- a fresh
+    clone must behave the same way, not silently start demanding a login nobody
+    can perform (there is no sign-in UI any more, by the same decision).
+
+    Set ``PCW_AUTH_ENABLED=1`` to put enforcement back. The whole auth stack --
+    sessions, lockout, roles, permissions, security events -- is still present
+    and still tested; only the default changed.
+
+    What running without it costs, recorded here so it is not rediscovered the
+    hard way:
+
+      * Anyone who can reach the app can read and change every patient record.
+        The server binds to 127.0.0.1, so that means anyone with access to this
+        computer, not the network.
+      * Approvals stop naming a clinician. ``approve`` signs with the session
+        identity on purpose (a self-declared name is not a signature), so every
+        sign-off is now attributed to ``dev-no-auth`` below.
+      * Role separation is gone: the dev identity holds the doctor role, so the
+        assistant-cannot-approve boundary no longer applies.
+    """
+    if os.environ.get("PCW_AUTH_ENABLED", "").strip().lower() in ("1", "true", "yes"):
+        return False
+    return True
 
 
 if auth_disabled():  # pragma: no cover - environment-dependent
     log.warning(
-        "PCW_AUTH_DISABLED is set: every endpoint is UNAUTHENTICATED. "
-        "This is a local development mode. Never expose this instance to a "
-        "network, and never store real patient data in it."
+        "Authentication is DISABLED: every endpoint is UNAUTHENTICATED, and "
+        "approvals are attributed to 'dev-no-auth' rather than a named "
+        "clinician. Set PCW_AUTH_ENABLED=1 to re-enable. Never expose this "
+        "instance to a network."
     )
 
 

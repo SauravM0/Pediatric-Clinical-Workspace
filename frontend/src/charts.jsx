@@ -62,8 +62,11 @@ import { sdsToPercent } from "./growthMath.js";
         // by ~15-16cm at both percentiles here), loose enough to tolerate the
         // engine's own PCHIP/blend rounding.
         const CHART_VALIDATION_18Y = {
-          boys:  { p3: [157, 159], p97: [186, 187] },
-          girls: { p3: [146, 147], p97: [170, 171] },
+          // Bounds follow the wall chart's traced height lines at 18 y (boys
+          // P3 160.3 / P97 187.0; girls P3 147.1 / P97 169.6), which differ from the
+          // published table by up to ~2 cm at P3 and ~1 cm at P97.
+          boys:  { p3: [159, 161.5], p97: [186, 188] },
+          girls: { p3: [146, 148], p97: [169, 171] },
         };
         function centileValueAtAge(centileSeries, targetAge) {
           if (!Array.isArray(centileSeries) || !centileSeries.length) return null;
@@ -252,7 +255,8 @@ import { sdsToPercent } from "./growthMath.js";
             return <div style={{ fontSize:'12px', color:'#b91c1c', padding:'20px' }}>Growth chart reference data failed a sanity check for {theme.name.toLowerCase()} height (P3/P97 at 18y out of expected range) — refusing to render. Please retry.</div>;
           }
           const centileKeys = Object.keys(heightData.centiles).map(Number).sort((a, b) => a - b);
-          const a0 = heightData.age_min, a1 = heightData.age_max;
+          // X axis is the wall chart's own frame: origin (0,0), age 0-18.
+          const a0 = 0, a1 = Math.max(18, heightData.age_max);
           const m = { l: 70, r: 160, t: 70, b: 110 };
           const plotR = width - m.r;
 
@@ -290,7 +294,13 @@ import { sdsToPercent } from "./growthMath.js";
           // drift and the box count between labels is always predictable.
           const yMajor = 5;
           const plotWidth = plotR - m.l;
-          const plan = computeSquareGrid(plotWidth, a1 - a0, 1, ymax - ymin, yMajor);
+          const squarePlan = computeSquareGrid(plotWidth, a1 - a0, 1, ymax - ymin, yMajor);
+          // Over the 13-year Khadilkar span a pixel-square grid would be ~2.4x taller
+          // than wide (far past an A4 sheet), so the plot is capped at 1.5x its width;
+          // the gridline COUNTS (5 minor boxes per labelled line) are unchanged.
+          // The printed chart has 4 minor boxes per year on x (every 3 months) and 5 per
+          // 5 units on y -- measured off the original images, not GRID_SUBDIVS.
+          const plan = { ...squarePlan, xMinorStep: 0.25, plotHeight: Math.min(squarePlan.plotHeight, plotWidth * 1.5) };
           const height = m.t + plan.plotHeight + m.b;
           const plotB = height - m.b;
           const sx = (a) => m.l + (a - a0) / (a1 - a0) * plotWidth;
@@ -387,7 +397,7 @@ import { sdsToPercent } from "./growthMath.js";
                 </g>
               )}
 
-              <text x={m.l} y={height-26} fontSize="8.5" fill="#6b7280">{heightData.reference}</text>
+              <text x={m.l} y={height-26} fontSize="8.5" fill="#6b7280">{heightData.reference}{(heightData.wall_chart_traced_centiles || []).length ? ' · height & weight lines drawn from the IAP wall chart' : ''}</text>
               <text x={m.l} y={height-14} fontSize="8.5" fill="#6b7280">Decision support only — not diagnostic; a clinician must verify all results. Red line = 3rd height percentile ("short below this line").</text>
             </svg>
           );

@@ -48,11 +48,9 @@ function useBoneAgeState() {
   const [rusStages, setRusStages] = useState({});    // { boneCode: 'A'..'I' }
   const [carpalStages, setCarpalStages] = useState({}); // { carpalName: 'A'..'I' }
   const [tw3Config, setTw3Config] = useState(null);  // /api/bone-age/config
-  const [rusResult, setRusResult] = useState(null);  // /api/bone-age/score
   const [letterResult, setLetterResult] = useState(null); // live /letters-score (RUS+carpal)
   const [boneReport, setBoneReport] = useState(null); // live /report (structured 20-bone)
   const [patientCode, setPatientCode] = useState(""); // assessment lifecycle
-  const [approverName, setApproverName] = useState("");
   const [assessment, setAssessment] = useState(null); // saved lifecycle record
   const [lcMsg, setLcMsg] = useState(null);           // {type:'ok'|'err', text}
   const [lcBusy, setLcBusy] = useState(false);
@@ -106,9 +104,9 @@ function useBoneAgeState() {
     DECLARABLE_FLAGS,
     boneAge, setBoneAge, boneAgeSource, setBoneAgeSource,
     rusStages, setRusStages, carpalStages, setCarpalStages,
-    tw3Config, setTw3Config, rusResult, setRusResult,
+    tw3Config, setTw3Config,
     letterResult, setLetterResult, boneReport, setBoneReport,
-    patientCode, setPatientCode, approverName, setApproverName,
+    patientCode, setPatientCode,
     assessment, setAssessment, lcMsg, setLcMsg, lcBusy, setLcBusy,
     showAudit, setShowAudit, radiograph, setRadiograph,
     coverage, setCoverage, covBusy, setCovBusy,

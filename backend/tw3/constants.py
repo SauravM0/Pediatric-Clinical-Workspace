@@ -185,10 +185,3 @@ class AssessmentStatus(str, Enum):
     APPROVED = "approved"
     REJECTED = "rejected"
     SUPERSEDED = "superseded"
-
-
-def months_to_years_months(total_months: int) -> tuple[int, int]:
-    """126 -> (10, 6). Internal results are stored in whole months (directive §12)."""
-    if total_months < 0:
-        raise ValueError("bone age in months cannot be negative")
-    return divmod(total_months, 12)

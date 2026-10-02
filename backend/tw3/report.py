@@ -27,7 +27,7 @@ from .letters_scoring import LetterTables, compute_letters, load_letter_tables
 
 REPORT_VERSION = "bone-age-report-1.0"
 
-# Non-grading per-bone states (bone_age_product_starter_pack/bone_inventory.csv).
+# Non-grading per-bone states: a bone that cannot be seen or cannot be staged.
 VISIBILITY_CODES = ("NOT_VISIBLE", "NOT_SCORABLE")
 
 MANDATORY_DISCLAIMER = (
@@ -35,7 +35,7 @@ MANDATORY_DISCLAIMER = (
     "until reviewed and signed by a qualified clinician."
 )
 
-# 1..20 in canonical order (13 RUS then 7 carpal) -- matches bone_inventory.csv.
+# 1..20 in canonical order: 13 RUS then 7 carpal.
 _DISPLAY_ORDER = {code: i + 1 for i, code in enumerate(RUS_BONES + CARPAL_BONES)}
 
 

@@ -5,8 +5,12 @@ recompute percentiles itself -- see frontend/index.html's growth section.
 """
 from __future__ import annotations
 
+import json
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
+
+import numpy as np
 
 from fastapi import Depends, APIRouter, HTTPException, Query
 
@@ -54,6 +58,39 @@ def _cached_series(measure: str, sex: str, age_min: float, age_max: float,
     return curve_builder.build_chart_series(measure, sex, age_min, age_max, render_step)
 
 
+_WALL_CURVES_PATH = Path(__file__).parent / "growth" / "data" / "wall_chart_curves.json"
+_WALL_TRACED_MEASURES = ("height", "weight")
+_CENTILE_ORDER = ("3", "10", "25", "50", "75", "90", "97")
+
+
+@lru_cache(maxsize=1)
+def _wall_curves() -> dict:
+    return json.loads(_WALL_CURVES_PATH.read_text(encoding="utf-8"))
+
+
+def _centiles_for_display(measure: str, sex: str, series_json: dict) -> tuple[dict, bool]:
+    """Draw the height and weight lines exactly as printed on the IAP wall chart.
+
+    wall_chart_curves.json holds the seven lines per measure and sex, read pixel by
+    pixel off the wall-chart images (see wall-chart-replica/source/). They are
+    sampled at the ages of the computed series, so the response keeps its shape.
+
+    Display only: nothing here feeds blend/iap_reference, so z-scores and
+    percentiles keep using the published tables."""
+    if measure not in _WALL_TRACED_MEASURES:
+        return series_json, False
+    t = _wall_curves().get(sex)
+    if not t:
+        return series_json, False
+    out = {}
+    for key, pts in series_json.items():
+        i = _CENTILE_ORDER.index(key)
+        ages = [a for a, _ in pts]
+        vals = np.interp(ages, t["ages"], t[measure][i])
+        out[key] = [[a, round(float(v), 4)] for a, v in zip(ages, vals)]
+    return out, True
+
+
 def _series(measure: str, sex: str, age_min: float, age_max: float, render_step: float):
     """Cached chart series, keyed on the current reference-data fingerprint."""
     return _cached_series(measure, sex, age_min, age_max, render_step,
@@ -72,6 +109,7 @@ def get_chart_series(
     Age in years, value in the measure's clinical unit (see `unit`)."""
     _check_measure_sex(measure, sex)
     series = _series(measure, sex, age_min, age_max, render_step)
+    centiles, traced = _centiles_for_display(measure, sex, curve_builder.series_to_json(series))
     return {
         "measure": measure,
         "sex": sex,
@@ -81,8 +119,13 @@ def get_chart_series(
         # Honest label: the 3.0-5.0y span is a PRODUCT-DERIVED composite (a
         # monotone WHO<->IAP bridge), not a published WHO or Khadilkar curve
         # (audit GC-1/GC-2). Window is 3.0-5.0y (blend.BLEND_LO..BLEND_HI).
-        "reference": "Product-derived WHO/IAP composite · WHO 2006 <3y · IAP 2015 India 5–18y",
-        "centiles": curve_builder.series_to_json(series),
+        "reference": (
+            "IAP 2015 India (Khadilkar et al.) · 5–18y"
+            if age_min >= 5.0 else
+            "Product-derived WHO/IAP composite · WHO 2006 <3y · IAP 2015 India 5–18y"
+        ),
+        "centiles": centiles,
+        "wall_chart_traced_centiles": [3, 10, 25, 50, 75, 90, 97] if traced else [],
     }
 
 

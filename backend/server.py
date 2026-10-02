@@ -29,8 +29,12 @@ from backend.api_clinical import router as clinical_router
 from backend.api_cvd import router as cvd_router
 from backend.api_growth import router as growth_router
 from backend.api_growth_report import router as growth_report_router
+from backend.api_hepatic import router as hepatic_router
 from backend.api_observations import router as observations_router
 from backend.api_privacy import router as privacy_router
+from backend.api_renal import router as renal_router
+from backend.api_reference_data import router as reference_data_router
+from backend.api_vitals import router as vitals_router
 from backend.config import APP_VERSION
 from backend.db import init_db
 
@@ -72,12 +76,21 @@ app.add_middleware(
         "http://127.0.0.1:3131",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
-        "null",
+        # "null" was listed here, with credentials allowed. A sandboxed iframe on
+        # ANY web site has origin "null", so that let an arbitrary page the
+        # clinician visited read patient data from this local server. Removed.
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Outermost layer: host allowlist (DNS rebinding), loopback-only while auth is
+# off, cross-site write refusal, security headers. See security/network_guard.py.
+from backend.security.network_guard import NetworkGuardMiddleware  # noqa: E402
+
+app.add_middleware(NetworkGuardMiddleware)
+
 
 class _RevalidatingStatics(StaticFiles):
     """StaticFiles that always revalidates.
@@ -109,11 +122,35 @@ if FRONTEND_DIR.exists():
     app.mount("/static", _RevalidatingStatics(directory=FRONTEND_DIR), name="static")
     vendor_dir = FRONTEND_DIR / "vendor"
     if vendor_dir.exists():
-        # Locally vendored JS (React, Tailwind) referenced as ``vendor/*`` from
+        # Locally vendored JS (React, ReactDOM) referenced as ``vendor/*`` from
         # index.html — served here so the app is fully offline. These are
         # version-pinned files that do not change, but they get the same
         # revalidation so a vendor upgrade cannot be missed either.
         app.mount("/vendor", _RevalidatingStatics(directory=vendor_dir), name="vendor")
+
+
+def _warm_growth_cache() -> None:
+    """Build the chart series the browser asks for first, in the background.
+
+    A cold series build takes ~2-3 s, and the first requests after a restart
+    queued behind it: eGFR, BP and QRISK3 results showed "Calculating..." for
+    about 2.5 s. Warming the exact (measure, sex, defaults) the frontend requests
+    removes that. A daemon thread, so startup is not delayed and shutdown is not
+    blocked; a failure here only means the first request builds it instead.
+    """
+    import logging
+    try:
+        from backend.api_growth import _series
+        for sex in ("girls", "boys"):
+            for measure in ("height", "weight", "bmi"):
+                _series(measure, sex, 0.0, 18.0, 0.1)
+    except Exception:  # noqa: BLE001 -- best-effort optimisation only
+        logging.getLogger(__name__).warning("growth cache warm-up failed", exc_info=True)
+
+
+if os.environ.get("PCW_SKIP_CACHE_WARMUP") != "1":
+    import threading
+    threading.Thread(target=_warm_growth_cache, name="growth-cache-warmup", daemon=True).start()
 
 
 app.include_router(auth_router)
@@ -125,6 +162,10 @@ app.include_router(growth_router)
 app.include_router(growth_report_router)
 app.include_router(observations_router)
 app.include_router(privacy_router)
+app.include_router(renal_router)
+app.include_router(hepatic_router)
+app.include_router(vitals_router)
+app.include_router(reference_data_router)
 
 
 @app.get("/api/health")
@@ -133,11 +174,12 @@ def health() -> dict[str, Any]:
     this returns no patient data. It DOES disclose the security posture --
     an instance running with auth or encryption off should be visibly so, not
     quietly so (security phase, C.1/C.2)."""
-    from backend.security.crypto import encryption_available
+    from backend.security.crypto import encryption_available, key_location
     from backend.security.deps import auth_disabled
 
     auth_on = not auth_disabled()
     encryption_on = encryption_available()
+    key_loc = key_location() if encryption_on else {"source": "none", "inside_app_folder": False}
     return {
         "status": "ok",
         "frontend_available": INDEX_HTML.exists(),
@@ -145,15 +187,23 @@ def health() -> dict[str, Any]:
         "clinical_use": False,
         "auth_enabled": auth_on,
         "encryption_at_rest": encryption_on,
+        "encryption_key_source": key_loc["source"],
         "safe_for_patient_data": auth_on and encryption_on,
         "warnings": [
             w for w in (
                 None if auth_on else
-                "AUTHENTICATION DISABLED (PCW_AUTH_DISABLED) - every endpoint is open. "
-                "Development only; never expose this instance or store real patient data.",
+                "AUTHENTICATION IS OFF - every endpoint is open to anyone who can reach "
+                "this app, and approvals are attributed to 'dev-no-auth' rather than to a "
+                "named clinician. This is the shipped default (there is no sign-in screen); "
+                "set PCW_AUTH_ENABLED=1 to restore enforcement. Never expose this instance "
+                "to a network.",
                 None if encryption_on else
                 "IDENTIFIERS NOT ENCRYPTED AT REST (PCW_ENCRYPTION_KEY unset) - patient "
                 "names are stored in clear in the database file.",
+                None if not key_loc["inside_app_folder"] else
+                "ENCRYPTION KEY IS INSIDE THE APP FOLDER - a copy of the folder carries the "
+                "database and the key that unlocks it. Move the key to a file elsewhere and "
+                "point PCW_ENCRYPTION_KEY_FILE at it.",
             ) if w
         ],
     }

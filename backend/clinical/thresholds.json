@@ -28,7 +28,7 @@
   },
   "low_height_velocity_cm_per_year": {
     "value": 4.0,
-    "source": "RULE OF THUMB, not a centile. A pre-pubertal child growing under about 4-5 cm/year warrants evaluation. The correct test is height velocity below the 25th centile for age, which needs the published Indian velocity reference (Khadilkar et al., Indian Pediatr 2019) that this project does NOT yet hold -- see INTENDED-USE.md. Treat as a coarse screen.",
+    "source": "RULE OF THUMB, not a centile. A pre-pubertal child growing under about 4-5 cm/year warrants evaluation. The correct test is height velocity below the 25th centile for age, which needs the published Indian velocity reference (Khadilkar et al., Indian Pediatr 2019) that this project does NOT yet hold -- see backend/growth/data/VELOCITY-REFERENCE-REQUEST.md. Treat as a coarse screen.",
     "confidence": "low"
   },
   "velocity_rule_min_age_years": {
@@ -63,7 +63,7 @@
   },
   "bone_age_discrepancy_years": {
     "value": 2.0,
-    "source": "A bone age more than 2 years from chronological age in either direction is conventionally considered significant. NOTE: the active TW3-C curve is provisional (+/-0.5y, digitized) -- see INTENDED-USE.md -- so this rule is reported at reduced confidence.",
+    "source": "A bone age more than 2 years from chronological age in either direction is conventionally considered significant. NOTE: the active TW3-C curve is provisional (+/-0.5y, digitized) -- see backend/tw3/TW3-BOOK-REQUEST.md -- so this rule is reported at reduced confidence.",
     "confidence": "low"
   },
   "delayed_puberty_age_girls": {

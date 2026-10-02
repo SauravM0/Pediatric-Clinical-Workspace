@@ -44,7 +44,6 @@ from datetime import date
 from pathlib import Path
 from typing import Iterable, Optional
 
-from . import measures as _measures
 from . import who_lms_reference as who_lms
 from .ingest_iap_lms import IngestError, header_key
 
@@ -228,7 +227,11 @@ def _band_of(name: str) -> str:
     """Which WHO study a file belongs to. Defaults to 'under' so a single
     combined file (some WHO exports are one table) is not silently split."""
     lowered = name.lower()
-    if "over_five" in lowered or "over-five" in lowered or "5_19" in lowered:
+    # WHO's over-five WEIGHT reference runs 5-10 y, not 5-19 y. Recognising only
+    # "5_19" filed the weight 5-10 table as under-five; harmless only because its
+    # first age (5.083 y) happens to fall just past the under-five table's last
+    # (5.0815 y), so the range-based handoff was never exercised for weight.
+    if any(tag in lowered for tag in ("over_five", "over-five", "5_19", "5-19", "5_10", "5-10")):
         return "over"
     return "under"
 
@@ -285,13 +288,28 @@ def run_gate() -> dict:
 
 def write_provenance(result: dict, gate: dict) -> Path:
     PROVENANCE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # Keep what a human recorded about the download (URLs, licence) across a
+    # re-install; the tool only knows the files, not where they came from.
+    kept = {}
+    if PROVENANCE_PATH.exists():
+        try:
+            old = json.loads(PROVENANCE_PATH.read_text(encoding="utf-8"))
+            kept = {k: old[k] for k in ("downloaded",) if k in old}
+            if old.get("licence_caveat") and not result.get("licence_caveat"):
+                kept["licence_caveat"] = old["licence_caveat"]
+        except (OSError, ValueError):
+            pass
     PROVENANCE_PATH.write_text(json.dumps({
+        **kept,
         "installed_on": date.today().isoformat(),
         "source": result.get("provenance_source"),
         "source_path": result.get("source"),
         "files": [Path(p).name for p in result.get("written", [])],
-        "licence_caveat": result.get("licence_caveat"),
+        "licence_caveat": result.get("licence_caveat") or kept.get("licence_caveat"),
         "reference": "WHO Multicentre Growth Reference Study (WHO 2006 / 2007)",
+        # The seal: at run time without rcpchgrowth, the tables are trusted only
+        # while every file still has exactly these bytes.
+        "table_sha256": who_lms.table_checksums(),
         "gate": {k: gate.get(k) for k in ("active", "reason") if k in gate},
         "equivalence": {k: (gate.get("equivalence") or {}).get(k)
                         for k in ("checked", "worst", "tolerance")},

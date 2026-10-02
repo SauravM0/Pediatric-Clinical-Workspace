@@ -100,9 +100,15 @@ function useRenal() {
   return { metrics: s.renalMetrics, hasManual: s.hasManualRenal };
 }
 
+/** FRAX: the clinician's entry of the OFFICIAL calculator's result. This
+ *  product computes no fracture probability itself (see FraxPanel). */
 function useFrax() {
   const s = useClinicalState();
-  return { metrics: s.fraxMetrics, hasManual: s.hasManualFrax };
+  return {
+    metrics: s.fraxMetrics, hasManual: s.hasManualFrax,
+    fraxMofEntered: s.fraxMofEntered, setFraxMofEntered: s.setFraxMofEntered,
+    fraxHfEntered: s.fraxHfEntered, setFraxHfEntered: s.setFraxHfEntered,
+  };
 }
 
 
@@ -124,7 +130,7 @@ function useInputs() {
     weight: s.weight, setWeight: s.setWeight,
     // Which cards the active tab actually consumes -- the panel stays live and
     // editable, irrelevant sections are only de-emphasised.
-    labsRelevant: s.labsRelevant, fraxRelevant: s.fraxRelevant,
+    labsRelevant: s.labsRelevant,
     creatinine: s.creatinine, setCreatinine: s.setCreatinine,
     albuminuria: s.albuminuria, setAlbuminuria: s.setAlbuminuria,
     systolic: s.systolic, setSystolic: s.setSystolic,
@@ -132,13 +138,6 @@ function useInputs() {
     ast: s.ast, setAst: s.setAst,
     alt: s.alt, setAlt: s.setAlt,
     platelets: s.platelets, setPlatelets: s.setPlatelets,
-    prevFracture: s.prevFracture, setPrevFracture: s.setPrevFracture,
-    parentHipFracture: s.parentHipFracture, setParentHipFracture: s.setParentHipFracture,
-    smoking: s.smoking, setSmoking: s.setSmoking,
-    glucocorticoids: s.glucocorticoids, setGlucocorticoids: s.setGlucocorticoids,
-    rheumatoid: s.rheumatoid, setRheumatoid: s.setRheumatoid,
-    secondaryOsteo: s.secondaryOsteo, setSecondaryOsteo: s.setSecondaryOsteo,
-    alcohol: s.alcohol, setAlcohol: s.setAlcohol,
   };
 }
 
@@ -199,12 +198,10 @@ function useGrowth() {
 function useQrisk() {
   const s = useClinicalState();
   return {
-    age: s.age,
     cholRatio: s.cholRatio,
     diabetes: s.diabetes,
     ethnicity: s.ethnicity,
     evalGender: s.evalGender,
-    height: s.height,
     qAF: s.qAF,
     qAtypAntipsy: s.qAtypAntipsy,
     qCKD: s.qCKD,
@@ -235,8 +232,19 @@ function useQrisk() {
     setSbpSD: s.setSbpSD,
     setSmokeCat: s.setSmokeCat,
     smokeCat: s.smokeCat,
-    systolic: s.systolic,
-    weight: s.weight,
+  };
+}
+
+/** The patient record (step 3): the persisted longitudinal record, rules
+ *  engine and triage. It reads the identity bar and the entered measurements;
+ *  the *Ok flags say which of them are plausible enough to be saved. */
+function useRecord() {
+  const s = useClinicalState();
+  return {
+    patientMrn: s.patientMrn, patientName: s.patientName, examDate: s.examDate,
+    sexEntered: s.sexEntered, dob: s.dob,
+    height: s.height, weight: s.weight, systolic: s.systolic, diastolic: s.diastolic,
+    heightOk: s.heightOk, weightOk: s.weightOk, bpOk: s.bpOk,
   };
 }
 
@@ -248,6 +256,7 @@ function useLedger() {
     age: s.age,
     albuminuria: s.albuminuria,
     assessment: s.assessment,
+    canLogSnapshot: s.canLogSnapshot,
     chronicityStatus: s.chronicityStatus,
     creatinine: s.creatinine,
     height: s.height,
@@ -265,124 +274,20 @@ function useLedger() {
  *  adjudication, licensed tables and feedback. It is still an explicit list,
  *  so what the panel can reach stays reviewable. */
 function useBoneAge() {
-  const s = useClinicalState();
-  return {
-    DECLARABLE_FLAGS: s.DECLARABLE_FLAGS,
-    LC_API: s.LC_API,
-    addOrSelectBox: s.addOrSelectBox,
-    adjBusy: s.adjBusy,
-    adjItems: s.adjItems,
-    adjMsg: s.adjMsg,
-    adjReviewer: s.adjReviewer,
-    age: s.age,
-    aiBusy: s.aiBusy,
-    aiEstimate: s.aiEstimate,
-    analysisUrl: s.analysisUrl,
-    assessment: s.assessment,
-    attachImage: s.attachImage,
-    boneAge: s.boneAge,
-    boneAgeSource: s.boneAgeSource,
-    boneMetrics: s.boneMetrics,
-    boneReport: s.boneReport,
-    bonesIntoGrids: s.bonesIntoGrids,
-    boxes: s.boxes,
-    carpalStages: s.carpalStages,
-    clearBox: s.clearBox,
-    covBusy: s.covBusy,
-    coverage: s.coverage,
-    curveToText: s.curveToText,
-    declaredFlags: s.declaredFlags,
-    endLocDrag: s.endLocDrag,
-    estimateDomain: s.estimateDomain,
-    evalAge: s.evalAge,
-    evalGender: s.evalGender,
-    evalHeight: s.evalHeight,
-    fatherHeight: s.fatherHeight,
-    fbAge: s.fbAge,
-    fbBusy: s.fbBusy,
-    fbConfidence: s.fbConfidence,
-    fbMethod: s.fbMethod,
-    fbMsg: s.fbMsg,
-    fbNote: s.fbNote,
-    fbRater: s.fbRater,
-    height: s.height,
-    lcBtn: s.lcBtn,
-    lcBusy: s.lcBusy,
-    lcLocked: s.lcLocked,
-    lcMsg: s.lcMsg,
-    letterResult: s.letterResult,
-    loadAdjudication: s.loadAdjudication,
-    loadCoverage: s.loadCoverage,
-    loadLetterTables: s.loadLetterTables,
-    loadLocalCohort: s.loadLocalCohort,
-    loadMonitoring: s.loadMonitoring,
-    localCohort: s.localCohort,
-    lcohBusy: s.lcohBusy,
-    locBusy: s.locBusy,
-    locImg: s.locImg,
-    locMsg: s.locMsg,
-    locRef: s.locRef,
-    localizeBones: s.localizeBones,
-    ltBusy: s.ltBusy,
-    ltMsg: s.ltMsg,
-    ltSection: s.ltSection,
-    ltSex: s.ltSex,
-    ltStatus: s.ltStatus,
-    ltTables: s.ltTables,
-    monBusy: s.monBusy,
-    monitoring: s.monitoring,
-    motherHeight: s.motherHeight,
-    onLocMove: s.onLocMove,
-    patientCode: s.patientCode,
-    radiograph: s.radiograph,
-    resolveAdjudication: s.resolveAdjudication,
-    reviseAssessment: s.reviseAssessment,
-    runEstimate: s.runEstimate,
-    rusStages: s.rusStages,
-    saveBoxes: s.saveBoxes,
-    saveDraft: s.saveDraft,
-    saveLetterTables: s.saveLetterTables,
-    selBone: s.selBone,
-    setAdjReviewer: s.setAdjReviewer,
-    setAssessment: s.setAssessment,
-    setBoneAge: s.setBoneAge,
-    setBoneAgeSource: s.setBoneAgeSource,
-    setCarpalStages: s.setCarpalStages,
-    setEstimateDomain: s.setEstimateDomain,
-    setFatherHeight: s.setFatherHeight,
-    setFbAge: s.setFbAge,
-    setFbConfidence: s.setFbConfidence,
-    setFbMethod: s.setFbMethod,
-    setFbNote: s.setFbNote,
-    setFbRater: s.setFbRater,
-    setImageDomain: s.setImageDomain,
-    setLcBusy: s.setLcBusy,
-    setLcMsg: s.setLcMsg,
-    setLocImg: s.setLocImg,
-    setLtCurve: s.setLtCurve,
-    setLtPoint: s.setLtPoint,
-    setLtSection: s.setLtSection,
-    setLtSex: s.setLtSex,
-    setLtSexCurve: s.setLtSexCurve,
-    setLtTables: s.setLtTables,
-    setMotherHeight: s.setMotherHeight,
-    setPatientCode: s.setPatientCode,
-    setRefExpected: s.setRefExpected,
-    setRusStages: s.setRusStages,
-    setShowAudit: s.setShowAudit,
-    showAudit: s.showAudit,
-    startBoxDrag: s.startBoxDrag,
-    submitFeedback: s.submitFeedback,
-    toggleAudit: s.toggleAudit,
-    toggleDeclaredFlag: s.toggleDeclaredFlag,
-    tw3Config: s.tw3Config,
-    useGridAsReference: s.useGridAsReference,
-  };
+  // The one slice that is a whole DOMAIN rather than a hand-picked set of
+  // fields. Its two consumers are the bone-age panel and the Advanced workflow
+  // split out of it, which between them read nearly all of it, so listing 113
+  // names here bought no narrowing -- it only added a third place to forget.
+  // What keeps this honest is that the slice is exactly boneAgeState.js plus
+  // boneAgeHandlers.js: a name cannot reach a panel unless one of those two
+  // modules defines it. test_build_artefact.py checks the group has no member
+  // that neither bone-age panel reads.
+  return useClinicalState().boneAge;
 }
 
 export {
   ClinicalStateContext, ClinicalStateProvider, useClinicalState,
   usePatient, useLiver, useRenal, useFrax,
-  useOverview, useGrowth, useQrisk, useLedger, useBoneAge,
+  useOverview, useGrowth, useQrisk, useLedger, useBoneAge, useRecord,
   useInputs, useShell,
 };

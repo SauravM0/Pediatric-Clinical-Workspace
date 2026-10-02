@@ -24,6 +24,7 @@
  */
 import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -50,13 +51,48 @@ const INDEX = path.join(ROOT, "frontend", "index.html");
 // copy already sitting in a browser cache from before that header existed.
 const SCRIPT_RE = /(<script src="static\/app\.js)(\?v=[0-9a-f]+)?(")/;
 
-async function stampIndex(bundle) {
+// ── Stylesheet (step 7) ─────────────────────────────────────────────────────
+// Tailwind used to run IN THE BROWSER (the 450 kB "play" runtime), compiling CSS
+// from the DOM on every page load. It is now compiled here, once, by the same
+// Tailwind version (3.4.16, pinned in package.json) into a committed
+// frontend/app.css, and checked for staleness exactly like app.js.
+//
+// Content = every source file plus index.html. Classes assembled at run time
+// from fragments would be missed -- this codebase's dynamic class names
+// (status-dot-*, ckd-active-*, risk-badge-*) are its own CSS in index.html, not
+// Tailwind utilities, and the Tailwind classes in JS strings are written whole.
+const CSS_OUT = path.join(ROOT, "frontend", "app.css");
+const LINK_RE = /(<link rel="stylesheet" href="static\/app\.css)(\?v=[0-9a-f]+)?(">)/;
+const CSS_BANNER = `/* GENERATED FILE -- do not edit. Tailwind 3.4.16 output built by build.mjs
+ * from frontend/src/ and frontend/index.html. Run \`npm run build\`. */\n`;
+
+async function buildCss() {
+  const require = createRequire(import.meta.url);
+  const postcss = require("postcss");
+  const tailwind = require("tailwindcss");
+  const config = {
+    content: [path.join(ROOT, "frontend", "src", "**", "*.{js,jsx}").replace(/\\/g, "/"),
+              INDEX.replace(/\\/g, "/")],
+    theme: { extend: {} },
+    plugins: [],
+  };
+  const result = await postcss([tailwind(config)]).process(
+    "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n", { from: undefined });
+  return CSS_BANNER + result.css;
+}
+
+async function stampIndex(bundle, css) {
   const html = await readFile(INDEX, "utf8");
   if (!SCRIPT_RE.test(html)) {
     console.error("FAIL: could not find the app.js script tag in index.html");
     process.exit(1);
   }
-  const stamped = html.replace(SCRIPT_RE, `$1?v=${sha(bundle)}$3`);
+  if (!LINK_RE.test(html)) {
+    console.error("FAIL: could not find the app.css link tag in index.html");
+    process.exit(1);
+  }
+  const stamped = html.replace(SCRIPT_RE, `$1?v=${sha(bundle)}$3`)
+                      .replace(LINK_RE, `$1?v=${sha(css)}$3`);
   if (stamped !== html) await writeFile(INDEX, stamped);
   return stamped;
 }
@@ -131,14 +167,32 @@ if (process.argv.includes("--watch")) {
     );
     process.exit(1);
   }
-  console.log(`OK: frontend/app.js matches frontend/src (sha256[:12] ${sha(fresh)})`);
+  const freshCss = await buildCss();
+  let committedCss = "";
+  try { committedCss = await readFile(CSS_OUT, "utf8"); } catch { /* reported below */ }
+  if (freshCss !== committedCss) {
+    console.error(`FAIL: frontend/app.css is stale or missing (the source uses classes it ` +
+                  `does not contain, or the reverse). Run: npm run build`);
+    process.exit(1);
+  }
+  const cssStamp = (html.match(LINK_RE) || [])[2];
+  if (cssStamp !== `?v=${sha(freshCss)}`) {
+    console.error(`FAIL: index.html's stylesheet link is stamped ${cssStamp || "(nothing)"} ` +
+                  `but app.css is ${sha(freshCss)}. Run: npm run build`);
+    process.exit(1);
+  }
+  console.log(`OK: frontend/app.js matches frontend/src (sha256[:12] ${sha(fresh)}); ` +
+              `app.css current (sha256[:12] ${sha(freshCss)})`);
 } else {
   await esbuild.build(options);
   const out = await readFile(OUTFILE, "utf8");
-  await stampIndex(out);
+  const css = await buildCss();
+  await writeFile(CSS_OUT, css);
+  await stampIndex(out, css);
   console.log(
     `built ${path.relative(ROOT, OUTFILE)} ` +
       `(${(Buffer.byteLength(out) / 1024).toFixed(1)} kB, sha256[:12] ${sha(out)}) ` +
-      `· index.html stamped ?v=${sha(out)}`
+      `· ${path.relative(ROOT, CSS_OUT)} (${(Buffer.byteLength(css) / 1024).toFixed(1)} kB) ` +
+      `· index.html stamped`
   );
 }

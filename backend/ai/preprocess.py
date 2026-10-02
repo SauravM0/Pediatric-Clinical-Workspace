@@ -3,7 +3,9 @@
 Two pipelines live here, and both are kept forever:
 
 * ``prep-1.0-minmax`` reproduces exactly what the incumbent model was trained
-  and calibrated with -- global min/max scaling, resize, ImageNet normalisation.
+  and calibrated with -- grayscale, resize, divide by 255, ImageNet
+  normalisation (``train_boneage._load_all_images``). Despite the version name
+  there is NO min/max contrast stretch; an earlier docstring said there was.
   It is not deleted when a better one arrives, because a model is only valid
   with the preprocessing it saw during training. A stored conformal quantile is
   a property of *model + pipeline*, not of the model alone.

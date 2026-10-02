@@ -73,7 +73,8 @@ import { probToPercent } from "./growthMath.js";
           );
         }
 
-        function FraxToggleRow({ label, value, setter }) {
+        // Yes/No pill for a binary risk factor.
+        function YesNoToggleRow({ label, value, setter }) {
           return (
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #f8fafc' }}>
               <span style={{ fontSize:'12px', fontWeight:'600', color:'#475569' }}>{label}</span>
@@ -85,7 +86,9 @@ import { probToPercent } from "./growthMath.js";
           );
         }
 
-        function InputWithUnit({ label, value, onChange, placeholder, step, unit, accent }) {
+        // `problem` is a rangeProblem() message: shown under the field, and the
+        // field is outlined, so an implausible entry is visible where it was typed.
+        function InputWithUnit({ label, value, onChange, placeholder, step, unit, accent, problem }) {
           return (
             <div style={{ minWidth:0 }}>
               <label className="field-label">{label}</label>
@@ -97,7 +100,9 @@ import { probToPercent } from "./growthMath.js";
                   value={value}
                   onChange={onChange}
                   className="input-field"
+                  aria-invalid={problem ? true : undefined}
                   style={{
+                    ...(problem ? { borderColor:'#f87171', background:'#fff7f7' } : {}),
                     paddingRight: unit ? '44px' : '12px',
                     color: accent || '#1e293b',
                     minWidth:0,
@@ -108,6 +113,7 @@ import { probToPercent } from "./growthMath.js";
                   <span style={{ position:'absolute', right:'10px', fontSize:'10px', fontWeight:'700', color:'#94a3b8', textTransform:'uppercase', pointerEvents:'none', whiteSpace:'nowrap' }}>{unit}</span>
                 )}
               </div>
+              {problem && <div role="alert" style={{ fontSize:'10px', color:'#b91c1c', marginTop:'4px', lineHeight:'1.4' }}>{problem}</div>}
             </div>
           );
         }
@@ -161,6 +167,6 @@ import { probToPercent } from "./growthMath.js";
           return { years, months, days, decimal };
         }
 
-export { ProbBar, StatusBadge, MetricRow, SectionHeader, FraxToggleRow,
+export { ProbBar, StatusBadge, MetricRow, SectionHeader, YesNoToggleRow,
          InputWithUnit, EmptyState, heroTone, variantToState,
          computeAgeParts };

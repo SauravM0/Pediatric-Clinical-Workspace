@@ -23,6 +23,15 @@ from backend.growth import blend
 from backend.models import Patient, PubertyAssessment, TW3Assessment
 
 
+
+# The adult point of the height reference used for target (mid-parental) SDS.
+# 18.0 is the LAST age of IAP 2015 (Khadilkar), the reference the child's own
+# height SDS comes from. It was 19.0, where IAP has no data and the growth engine
+# silently fell back to WHO -- a taller population (boys' median 176.5 vs 173.6
+# cm) -- which scored every target low and made "below genetic target" under-fire.
+# Must match the age the frontend requests in app.jsx (reference-stats age=18).
+ADULT_REFERENCE_AGE_YEARS = 18.0
+
 def _sds(measure: str, sex: str, age_years: float, value: float) -> Optional[float]:
     try:
         return blend.unified_z_for_value(measure, sex, age_years, value)
@@ -76,25 +85,34 @@ def build_snapshot(db: Session, patient_id: int) -> PatientSnapshot:
     latest_height = _latest(heights)
     age_years = latest_height[0] if latest_height else None
 
-    puberty = db.execute(
+    puberty_rows = db.execute(
         select(PubertyAssessment).where(PubertyAssessment.patient_id == patient_id)
-        .order_by(PubertyAssessment.assessed_at.desc()).limit(1)
-    ).scalars().first()
+        .order_by(PubertyAssessment.assessed_at.desc())
+    ).scalars().all()
+    puberty = puberty_rows[0] if puberty_rows else None
+    # Menarche is one-way: reached if ANY assessment recorded it. Reading only the
+    # latest row "forgot" it whenever a later visit left the date blank.
+    menarche_reached = (any(p.menarche_date is not None for p in puberty_rows)
+                        if puberty_rows else None)
 
+    # Only an APPROVED bone age is a clinical fact. A draft, rejected or
+    # superseded reading used to feed the rules the same as a signed one.
     assessment = db.execute(
         select(TW3Assessment).where(TW3Assessment.patient_id == patient_id)
         .where(TW3Assessment.bone_age_months.isnot(None))
+        .where(TW3Assessment.assessment_status == "approved")
         .order_by(TW3Assessment.updated_at.desc()).limit(1)
     ).scalars().first()
 
     # The mid-parental target expressed as an ADULT height SDS, so the rule can
-    # compare like with like. Adult reference age 19 is the same point the
-    # frontend's adult-height projection already uses.
+    # compare like with like: the child's own SDS comes from IAP 2015 from 5 y,
+    # so the target must be scored on IAP too.
     target = prediction.mid_parental_target(
         sex, patient.mother_height_cm, patient.father_height_cm,
         source=patient.parental_height_source)
     target_sds = (
-        _sds("height", sex, 19.0, target.target_cm) if target is not None else None
+        _sds("height", sex, ADULT_REFERENCE_AGE_YEARS, target.target_cm)
+        if target is not None else None
     )
 
     return PatientSnapshot(
@@ -116,9 +134,13 @@ def build_snapshot(db: Session, patient_id: int) -> PatientSnapshot:
         genital_stage=puberty.genital_stage if puberty else None,
         pubic_hair_stage=puberty.pubic_hair_stage if puberty else None,
         testicular_volume_ml=puberty.testicular_volume_ml if puberty else None,
-        menarche_reached=bool(puberty.menarche_date) if puberty else None,
+        menarche_reached=menarche_reached,
         bone_age_years=(assessment.bone_age_months / 12.0) if assessment else None,
         bone_age_method=assessment.assessment_method if assessment else None,
+        bone_age_chronological_years=(
+            assessment.chronological_age_months / 12.0
+            if assessment is not None and assessment.chronological_age_months is not None
+            else None),
         arm_span_cm=_latest(spans)[1] if spans else None,
         sitting_height_cm=_latest(sitting)[1] if sitting else None,
     )

@@ -3,45 +3,69 @@
 Local FastAPI + static browser workspace for growth calculations and bone-age
 image uploads.
 
-**Project status:** `DELIVERY-STATUS-2026-08-10.md` — what is built, what is
-waiting on reference data that must come from outside this repository, and where
-the 26 July planning documents are now wrong. Read
-[`INTENDED-USE.md`](INTENDED-USE.md) before any clinical use: the AI screening
-model is currently **below its own release gate**, and the bone age reported
-today is **not Tanner TW3**.
+## Intended use and known limitations (read before clinical use)
 
-## Security Setup (required before any real patient data)
+**Clinician-supervised decision support for paediatric practice in India. Not a
+diagnostic device;** not FDA-cleared, CE-marked or CDSCO-registered. Every
+patient-facing result must be verified by a qualified clinician. Not for use by
+patients or parents.
 
-Authentication is **on by default** and there is no seeded default account —
-create one at a terminal:
+Known limitations, measured rather than assumed:
+
+- **Bone age is not Tanner TW3.** The active TW3-C curve comes from a conference
+  paper (points from its Table 1, score→age digitised from a figure, ±0.5 y) and
+  differs from this centre's historical TW3 reports by ~0.9–1.25 y. The licensed
+  TW3 book fixes this (`backend/tw3/TW3-BOOK-REQUEST.md`).
+- **The AI bone-age estimate is a Greulich–Pyle screening cross-check**, below
+  its own release gate (locked RSNA test MAE 8.99 months; limits of agreement
+  about ±2 years), trained on US data, never validated on Indian children. It can
+  never be entered as the TW3 bone age.
+- **Reference data:** see the Overview tab → "Reference data behind these
+  numbers" (live) and `validation/REFERENCE-DATA-ACTION-PACK.md`. Anything missing is
+  refused, not approximated — e.g. no BP category under 13, no velocity centiles.
+- **QRISK3 is UK-derived** and may under-estimate risk in Indian adults.
+- **FRAX is not calculated here**; the official calculator's result is entered.
+
+Where things stand and what needs a person: `validation/REFERENCE-DATA-ACTION-PACK.md`.
+
+## Security (read before any real patient data)
+
+**Authentication is OFF by default** — a deliberate product decision: the
+workspace has no sign-in screen. Approvals are therefore attributed to
+`dev-no-auth`, and anyone using this computer can read and change records.
+Because of that, the network boundary is the security boundary, and the app
+enforces it itself (`backend/security/network_guard.py`):
+
+- **This computer only.** With authentication off, any request that does not
+  come from this machine is refused — whatever address the server was started on.
+- **Known hosts only.** Requests must be addressed to `localhost`, `127.0.0.1` or
+  `::1`, which defeats DNS-rebinding attacks from a web page the clinician visits.
+- **No cross-site writes.** State-changing requests from another web origin (or
+  that the browser marks cross-site) are refused.
+- **Browser hardening.** Content-Security-Policy (no third-party scripts, no
+  framing), `nosniff`, no referrer, and `no-store` on every API response so
+  patient data is not left in the browser cache.
+- **No patient identifiers in URLs.** PDF export and patient lookup send the
+  name/MRN in the request body, so they never reach access logs or history.
+
+To serve a clinic network you must turn authentication back on
+(`PCW_AUTH_ENABLED=1`), add a sign-in screen, create accounts
+(`python -m backend.security.bootstrap --username drname --role doctor`), put TLS
+in front, and list the LAN host name in `PCW_ALLOWED_HOSTS`.
+
+**Encrypt patient names at rest.** Generate a key and keep it **outside the app
+folder** (another drive, a USB key, an admin-only folder), then point the app at
+it — otherwise a copied folder carries both the database and its key:
 
 ```bash
-python -m backend.security.bootstrap --username drpawal --role doctor
+python -m backend.security.crypto > D:/pcw-secret/pcw.key
+# in .env:  PCW_ENCRYPTION_KEY_FILE=D:/pcw-secret/pcw.key
 ```
 
-Roles are `admin`, `doctor`, `assistant`. An **admin manages accounts but cannot
-approve clinical results** — that is deliberate, not an oversight (see
-`backend/security/roles.py`).
-
-Generate an encryption key for identifiers at rest and put it in `.env`:
-
-```bash
-python -m backend.security.crypto
-```
-
-Then confirm the posture — **`safe_for_patient_data` must be `true`** before real
-data is entered:
-
-```bash
-curl -s http://127.0.0.1:8077/api/health
-```
-
-`PCW_AUTH_DISABLED=1` turns authentication off for local development. It is
-reported by `/api/health`, and an instance running with it must never hold real
-patient data or be exposed to a network.
-
-See [INTENDED-USE.md](INTENDED-USE.md) for the full intended-use and limitations
-statement, including known-unsafe configurations.
+`GET /api/health` reports the posture (`auth_enabled`, `encryption_at_rest`,
+`encryption_key_source`) and lists every warning, including a key stored inside
+the app folder. Back up the key separately from the database: without it the
+names cannot be decrypted.
 
 ## Important Medical Boundary
 
@@ -107,11 +131,13 @@ frontend/
   index.html         HTML shell (no application logic)
   src/               React/JSX application source — EDIT HERE
   app.js             built bundle, COMMITTED (generated; do not edit)
-  vendor/            React + Tailwind, vendored for offline use
+  app.css            Tailwind 3.4.16 output, COMMITTED (generated by build.mjs)
+  vendor/            React + ReactDOM, vendored for offline use
+validation/          clinical vignettes, validation protocol, release checklist,
+                     reference-data request pack
 datasets/            local image corpora — gitignored, never committed
-docs/                plans, reference material, superseded reports
-build.mjs            esbuild build for the frontend
-package.json         frontend build tooling (esbuild only)
+build.mjs            esbuild + Tailwind build for the frontend
+package.json         frontend build tooling (esbuild, Tailwind)
 requirements.txt     Python dependencies
 ```
 
@@ -147,18 +173,43 @@ This replaced in-browser Babel transpilation: the app previously shipped as
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-python -m uvicorn backend.server:app --reload --port 8077
+python -m backend.server
 ```
 
-Open http://127.0.0.1:8077/.
+Open http://127.0.0.1:8077/. No API key is required, and every image is
+processed locally by the backend.
 
-No API key is required. Images are processed locally by the backend.
+Two optional extras, neither needed to see the app work:
+
+```powershell
+python -m playwright install chromium     # only for the printable PDF report
+python -m pip install -r requirements-dev.txt ; python -m pytest
+```
+
+### What gets installed, and why that is all
+
+| File | Packages | Size | For |
+|---|---|---|---|
+| `requirements.txt` | 29 | 456 MB | running the workspace |
+| `+ requirements-dev.txt` | 40 | 488 MB | running the tests |
+| `requirements-ml.txt` | +620 MB | separate env | RETRAINING the bone-age model only |
+
+Every runtime package is exactly pinned, and every one of them is imported by
+code the server can reach: `tests/test_dependency_closure.py` fails the build if
+something is declared but unused, or imported but undeclared. PyTorch is not a
+runtime dependency -- the shipped model runs through `onnxruntime`, and a clean
+install answers every endpoint, AI bone-age estimate included.
+
+**The end user needs no Node.js.** `frontend/app.js` and `app.css` are committed,
+and `package.json` has zero production dependencies; esbuild and Tailwind are
+build tools for developers changing `frontend/src/`.
 
 ## Deployment
 
-**This application is local-first and is not currently supported on a public
-host.** `render.yaml` remains from earlier development; it predates the security
-work and must not be used with real patient data.
+**This application is local-first and is not supported on a public host.** The
+old `render.yaml` / `Procfile` / `runtime.txt` (a free public host, bound to
+0.0.0.0) were removed in step 6; with authentication off, the network guard would
+refuse every remote request anyway.
 
 The blockers are specific rather than theoretical:
 
@@ -172,8 +223,23 @@ The blockers are specific rather than theoretical:
 
 For a single clinic, run it on the clinic machine. If a networked deployment is
 ever needed, it requires TLS, a reverse proxy with rate limiting, key management
-separate from the database, and a fresh review against
-[INTENDED-USE.md](INTENDED-USE.md) §7.
+separate from the database, authentication turned back on, and a fresh security
+review.
+
+### Release readiness
+
+Before installing a copy for clinical use:
+
+```bash
+python -m backend.release_check --tests
+```
+
+It reports PASS / WARN / FAIL for the bundle, growth validation, reference data,
+the golden clinical vignettes and their clinician sign-off, encryption at rest,
+authentication, runtime licences, the AI model and source control, and exits 1
+on any blocker. It only reads state. The human steps it cannot do are in
+`validation/RELEASE-CHECKLIST.md`, and the per-module evidence is in
+`validation/VALIDATION-PROTOCOL.md`.
 
 ## API
 

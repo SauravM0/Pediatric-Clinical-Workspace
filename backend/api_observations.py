@@ -69,6 +69,95 @@ class PubertyBody(BaseModel):
     encounter_id: Optional[int] = None
 
 
+class PatientCreateBody(BaseModel):
+    patient_code: str = Field(..., min_length=1, max_length=64, description="clinic MRN")
+    sex: str = Field(..., description="boys | girls")
+    date_of_birth: Optional[datetime] = None
+    name: Optional[str] = Field(None, max_length=200)
+    mother_height_cm: Optional[float] = None
+    father_height_cm: Optional[float] = None
+    parental_height_source: Optional[str] = None
+    gestational_age_weeks: Optional[float] = None
+    birth_weight_g: Optional[float] = None
+
+
+class PatientContextBody(BaseModel):
+    mother_height_cm: Optional[float] = None
+    father_height_cm: Optional[float] = None
+    parental_height_source: Optional[str] = None
+    gestational_age_weeks: Optional[float] = None
+    birth_weight_g: Optional[float] = None
+
+
+class VisitBody(BaseModel):
+    observed_at: datetime
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    head_circumference: Optional[float] = None
+    sitting_height: Optional[float] = None
+    arm_span: Optional[float] = None
+    systolic_bp: Optional[float] = None
+    diastolic_bp: Optional[float] = None
+    allow_implausible_change: bool = False
+
+
+# ── patient registry (step 3) ───────────────────────────────────────────────
+
+class LookupBody(BaseModel):
+    code: str = Field(..., min_length=1, max_length=64)
+
+
+@router.post("/lookup")
+def find_patient(body: LookupBody, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Exact lookup by MRN. A POST so the MRN travels in the body, not in a URL
+    that lands in access logs and browser history. There is deliberately no
+    name search: names are encrypted at rest."""
+    patient = svc.find_patient_by_code(db, body.code)
+    if patient is None:
+        raise HTTPException(404, "no patient with this code")
+    return svc.patient_summary(patient)
+
+
+@router.post("", status_code=201)
+def create_patient(body: PatientCreateBody, db: Session = Depends(get_db),
+                   actor: User = Depends(clinical_access)) -> dict[str, Any]:
+    fields = body.model_dump()
+    try:
+        patient = svc.create_patient(
+            db, patient_code=fields.pop("patient_code"), sex=fields.pop("sex"),
+            date_of_birth=fields.pop("date_of_birth"), name=fields.pop("name"),
+            actor=actor.username, **fields)
+    except svc.GrowthRecordError as exc:
+        raise HTTPException(409 if "already exists" in str(exc) else 422, str(exc)) from exc
+    return svc.patient_summary(patient)
+
+
+@router.patch("/{patient_id}")
+def update_patient(patient_id: int, body: PatientContextBody, db: Session = Depends(get_db),
+                   actor: User = Depends(clinical_access)) -> dict[str, Any]:
+    """Only the fields actually sent are changed (a PATCH), so clearing a value
+    is an explicit null rather than an omission."""
+    try:
+        patient = svc.update_patient_context(db, patient_id, actor=actor.username,
+                                             **body.model_dump(exclude_unset=True))
+    except svc.GrowthRecordError as exc:
+        raise _fail(exc) from exc
+    return svc.patient_summary(patient)
+
+
+@router.post("/{patient_id}/visits", status_code=201)
+def record_visit(patient_id: int, body: VisitBody, db: Session = Depends(get_db),
+                 actor: User = Depends(clinical_access)) -> dict[str, Any]:
+    """One visit's measurements, all-or-nothing; BMI derived server-side."""
+    values = body.model_dump(exclude={"observed_at", "allow_implausible_change"})
+    try:
+        return svc.record_visit_measurements(
+            db, patient_id=patient_id, observed_at=body.observed_at, values=values,
+            allow_implausible_change=body.allow_implausible_change, actor=actor.username)
+    except (svc.GrowthRecordError, observations.ObservationError) as exc:
+        raise _fail(exc) from exc
+
+
 @router.get("/observation-types")
 def observation_types() -> dict[str, Any]:
     return {

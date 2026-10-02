@@ -1,20 +1,51 @@
-fastapi>=0.115.0
-# AES-256-GCM for encrypting identifiers at rest (security phase C.2).
-# There is no AEAD in the standard library and hand-rolling one for a security
-# control is not acceptable, so this dependency is deliberate.
-cryptography>=43.0
-numpy>=1.26
-onnxruntime>=1.17
-pillow>=10.4.0
-playwright>=1.40
-pydicom>=3.0
-python-multipart>=0.0.9
-# Pinned exactly: rcpchgrowth supplies the WHO reference LMS values that the
-# growth charts render and score against. An upgrade can silently change chart
-# output, so it is version-locked for reproducibility; bumping it requires
-# re-running the growth validation suite and re-verifying against official WHO
-# tables (see FINAL-clinical-accuracy-audit-and-solutions.md, GC-7).
-rcpchgrowth==4.5.0
-scipy>=1.13
-sqlalchemy>=2.0
-uvicorn[standard]>=0.30.0
+# Runtime dependencies: everything the clinic install needs, and nothing else.
+#
+# EXACT pins, not floors. This is a clinical product: the numbers it prints must
+# be reproducible on another machine and next year, and a silent minor-version
+# bump in numpy/scipy can move a z-score in the last decimal. Upgrading a pin is
+# a deliberate act -- re-run `python -m backend.release_check --tests` after.
+#
+# Validated on CPython 3.11 (Windows). Measured on a clean environment: 29
+# packages, 456 MB, every one of them reachable from the running app -- verified
+# by tests/test_dependency_closure.py, which fails if an undeclared import
+# appears or a declared package stops being used. Adding requirements-dev.txt
+# brings it to 40 packages / 488 MB.
+#
+#   pip install -r requirements.txt
+#   python -m playwright install chromium      # PDF export only, see below
+#
+# NOT here: pytest/httpx (requirements-dev.txt) and torch/torchvision
+# (requirements-ml.txt -- retraining the AI model, ~620 MB, never needed to run:
+# a clean install above runs the shipped model and answers every endpoint).
+
+# ── web layer ───────────────────────────────────────────────────────────────
+fastapi==0.138.1
+starlette==1.3.1              # via fastapi; imported directly by the network guard
+pydantic==2.13.4
+python-multipart==0.0.32      # no import: FastAPI needs it for the film upload form
+# Plain uvicorn, NOT uvicorn[standard]: the server runs uvicorn.run(app) with no
+# reload and no websockets, so the "standard" extras (watchfiles, websockets,
+# httptools, python-dotenv, PyYAML) were six packages nothing imported.
+uvicorn==0.49.0
+
+# ── storage and security ────────────────────────────────────────────────────
+sqlalchemy==2.0.51
+# AES-256-GCM for encrypting identifiers at rest (security phase C.2). There is
+# no AEAD in the standard library and hand-rolling one for a security control is
+# not acceptable, so this dependency is deliberate.
+cryptography==49.0.0
+
+# ── clinical maths ──────────────────────────────────────────────────────────
+numpy==2.4.6
+scipy==1.17.1                 # interpolation behind the growth curves
+
+# ── imaging and the bone-age screening model ────────────────────────────────
+pillow==12.2.0
+pydicom==3.0.2
+onnxruntime==1.27.0           # runs the shipped ONNX model; torch is NOT needed
+
+# ── printable report ────────────────────────────────────────────────────────
+# Renders the growth report to PDF from a local page. The browser itself is
+# installed separately (`python -m playwright install chromium`, ~150 MB) and
+# only the PDF export needs it -- every other feature works without it.
+playwright==1.61.0

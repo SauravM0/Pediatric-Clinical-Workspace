@@ -16,29 +16,22 @@
  * when the file is split into components, one region at a time, with the
  * literals handled deliberately.
  *
- * The stateless layers now live in sibling modules (domain, qrisk3,
- * growthMath, charts, ui). What remains here is the App component itself,
+ * The stateless layers now live in sibling modules (domain, growthMath,
+ * charts, ui). eGFR, FIB-4, blood pressure and QRISK3 are computed by the
+ * backend (serverCalc.js) -- there is no clinical calculator in this bundle. What remains here is the App component itself,
  * which holds ~95 useState hooks; splitting its tab panels out needs a state
  * strategy (context or a reducer), not a mechanical move, so it is left
  * whole deliberately rather than half-cut.
  */
         const { useState, useMemo, useEffect, useRef } = React;
 
-import { TW3_CONFIG, REPORT_RUS, REPORT_CARPALS, LETTER_STAGES, carpalCode,
-         carpalName, IMAGE_DOMAINS, LOW_TRUST_DOMAINS, interpAnchors,
-         pctAdultHeightAt, maturationCategory } from "./domain.js";
-import { QRISK3_FEMALE, QRISK3_MALE, qrisk3, normalCDF } from "./qrisk3.js";
-import { IQR_TO_SD, CENTILE_Z, zForValueFromCentileStats,
-         ageForMedianFromSeries, spreadFromSeries, sdsToPercent,
-         probToPercent } from "./growthMath.js";
-import { SDSBar, MEASURE_META, GENDER_THEME, COMBINED_CHART_YMAX,
-         CHART_VALIDATION_18Y, centileValueAtAge,
-         validateHeightReferenceSanity, computeSquareGrid, GrowthChart,
-         GrowthChartCombined } from "./charts.jsx";
-import { ProbBar, StatusBadge, MetricRow, SectionHeader, FraxToggleRow,
-         InputWithUnit, EmptyState, heroTone, variantToState,
-         computeAgeParts } from "./ui.jsx";
+import { carpalCode, pctAdultHeightAt, maturationCategory } from "./domain.js";
+import { zForValueFromCentileStats, ageForMedianFromSeries, spreadFromSeries, normalCDF } from "./growthMath.js";
+import { useServerCalc, withQuery } from "./serverCalc.js";
+import { MEASURE_META, CHART_VALIDATION_18Y, validateHeightReferenceSanity } from "./charts.jsx";
+import { StatusBadge, variantToState, computeAgeParts } from "./ui.jsx";
 import { ClinicalStateProvider } from "./state.jsx";
+import { inRange } from "./clinicalRanges.js";
 import { useBoneAgeHandlers } from "./boneAgeHandlers.js";
 import { useBoneAgeState } from "./boneAgeState.js";
 import { AppHeader, PatientIdentityBar, TabBar } from "./shell.jsx";
@@ -52,6 +45,7 @@ import { GrowthPanel } from "./panels/GrowthPanel.jsx";
 import { QriskPanel } from "./panels/QriskPanel.jsx";
 import { LedgerPanel } from "./panels/LedgerPanel.jsx";
 import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
+import { RecordPanel } from "./panels/RecordPanel.jsx";
 
         function App() {
           const [activeTab, setActiveTab] = useState('overview');
@@ -92,26 +86,24 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
           const [ast, setAst] = useState("");
           const [alt, setAlt] = useState("");
           const [platelets, setPlatelets] = useState("");
-          const [prevFracture, setPrevFracture] = useState("no");
-          const [parentHipFracture, setParentHipFracture] = useState("no");
-          const [smoking, setSmoking] = useState("no");
-          const [glucocorticoids, setGlucocorticoids] = useState("no");
-          const [rheumatoid, setRheumatoid] = useState("no");
-          const [secondaryOsteo, setSecondaryOsteo] = useState("no");
-          const [alcohol, setAlcohol] = useState("no");
+          // FRAX: the two ten-year probabilities from the OFFICIAL calculator, typed
+          // in by the clinician. Nothing here computes FRAX (see FraxPanel.jsx).
+          const [fraxMofEntered, setFraxMofEntered] = useState("");
+          const [fraxHfEntered, setFraxHfEntered] = useState("");
           const [timeline, setTimeline] = useState([]);
           // ── Bone-age workspace state (boneAgeState.js) ──
           // Sixty-odd bindings, their two refs and the boxesRef sync effect.
           // Destructured flat so every reference below is unchanged; App still
           // owns the state (the hook runs in App's render), the module just
           // groups the declarations with the domain they belong to.
+          const boneAgeState = useBoneAgeState();
           const {
             DECLARABLE_FLAGS,
             boneAge, setBoneAge, boneAgeSource, setBoneAgeSource,
             rusStages, setRusStages, carpalStages, setCarpalStages,
-            tw3Config, setTw3Config, rusResult, setRusResult,
+            tw3Config, setTw3Config,
             letterResult, setLetterResult, boneReport, setBoneReport,
-            patientCode, setPatientCode, approverName, setApproverName,
+            patientCode, setPatientCode,
             assessment, setAssessment, lcMsg, setLcMsg, lcBusy, setLcBusy,
             showAudit, setShowAudit, radiograph, setRadiograph,
             coverage, setCoverage, covBusy, setCovBusy,
@@ -132,7 +124,7 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             fbNote, setFbNote, fbMsg, setFbMsg, fbBusy, setFbBusy,
             aiBusy, setAiBusy,
             fatherHeight, setFatherHeight, motherHeight, setMotherHeight,
-          } = useBoneAgeState();
+          } = boneAgeState;
 
           // ── QRISK3 cardiovascular inputs (qriskState.js) ──
           // Destructured flat so every reference below is unchanged; App still
@@ -167,34 +159,29 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
           const evalHeight = useMemo(() => height !== "" ? parseFloat(height) : 131.5, [height]);
           const evalWeight = useMemo(() => weight !== "" ? parseFloat(weight) : 28.2, [weight]);
           const evalCreatinine = useMemo(() => creatinine !== "" ? parseFloat(creatinine) : 0.50, [creatinine]);
-          const evalAlbuminuria = useMemo(() => albuminuria !== "" ? albuminuria : 'A1', [albuminuria]);
-          const evalSystolic = useMemo(() => systolic !== "" ? parseFloat(systolic) : 110, [systolic]);
-          const evalDiastolic = useMemo(() => diastolic !== "" ? parseFloat(diastolic) : 70, [diastolic]);
           const evalAst = useMemo(() => ast !== "" ? parseFloat(ast) : 25, [ast]);
           const evalAlt = useMemo(() => alt !== "" ? parseFloat(alt) : 20, [alt]);
           const evalPlatelets = useMemo(() => platelets !== "" ? parseFloat(platelets) : 250, [platelets]);
 
-          const hasManualGrowth = age !== "" && gender !== "" && height !== "" && weight !== "";
-          const hasManualRenal = age !== "" && gender !== "" && height !== "" && creatinine !== "";
-          const hasManualLiver = age !== "" && ast !== "" && alt !== "" && platelets !== "";
-          const hasManualFrax = age !== "" && gender !== "" && height !== "" && weight !== "";
-          const hasGeneral = height !== "" && weight !== "" && systolic !== "" && diastolic !== "";
-
-          const loadPreset = (type) => {
-            if (type === 'child') {
-              setAge(9.0); setGender('girls'); setHeight(120.9); setWeight(22.4);
-              setCreatinine(0.50); setAlbuminuria('A1'); setSystolic(104); setDiastolic(64);
-              setAst(22); setAlt(18); setPlatelets(280);
-              setPrevFracture("no"); setParentHipFracture("no"); setSmoking("no");
-              setGlucocorticoids("no"); setRheumatoid("no"); setSecondaryOsteo("no"); setAlcohol("no");
-            } else {
-              setAge(58); setGender('boys'); setHeight(171.0); setWeight(79.5);
-              setCreatinine(1.35); setAlbuminuria('A2'); setSystolic(138); setDiastolic(88);
-              setAst(44); setAlt(42); setPlatelets(165);
-              setPrevFracture("yes"); setParentHipFracture("no"); setSmoking("yes");
-              setGlucocorticoids("yes"); setRheumatoid("no"); setSecondaryOsteo("yes"); setAlcohol("no");
-            }
-          };
+          // A module shows a result only when every input it uses is ENTERED and
+          // PLAUSIBLE (clinicalRanges.js). The eval* values above carry placeholder
+          // defaults so the maths never sees an empty string; these gates are what
+          // stop those placeholders -- or a typo such as creatinine 0 -- from ever
+          // reaching a displayed, logged or printed result.
+          const ageOk = inRange('age', age), sexOk = gender !== "";
+          const heightOk = inRange('height', height), weightOk = inRange('weight', weight);
+          const hasManualGrowth = ageOk && sexOk && heightOk && weightOk;
+          const hasManualRenal = ageOk && sexOk && heightOk && inRange('creatinine', creatinine);
+          const hasManualLiver = ageOk && inRange('ast', ast) && inRange('alt', alt) && inRange('platelets', platelets);
+          const hasManualFrax = inRange('fraxPct', fraxMofEntered) && inRange('fraxPct', fraxHfEntered);
+          const bpOk = inRange('systolic', systolic) && inRange('diastolic', diastolic) && diastolic < systolic;
+          // Sex and age AS ENTERED, or null. evalGender falls back to 'girls' and
+          // evalAge to 9.0, so a guard written as "evalGender !== 'boys' &&
+          // evalGender !== 'girls'" can never fire: with sex unset, bone-age
+          // assessments were saved as girls and the AI model was run as a girl.
+          // Anything that PERSISTS, SENDS or DISPLAYS sex/age must use these.
+          const sexEntered = sexOk ? gender : null;
+          const ageEntered = ageOk ? evalAge : null;
 
           const growthMetrics = useMemo(() => {
             const bmiVal = evalHeight > 0 ? evalWeight / Math.pow(evalHeight / 100, 2) : 0;
@@ -262,88 +249,93 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             };
           }, [evalAge, evalGender, evalHeight, evalWeight, growthPoint, growthSeries, growthBmiCutoffs]);
 
+          // ── Renal, liver: computed by the BACKEND (step 2) ─────────────────────
+          // backend/renal and backend/hepatic hold the only implementations, with
+          // every equation's age limits enforced and tested. Requests are made only
+          // when the inputs are entered and plausible, so no placeholder is ever sent.
+          const renalCalc = useServerCalc(hasManualRenal ? { url: withQuery('/api/renal/egfr', {
+            sex: gender, age: evalAge, creatinine_mg_dl: evalCreatinine, height_cm: evalHeight,
+            weight_kg: weightOk ? evalWeight : null, albuminuria: albuminuria || null,
+          }) } : null);
           const renalMetrics = useMemo(() => {
-            const isPediatric = evalAge < 18;
-            let egfr = 0, formulaName = '';
-            if (isPediatric) {
-              egfr = (0.413 * evalHeight) / evalCreatinine;
-              formulaName = "Modified Bedside Schwartz (2009)";
-            } else {
-              const isFemale = evalGender === 'girls';
-              const kappa = isFemale ? 0.7 : 0.9, alpha = isFemale ? -0.241 : -0.302;
-              const gConst = isFemale ? 1.012 : 1;
-              const term1 = evalCreatinine / kappa;
-              egfr = 142 * Math.pow(Math.min(term1,1), alpha) * Math.pow(Math.max(term1,1), -1.200) * Math.pow(0.9938, evalAge) * gConst;
-              formulaName = "2021 CKD-EPI Creatinine";
+            const r = renalCalc.data;
+            if (!r || !r.available) {
+              return { ready: false, loading: renalCalc.loading, error: renalCalc.error,
+                       reason: r && !r.available ? r.reason : null };
             }
-            let cg = null, mdrd = null;
-            if (!isPediatric && evalWeight > 0) {
-              const isFemale = evalGender === 'girls';
-              cg = ((140-evalAge)*evalWeight) / (72*evalCreatinine) * (isFemale ? 0.85 : 1);
-              mdrd = 175 * Math.pow(evalCreatinine,-1.154) * Math.pow(evalAge,-0.203) * (isFemale ? 0.742 : 1);
-            }
-            let ckdStage = 'G1', ckdStageDesc = "Normal / High", stageVariant = "low";
-            if (egfr < 15) { ckdStage = 'G5'; ckdStageDesc = "Kidney Failure"; stageVariant = "high"; }
-            else if (egfr < 30) { ckdStage = 'G4'; ckdStageDesc = "Severely Decreased"; stageVariant = "high"; }
-            else if (egfr < 60) { ckdStage = 'G3'; ckdStageDesc = "Moderately Decreased"; stageVariant = "mid"; }
-            else if (egfr < 90) { ckdStage = 'G2'; ckdStageDesc = "Mildly Decreased"; stageVariant = "mid"; }
-            return { egfr, formulaName, cg, mdrd, ckdStage, ckdStageDesc, stageVariant, isPediatric };
-          }, [evalAge, evalGender, evalHeight, evalWeight, evalCreatinine]);
+            // Variant follows the KDIGO heat map when albuminuria is recorded. Without
+            // it the risk level is unknown -- 'info', never a reassuring green.
+            const riskVariant = { low: 'low', moderate: 'mid', high: 'high', very_high: 'high' };
+            const g = r.gfr_category && r.gfr_category.code;
+            const variant = r.kdigo_risk ? riskVariant[r.kdigo_risk.level]
+              : (g === 'G3a' ? 'mid' : ['G3b', 'G4', 'G5'].includes(g) ? 'high' : 'info');
+            return { ready: true, result: r, egfr: r.primary.value, stageVariant: variant,
+                     category: g || null };
+          }, [renalCalc.data, renalCalc.loading, renalCalc.error]);
 
+          const liverCalc = useServerCalc(hasManualLiver ? { url: withQuery('/api/hepatic/fib4', {
+            age: evalAge, ast: evalAst, alt: evalAlt, platelets: evalPlatelets,
+          }) } : null);
           const liverMetrics = useMemo(() => {
-            const fib4 = (evalAge * evalAst) / (evalPlatelets * Math.sqrt(evalAlt));
-            let interpretation = "Low Risk", variant = "low", details = "Low probability of advanced fibrosis.";
-            const highThresh = 2.67, midThresh = evalAge > 65 ? 2.0 : 1.30;
-            if (fib4 > highThresh) { interpretation = "High Risk"; variant = "high"; details = "High risk of advanced liver fibrosis — referral recommended."; }
-            else if (fib4 > midThresh) { interpretation = "Indeterminate"; variant = "mid"; details = "Intermediate range — further evaluation required."; }
-            return { fib4, interpretation, variant, details };
-          }, [evalAge, evalAst, evalAlt, evalPlatelets]);
+            const r = liverCalc.data;
+            if (!r || !r.available) {
+              return { ready: false, loading: liverCalc.loading, error: liverCalc.error,
+                       reason: r && !r.available ? r.reason : null };
+            }
+            const variant = { low: 'low', indeterminate: 'mid', high: 'high' }[r.category] || 'info';
+            return { ready: true, result: r, fib4: r.fib4, variant, interpretation: r.category_label };
+          }, [liverCalc.data, liverCalc.loading, liverCalc.error]);
 
+          // Sex and height are sent when entered: under 13 the AAP 2017 category is
+          // by centile for age, sex and height (once the clinic installs the tables).
+          const bpCalc = useServerCalc(ageOk && bpOk ? { url: withQuery('/api/vitals/blood-pressure', {
+            age: evalAge, sbp: systolic, dbp: diastolic,
+            sex: sexEntered, height_cm: heightOk ? evalHeight : null,
+          }) } : null);
+
+          // Entered from the official FRAX calculator -- never computed here. The
+          // 20% / 3% comparison is the US NOF/BHOF intervention threshold, and the
+          // panel says so; it is not an Indian or a universal threshold.
           const fraxMetrics = useMemo(() => {
-            const fraxAge = Math.min(Math.max(evalAge, 40), 90);
-            const hMeter = evalHeight / 100;
-            const bmi = evalWeight / (hMeter * hMeter);
-            let mofLogit = -3.8 + 0.055*(fraxAge-50) - 0.035*(bmi-25);
-            let hfLogit = -5.8 + 0.085*(fraxAge-50) - 0.055*(bmi-25);
-            if (evalGender === 'girls') { mofLogit += 0.35; hfLogit += 0.45; }
-            if (prevFracture === 'yes') { mofLogit += 1.15; hfLogit += 1.05; }
-            if (parentHipFracture === 'yes') { mofLogit += 0.95; hfLogit += 1.25; }
-            if (smoking === 'yes') { mofLogit += 0.35; hfLogit += 0.45; }
-            if (glucocorticoids === 'yes') { mofLogit += 0.85; hfLogit += 0.95; }
-            if (rheumatoid === 'yes') { mofLogit += 0.45; hfLogit += 0.55; }
-            if (secondaryOsteo === 'yes') { mofLogit += 0.35; hfLogit += 0.35; }
-            if (alcohol === 'yes') { mofLogit += 0.25; hfLogit += 0.35; }
-            const mofProb = 100 / (1 + Math.exp(-mofLogit));
-            const hfProb = 100 / (1 + Math.exp(-hfLogit));
-            return { mofProb, hfProb, isHighMof: mofProb >= 20, isHighHf: hfProb >= 3, fraxAge };
-          }, [evalAge, evalGender, evalHeight, evalWeight, prevFracture, parentHipFracture, smoking, glucocorticoids, rheumatoid, secondaryOsteo, alcohol]);
+            if (!hasManualFrax) return { mofProb: null, hfProb: null, isHighMof: false, isHighHf: false };
+            const mofProb = parseFloat(fraxMofEntered), hfProb = parseFloat(fraxHfEntered);
+            return { mofProb, hfProb, isHighMof: mofProb >= 20, isHighHf: hfProb >= 3 };
+          }, [hasManualFrax, fraxMofEntered, fraxHfEntered]);
 
           const chronicityStatus = useMemo(() => {
             if (timeline.length < 2) return { status: "Add at least 2 snapshots (≥ 90 days apart) to assess CKD chronicity.", cls: "risk-badge-neutral", bgClass: "bg-slate-50 border-slate-200 text-slate-500" };
             const sorted = [...timeline].sort((a,b) => new Date(a.date)-new Date(b.date));
             const diffDays = Math.ceil((new Date(sorted[sorted.length-1].date) - new Date(sorted[0].date)) / 86400000);
             if (diffDays < 90) return { status: `Observation window: ${diffDays} days — need 90 days minimum to confirm chronicity.`, bgClass: "bg-amber-50 border-amber-200 text-amber-700" };
-            const initDmg = sorted[0].egfr < 60 || sorted[0].albuminuria !== 'A1';
-            const curDmg = sorted[sorted.length-1].egfr < 60 || sorted[sorted.length-1].albuminuria !== 'A1';
+            // An UNRECORDED albuminuria is not a marker of damage -- only A2/A3 is.
+            const damaged = (e) => e.egfr < 60 || e.albuminuria === 'A2' || e.albuminuria === 'A3';
+            const initDmg = damaged(sorted[0]);
+            const curDmg = damaged(sorted[sorted.length-1]);
             if (initDmg && curDmg) return { status: `Chronicity CONFIRMED — Persistent indicators across ${diffDays}-day window.`, bgClass: "bg-rose-50 border-rose-200 text-rose-700 font-bold" };
-            return { status: `Transient profile — markers did not persist over ${diffDays} days.`, bgClass: "bg-emerald-50 border-emerald-200 text-emerald-700" };
+            // "Transient" is only true when a marker was present at one end. With no
+            // marker at either end the honest statement is that none was recorded --
+            // an unrecorded albuminuria cannot rule CKD out.
+            if (!initDmg && !curDmg) return { status: `No CKD marker (eGFR < 60 or albuminuria A2/A3) in the first or latest snapshot over ${diffDays} days. Unrecorded albuminuria does not exclude CKD.`, bgClass: "bg-slate-50 border-slate-200 text-slate-600" };
+            return { status: `Transient profile — a marker was present at only one end of the ${diffDays}-day window.`, bgClass: "bg-amber-50 border-amber-200 text-amber-700" };
           }, [timeline]);
 
           const generalMetrics = useMemo(() => {
             const bmi = evalWeight / Math.pow(evalHeight/100, 2);
-            const map = evalDiastolic + (evalSystolic - evalDiastolic) / 3;
-            let bmiCat = "Normal", bmiVariant = "low";
-            if (bmi < 18.5) { bmiCat = "Underweight"; bmiVariant = "mid"; }
-            else if (bmi >= 27.5) { bmiCat = "Obese"; bmiVariant = "high"; }
-            else if (bmi >= 23.0) { bmiCat = "Overweight"; bmiVariant = "mid"; }
-            let mapCat = "Normal", mapVariant = "low";
-            if (map < 70) { mapCat = "Low"; mapVariant = "mid"; }
-            else if (map > 100) { mapCat = "Elevated"; mapVariant = "mid"; }
-            else if (map > 110) { mapCat = "High"; mapVariant = "high"; }
-            return { bmi, bmiCat, bmiVariant, map, mapCat, mapVariant };
-          }, [evalHeight, evalWeight, evalSystolic, evalDiastolic]);
+            // Asian adult BMI categories apply from 18 years only. A child's BMI is
+            // judged against BMI-for-age (Growth tab), never an adult cut-off.
+            const bmiAdult = ageOk && evalAge >= 18;
+            let bmiCat = null, bmiVariant = "info";
+            if (bmiAdult) {
+              bmiCat = "Normal"; bmiVariant = "low";
+              if (bmi < 18.5) { bmiCat = "Underweight"; bmiVariant = "mid"; }
+              else if (bmi >= 27.5) { bmiCat = "Obese"; bmiVariant = "high"; }
+              else if (bmi >= 23.0) { bmiCat = "Overweight"; bmiVariant = "mid"; }
+            }
+            // Highest band first: checking > 100 before > 110 made "High" unreachable.
+            return { bmi, bmiAdult, bmiCat, bmiVariant };
+          }, [ageOk, evalAge, evalHeight, evalWeight]);
 
-          // Report/export mode: when loaded as ?report=1&sex=...&age=...&height=...&weight=...
+          // Report/export mode: when loaded as ?report=1 with window.__PCW_REPORT__ set
           // (used by the server-side PDF exporter, backend/api_growth_report.py, driving a
           // headless browser to this exact URL), pre-fill patient state from the query
           // string, jump straight to the growth chart, and switch on the report-mode CSS
@@ -355,14 +347,17 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             const params = new URLSearchParams(window.location.search);
             if (params.get('report') !== '1') return;
             document.body.classList.add('report-mode');
-            const qSex = params.get('sex');
-            if (qSex === 'boys' || qSex === 'girls') setGender(qSex);
-            const qAge = params.get('age'); if (qAge) setAge(qAge);
-            const qHeight = params.get('height'); if (qHeight) setHeight(qHeight);
-            const qWeight = params.get('weight'); if (qWeight) setWeight(qWeight);
-            const qName = params.get('patient_name'); if (qName) setPatientName(qName);
-            const qMrn = params.get('patient_mrn'); if (qMrn) setPatientMrn(qMrn);
-            const qExam = params.get('exam_date'); if (qExam) setExamDate(qExam);
+            // The patient arrives via window.__PCW_REPORT__, injected by the PDF
+            // exporter before this script runs -- never in the URL, where name,
+            // MRN and measurements used to sit (access log, browser history).
+            const r = window.__PCW_REPORT__ || {};
+            if (r.sex === 'boys' || r.sex === 'girls') setGender(r.sex);
+            if (r.age) setAge(r.age);
+            if (r.height) setHeight(r.height);
+            if (r.weight) setWeight(r.weight);
+            if (r.patient_name) setPatientName(r.patient_name);
+            if (r.patient_mrn) setPatientMrn(r.patient_mrn);
+            if (r.exam_date) setExamDate(r.exam_date);
             setActiveTab('growth');
             setGrowthChartMeasure('combined');
             setShowChart(true);  // force the chart open so the exported PDF always renders it, even though it is collapsed on screen
@@ -415,6 +410,15 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
           // This patient's z-score/percentile per measure, and the IAP/IOTF BMI
           // overweight-obesity cutoffs at their current age -- both computed server-side.
           useEffect(() => {
+            // The growth references end at 19 y and the API rejects older ages
+            // with 422; an adult simply has no growth centile to fetch.
+            // Also skipped until the measurements are really entered: the request
+            // otherwise carries the placeholders (girls, 9.0 y, 131.5 cm, 28.2 kg).
+            if (!hasManualGrowth || evalAge > 19) {
+              setGrowthPoint({ height: null, weight: null, bmi: null });
+              setGrowthBmiCutoffs(null);
+              return;
+            }
             let cancelled = false;
             const bmiVal = evalHeight > 0 ? evalWeight / Math.pow(evalHeight / 100, 2) : 0;
             const withValue = { height: evalHeight, weight: evalWeight, bmi: bmiVal };
@@ -427,16 +431,21 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             fetch(`/api/growth/bmi-cutoffs?sex=${evalGender}&age=${evalAge}`).then(r => r.json())
               .then((d) => { if (!cancelled) setGrowthBmiCutoffs(d); }).catch(() => {});
             return () => { cancelled = true; };
-          }, [evalAge, evalGender, evalHeight, evalWeight]);
+          }, [hasManualGrowth, evalAge, evalGender, evalHeight, evalWeight]);
 
-          // WHO 19y adult-height distribution, for the bone-age predicted-adult-height
-          // context (a different feature -- not the growth chart -- but same engine).
+          // Adult-height distribution for the bone-age target/prediction context.
+          // Age 18.0 is the LAST point of the IAP 2015 (Khadilkar) reference the
+          // panel names. It used to ask for 19, where IAP has no data and the engine
+          // silently answered with WHO (boys' median 176.5 vs IAP 173.6 cm), so an
+          // Indian child's target SDS was scored against the wrong population.
+          // Must match ADULT_REFERENCE_AGE_YEARS in backend/clinical_service.py.
           useEffect(() => {
+            if (!sexEntered) { setAdultHeightStats(null); return; }
             let cancelled = false;
-            fetch(`/api/growth/reference-stats?measure=height&sex=${evalGender}&age=19`)
+            fetch(`/api/growth/reference-stats?measure=height&sex=${sexEntered}&age=18`)
               .then(r => r.json()).then((d) => { if (!cancelled) setAdultHeightStats(d); }).catch(() => {});
             return () => { cancelled = true; };
-          }, [evalGender]);
+          }, [sexEntered]);
 
           // When a saved assessment with a film is loaded, surface its radiograph so
           // the localization panel (and analysis image) appear without re-attaching.
@@ -450,49 +459,37 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
           // Live original-TW3 letter scoring for the report: recomputes RUS + carpal
           // scores/ages as the doctor grades. Numbers stay '—' until licensed tables exist.
           useEffect(() => {
-            if (evalGender !== 'boys' && evalGender !== 'girls') { setLetterResult(null); setBoneReport(null); return; }
+            if (!sexEntered) { setLetterResult(null); setBoneReport(null); return; }
             const carp = {}; Object.entries(carpalStages).forEach(([n, g]) => carp[carpalCode(n)] = g);
             const aiYrs = (aiEstimate && aiEstimate.bone_age_years != null) ? aiEstimate.bone_age_years : null;
             const id = setTimeout(() => {
               fetch('/api/bone-age/letters-score', { method:'POST', headers:{ 'Content-Type':'application/json' },
-                body: JSON.stringify({ sex: evalGender, rus_stages: rusStages, carpal_stages: carp }) })
+                body: JSON.stringify({ sex: sexEntered, rus_stages: rusStages, carpal_stages: carp }) })
                 .then(r => r.ok ? r.json() : null).then(d => { if (d) setLetterResult(d); }).catch(() => {});
               // Structured 20-bone report (directive S-BA-4): the backend composes
               // it; the UI only renders. Recomputes as the doctor grades.
               fetch('/api/bone-age/report', { method:'POST', headers:{ 'Content-Type':'application/json' },
-                body: JSON.stringify({ sex: evalGender, rus_stages: rusStages, carpal_stages: carp,
-                  chronological_age_years: evalAge > 0 ? evalAge : null, ai_estimate_years: aiYrs }) })
+                body: JSON.stringify({ sex: sexEntered, rus_stages: rusStages, carpal_stages: carp,
+                  chronological_age_years: ageEntered, ai_estimate_years: aiYrs }) })
                 .then(r => r.ok ? r.json() : null).then(d => { if (d) setBoneReport(d); }).catch(() => {});
             }, 250);
             return () => clearTimeout(id);
-          }, [rusStages, carpalStages, evalGender, evalAge, aiEstimate]);
-
-          // Manual grading now uses original TW3 letters A–I (RUS + carpals). The
-          // scores/ages stay blank until the clinic's licensed TW3 tables are wired
-          // in, so no /score call is made here (no guessed numbers).
-
-          // Normalised view of the backend result for the UI.
-          const rusMetrics = useMemo(() => ({
-            staged: rusResult ? rusResult.staged_count : 0,
-            total: (tw3Config && tw3Config.bones ? tw3Config.bones.length : 13),
-            score: rusResult ? rusResult.total_rus_score : 0,
-            calibrated: rusResult ? rusResult.calibrated : (tw3Config ? true : false),
-            complete: rusResult ? rusResult.complete : false,
-            suggestedAge: rusResult ? rusResult.bone_age_years : null,
-            status: rusResult ? rusResult.status : null,
-            provisional: rusResult ? rusResult.provisional_curve : (tw3Config ? tw3Config.provisional_curve : false),
-          }), [rusResult, tw3Config]);
+          }, [rusStages, carpalStages, sexEntered, ageEntered, aiEstimate]);
 
           const boneMetrics = useMemo(() => {
             const ba = boneAge !== "" ? parseFloat(boneAge) : null;
-            const hasBone = ba !== null && !isNaN(ba) && evalHeight > 0;
+            // Bone age vs chronological age needs a REAL chronological age: with age
+            // blank, the difference used to be taken against the 9.0 placeholder.
+            const hasBone = inRange('boneAge', ba) && ageOk;
 
             // Mid-parental (genetic target) height — Tanner. Open, non-proprietary.
             const fh = fatherHeight !== "" ? parseFloat(fatherHeight) : null;
             const mh = motherHeight !== "" ? parseFloat(motherHeight) : null;
             let mph = null, mphLow = null, mphHigh = null;
-            if (fh && mh && fh > 0 && mh > 0) {
-              mph = evalGender === 'boys' ? (fh + mh + 13) / 2 : (fh + mh - 13) / 2;
+            // Needs the entered sex: the formula differs by sex (+13 / -13 cm), and
+            // an unset sex used to fall through to the girls' formula.
+            if (sexOk && inRange('parentHeight', fh) && inRange('parentHeight', mh)) {
+              mph = sexEntered === 'boys' ? (fh + mh + 13) / 2 : (fh + mh - 13) / 2;
               mphLow = mph - 8.5; mphHigh = mph + 8.5;  // ±8.5 cm target range (Tanner); not literally ±2 SD
             }
 
@@ -503,8 +500,8 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
 
             // Skeletal adult-height prediction — ONLY if the licensed TW3 %-attained
             // reference is present; otherwise null (never fabricated).
-            const pct = hasBone ? pctAdultHeightAt(ba, evalGender) : null;
-            const skeletalPah = (pct && pct > 0) ? evalHeight / (pct / 100) : null;
+            const pct = (hasBone && sexOk) ? pctAdultHeightAt(ba, sexEntered) : null;
+            const skeletalPah = (pct && pct > 0 && heightOk) ? evalHeight / (pct / 100) : null;
             const skeletalCalibrated = pct !== null;
 
             // Two DISTINCT clinical quantities -- NEVER conflated (audit F-1):
@@ -518,12 +515,12 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             // The clinically useful signal is their DIFFERENCE: does the child's own
             // trajectory fall inside the genetic channel?
             const predictedPah = skeletalPah;   // child-specific; null until calibrated
-            const remaining = (predictedPah !== null && evalHeight > 0) ? predictedPah - evalHeight : null;
+            const remaining = (predictedPah !== null && heightOk) ? predictedPah - evalHeight : null;
             const predVsTarget = (predictedPah !== null && mph !== null) ? predictedPah - mph : null;
             const withinTarget = (predictedPah !== null && mphLow !== null)
               ? (predictedPah >= mphLow && predictedPah <= mphHigh) : null;
 
-            // Population context (19y adult-height reference from the same growth
+            // Population context (IAP 18y adult-height reference from the same growth
             // engine): a percentile for EACH quantity that exists, computed by
             // inverting the real (LMS-derived, skewed) distribution
             // (zForValueFromCentileStats -- NOT a symmetric SD proxy; audit F-2), and
@@ -539,26 +536,15 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             return { ba, hasBone, diff, autoCat, pct, skeletalPah, skeletalCalibrated,
                      predictedPah, predVsTarget, remaining, predZ, predPct,
                      mph, mphLow, mphHigh, mphZ, mphPct, withinTarget, adult };
-          }, [boneAge, evalAge, evalGender, evalHeight, fatherHeight, motherHeight, adultHeightStats]);
+          }, [boneAge, ageOk, sexOk, heightOk, sexEntered, evalAge, evalHeight, fatherHeight, motherHeight, adultHeightStats]);
 
           // ── Assessment lifecycle (persisted via /api/bone-age/assessments) ──────────
           // Bone-age workflow handlers, lifted out of App. See
           // boneAgeHandlers.js for why the handlers move but the state stays.
-          const {
-            LC_API, lcLocked, saveDraft, bonesIntoGrids,
-            calculateAssessment, approveAssessment, reviseAssessment,
-            toggleAudit, submitFeedback, runEstimate, toggleDeclaredFlag,
-            attachImage, loadCoverage, loadMonitoring, loadAdjudication,
-            resolveAdjudication, _emptyLt, loadLetterTables, setLtPoint,
-            curveToText, parseCurve, setLtCurve, setLtSexCurve,
-            useGridAsReference, setRefExpected, saveLetterTables,
-            setImageDomain, analysisUrl, localizeBones, addOrSelectBox,
-            clearBox, saveBoxes, startBoxDrag, onLocMove, endLocDrag,
-            lcBtn, loadLocalCohort,
-          } = useBoneAgeHandlers({
-            adjReviewer, age, aiEstimate, approverName, assessment, boxes,
+          const boneAgeHandlers = useBoneAgeHandlers({
+            adjReviewer, age, aiEstimate, assessment, boxes, sexEntered, ageEntered,
             boxesRef, carpalStages, coverage, declaredFlags,
-            estimateDomain, evalAge, evalGender, fbAge, fbConfidence,
+            estimateDomain, fbAge, fbConfidence,
             fbMethod, fbNote, fbRater, height, lastFilm, locDrag, locImg,
             locRef, ltTables, monitoring, patientCode, radiograph,
             rusStages, setAdjBusy, setAdjItems, setAdjMsg, setAiBusy,
@@ -571,40 +557,49 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             setMonBusy, setMonitoring, setRadiograph, setRusStages,
             setSelBone, setShowAudit, showAudit,
           });
+          const { LC_API, lcLocked, unsavedStaging, saveDraft, bonesIntoGrids,
+            calculateAssessment, approveAssessment, reviseAssessment, toggleAudit,
+            submitFeedback, runEstimate, toggleDeclaredFlag, attachImage, loadCoverage,
+            loadMonitoring, loadAdjudication, resolveAdjudication,
+            loadLetterTables, setLtPoint, curveToText, setLtCurve,
+            setLtSexCurve, useGridAsReference, setRefExpected, saveLetterTables,
+            setImageDomain, analysisUrl, localizeBones, addOrSelectBox, clearBox, saveBoxes,
+            startBoxDrag, onLocMove, endLocDrag, lcBtn, loadLocalCohort
+          } = boneAgeHandlers;
 
+          // QRISK3 from the backend (backend/cvd/qrisk3.py) -- the browser copy was
+          // retired after matching it on 300 random patients to within 0.05 points.
+          // Called only when age 25-84, sex, height and weight are entered; SBP and
+          // the cholesterol ratio are sent only when entered and plausible, and the
+          // backend reports every input it had to default.
+          const qriskInAgeRange = ageOk && sexOk && evalAge >= 25 && evalAge <= 84;
+          const qriskCalc = useServerCalc(qriskInAgeRange && heightOk && weightOk ? { url: '/api/cvd/qrisk3', body: {
+            sex: gender, age: evalAge, height_cm: evalHeight, weight_kg: evalWeight,
+            ethnicity, smoke: smokeCat, diabetes,
+            cholesterol_ratio: inRange('cholRatio', cholRatio) ? parseFloat(cholRatio) : null,
+            systolic_bp: inRange('systolic', systolic) ? systolic : null,
+            sbp_sd: inRange('sbpSD', sbpSD) ? parseFloat(sbpSD) : null,
+            AF: qAF === 'yes', treatedhyp: qTreatedHtn === 'yes', ra: qRA === 'yes',
+            renal: qCKD === 'yes', migraine: qMigraine === 'yes', sle: qSLE === 'yes',
+            semi: qSMI === 'yes', atypicalantipsy: qAtypAntipsy === 'yes',
+            corticosteroids: qCortico === 'yes', impotence2: gender === 'boys' && qED === 'yes',
+            fh_cvd: qFhCvd === 'yes',
+          } } : null);
           const qriskMetrics = useMemo(() => {
-            const bmi = evalHeight > 0 ? evalWeight / Math.pow(evalHeight / 100, 2) : null;
-            const inAgeRange = evalAge >= 25 && evalAge <= 84;
-            const p = {
-              sex: evalGender, age: evalAge, bmi,
-              ethnicity, smoke: smokeCat, diabetes,
-              rati: cholRatio !== "" ? parseFloat(cholRatio) : undefined,
-              sbp: systolic !== "" ? parseFloat(systolic) : undefined,
-              sbps5: sbpSD !== "" ? parseFloat(sbpSD) : undefined,
-              af: qAF === 'yes', treatedhyp: qTreatedHtn === 'yes', ra: qRA === 'yes',
-              renal: qCKD === 'yes', migraine: qMigraine === 'yes', sle: qSLE === 'yes',
-              semi: qSMI === 'yes', atypicalantipsy: qAtypAntipsy === 'yes',
-              corticosteroids: qCortico === 'yes', impotence2: qED === 'yes', fh_cvd: qFhCvd === 'yes',
-            };
-            const risk = (bmi && inAgeRange) ? qrisk3(p) : null;
-            // Healthy reference = same age/sex/ethnicity with OPTIMAL risk factors
-            // (BMI 25, cholesterol ratio 4.0, SBP 125, no smoking/diabetes/conditions).
-            // Matches QRISK3's "score of a healthy person" comparison.
-            const typical = (bmi && inAgeRange) ? qrisk3({
-              sex: evalGender, age: evalAge, bmi: 25, ethnicity, smoke: 0, diabetes: 0,
-              rati: 4.0, sbp: 125, sbps5: 0, town: 0,
-            }) : null;
-            let band = 'low', variant = 'low';
-            if (risk !== null) {
-              if (risk >= 20) { band = 'High (≥ 20%)'; variant = 'high'; }
-              else if (risk >= 10) { band = 'Moderate (10–20%)'; variant = 'mid'; }
-              else { band = 'Low (< 10%)'; variant = 'low'; }
-            }
-            const missingSbp = systolic === "", missingRatio = cholRatio === "";
-            return { risk, typical, band, variant, inAgeRange, bmi, missingSbp, missingRatio };
-          }, [evalGender, evalAge, evalHeight, evalWeight, ethnicity, smokeCat, diabetes,
-              cholRatio, systolic, sbpSD, qAF, qTreatedHtn, qRA, qCKD, qMigraine, qSLE,
-              qSMI, qAtypAntipsy, qCortico, qED, qFhCvd]);
+            const r = qriskCalc.data;
+            const base = { inAgeRange: qriskInAgeRange, bodySizeOk: heightOk && weightOk,
+                           loading: qriskCalc.loading, error: qriskCalc.error };
+            if (!r || !r.available) return { ...base, risk: null, reason: r && !r.available ? r.reason : null };
+            const band = { high: 'High (≥ 20%)', moderate: 'Moderate (10–20%)', low: 'Low (< 10%)' }[r.band];
+            const variant = { high: 'high', moderate: 'mid', low: 'low' }[r.band];
+            // Townsend is UK-only and always defaulted (the panel says so once);
+            // listing it on every result would bury the inputs that matter.
+            const labels = { cholesterol_ratio: 'cholesterol ratio', systolic_bp: 'systolic BP',
+                             sbp_sd: 'SBP variability (SD)' };
+            const imputed = (r.imputed_fields || []).filter(f => f !== 'townsend').map(f => labels[f] || f);
+            return { ...base, risk: r.risk_percent, typical: r.healthy_person_percent, band, variant,
+                     imputed, bmiClamped: r.bmi_clamped };
+          }, [qriskCalc.data, qriskCalc.loading, qriskCalc.error, qriskInAgeRange, heightOk, weightOk]);
 
           // ── Single source of truth for each clinical module's headline status ──
           // Consumed by BOTH the Overview tab cards and the tab-bar status dots,
@@ -638,25 +633,34 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
                 title: 'Bone Age',
               },
               renal: {
-                state: hasManualRenal ? variantToState(renalMetrics.stageVariant) : 'none',
-                value: hasManualRenal ? renalMetrics.egfr.toFixed(0) : '—',
+                state: renalMetrics.ready ? variantToState(renalMetrics.stageVariant) : 'none',
+                value: renalMetrics.ready ? renalMetrics.egfr.toFixed(0) : '—',
                 unit: 'mL/min/1.73m²',
-                label: hasManualRenal ? `CKD ${renalMetrics.ckdStage} · ${renalMetrics.ckdStageDesc}` : 'Enter serum creatinine',
+                label: renalMetrics.ready
+                  ? (renalMetrics.category
+                      ? `${renalMetrics.category}${renalMetrics.result.albuminuria_category ? renalMetrics.result.albuminuria_category.code : ''} · ${renalMetrics.result.kdigo_risk ? renalMetrics.result.kdigo_risk.label : 'add ACR for KDIGO risk'}`
+                      : 'No KDIGO category under 2 y')
+                  : !hasManualRenal ? 'Enter serum creatinine'
+                  : renalMetrics.reason || (renalMetrics.error ? 'Calculation failed' : 'Calculating…'),
                 title: 'Renal (eGFR)',
               },
               liver: {
-                state: hasManualLiver ? variantToState(liverMetrics.variant) : 'none',
-                value: hasManualLiver ? liverMetrics.fib4.toFixed(2) : '—',
+                state: liverMetrics.ready ? variantToState(liverMetrics.variant) : 'none',
+                value: liverMetrics.ready ? liverMetrics.fib4.toFixed(2) : '—',
                 unit: 'FIB-4',
-                label: hasManualLiver ? liverMetrics.interpretation : 'Enter AST, ALT & platelets',
+                label: liverMetrics.ready ? liverMetrics.interpretation
+                  : !hasManualLiver ? 'Enter AST, ALT & platelets'
+                  : liverMetrics.reason || (liverMetrics.error ? 'Calculation failed' : 'Calculating…'),
                 title: 'Liver (FIB-4)',
               },
               frax: {
                 state: hasManualFrax ? (fraxMetrics.isHighMof || fraxMetrics.isHighHf ? 'high' : 'normal') : 'none',
                 value: hasManualFrax ? fraxMetrics.mofProb.toFixed(1) : '—',
                 unit: '% MOF 10-yr',
-                label: hasManualFrax ? (fraxMetrics.isHighMof ? 'High fracture risk' : 'Low fracture risk') : 'Enter age, sex, height & weight',
-                title: 'FRAX',
+                label: hasManualFrax
+                  ? (fraxMetrics.isHighMof || fraxMetrics.isHighHf ? 'At/above US treatment threshold' : 'Below US treatment threshold')
+                  : 'Enter the official FRAX result',
+                title: 'FRAX (entered)',
               },
               qrisk: {
                 state: qriskMetrics.risk !== null ? variantToState(qriskMetrics.variant) : 'none',
@@ -675,26 +679,35 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             setAge(""); setDob(""); setGender(""); setHeight(""); setWeight("");
             setCreatinine(""); setAlbuminuria(""); setSystolic(""); setDiastolic("");
             setAst(""); setAlt(""); setPlatelets("");
-            setPrevFracture("no"); setParentHipFracture("no"); setSmoking("no");
-            setGlucocorticoids("no"); setRheumatoid("no"); setSecondaryOsteo("no"); setAlcohol("no");
+            setFraxMofEntered(""); setFraxHfEntered("");
             setTimeline([]); setActiveTab('overview');
             setBoneAge(""); setBoneAgeSource("manual"); setRusStages({}); setCarpalStages({});
-            setPatientCode(""); setApproverName(""); setAssessment(null); setLcMsg(null); setShowAudit(false); setRadiograph(null); setAiEstimate(null);
+            setPatientCode(""); setAssessment(null); setLcMsg(null); setShowAudit(false); setRadiograph(null); setAiEstimate(null);
             setFatherHeight(""); setMotherHeight("");
             setEthnicity(2); setSmokeCat(0); setDiabetes(0); setCholRatio(""); setSbpSD("");
             setQAF("no"); setQTreatedHtn("no"); setQRA("no"); setQCKD("no"); setQMigraine("no");
             setQSLE("no"); setQSMI("no"); setQAtypAntipsy("no"); setQCortico("no"); setQED("no"); setQFhCvd("no");
           };
 
+          // A snapshot records ONLY what was entered. It used to store the eval*
+          // placeholders (creatinine 0.50, height 131.5, AST 25, albuminuria A1) as
+          // a dated result whenever a field was blank, and the chronicity check then
+          // reasoned from those invented values.
+          const canLogSnapshot = hasManualRenal && renalMetrics.ready;
           const logCurrentData = () => {
+            if (!canLogSnapshot) return;
+            // Dated by the EXAM date in the identity bar, not today: chronicity
+            // needs results >= 90 days apart, which a same-day session could never
+            // record when every snapshot was stamped with today's date.
             setTimeline(prev => [{
               id: Date.now().toString(),
-              date: new Date().toISOString().split('T')[0],
-              age: evalAge, height: evalHeight, weight: evalWeight,
+              date: examDate || new Date().toISOString().split('T')[0],
+              age: evalAge, height: evalHeight,
+              weight: weightOk ? evalWeight : null,
               creatinine: evalCreatinine,
               egfr: Number(renalMetrics.egfr.toFixed(1)),
-              fib4: liverMetrics ? Number(liverMetrics.fib4.toFixed(2)) : null,
-              albuminuria: evalAlbuminuria
+              fib4: liverMetrics.ready ? liverMetrics.fib4 : null,
+              albuminuria: albuminuria !== "" ? albuminuria : null,
             }, ...prev]);
           };
 
@@ -710,12 +723,13 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
           // window.print() flow (with a warning) only if the backend call
           // itself fails (e.g. Playwright not installed on this deployment).
           const exportGrowthReportPdf = async () => {
-            const params = new URLSearchParams({
-              sex: evalGender, age: String(evalAge), height: String(evalHeight || 0), weight: String(evalWeight || 0),
-              patient_name: patientName, patient_mrn: patientMrn, exam_date: examDate,
-            });
+            // POST: the patient's name, MRN and measurements go in the body, never
+            // in a URL (server access log, browser history).
             try {
-              const res = await fetch(`/api/growth/report.pdf?${params.toString()}`);
+              const res = await fetch('/api/growth/report.pdf', { method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sex: evalGender, age: evalAge, height: evalHeight || 0, weight: evalWeight || 0,
+                                       patient_name: patientName, patient_mrn: patientMrn, exam_date: examDate }) });
               if (!res.ok) {
                 const detail = await res.json().catch(() => null);
                 throw new Error((detail && detail.detail) || `PDF export failed (HTTP ${res.status})`);
@@ -752,6 +766,10 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             const row = (k, v) => `<tr><td style="padding:4px 12px 4px 0;color:#64748b">${k}</td><td style="padding:4px 0;font-weight:700">${v}</td></tr>`;
             const fmtZ = (z) => z === null || z === undefined ? '—' : (z>=0?'+':'') + z.toFixed(2);
             const fmtP = (p) => p === null || p === undefined ? '—' : p.toFixed(1) + 'th';
+            // Every user-typed value is escaped before it is written into the report
+            // document -- a name such as "<img onerror=...>" would otherwise run as
+            // markup in the print window. exportFullReport already did this.
+            const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
             const win = window.open('', '_blank', 'width=820,height=1000');
             if (!win) { alert('Please allow pop-ups to print the growth report.'); return; }
             const chartLabel = growthChartMeasure === 'combined' ? 'Height & Weight (combined chart)' : MEASURE_META.bmi.label;
@@ -764,18 +782,18 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
               .foot{margin-top:18px;font-size:10px;color:#94a3b8;line-height:1.5;border-top:1px solid #e5e7eb;padding-top:8px}
               @media print{@page{size:A4;margin:10mm}.chart-sheet{page-break-after:always}}</style></head><body>
               <h1>Pediatric Growth Report</h1>
-              <div class="sub" style="font-weight:700;color:#334155">${(patientName || 'Unnamed patient')} · MRN ${(patientMrn || '—')} · Exam ${examDate}</div>
-              <div class="sub">Reference: ${(growthSeries[evalGender].height && growthSeries[evalGender].height.reference) || 'WHO + IAP 2015'} · ${chartLabel} · ${new Date().toLocaleDateString()}</div>
+              <div class="sub" style="font-weight:700;color:#334155">${esc(patientName || 'Unnamed patient')} · MRN ${esc(patientMrn || '—')} · Exam ${esc(examDate)}</div>
+              <div class="sub">Reference: ${esc((growthSeries[evalGender].height && growthSeries[evalGender].height.reference) || 'WHO + IAP 2015')} · ${esc(chartLabel)} · ${new Date().toLocaleDateString()}</div>
               <div class="chart-sheet">${svg}</div>
               <table>
                 ${row('Sex', evalGender === 'girls' ? 'Female' : 'Male')}
                 ${row('Chronological age', evalAge.toFixed(1) + ' yrs')}
-                ${row('Height', evalHeight + ' cm  ·  z ' + fmtZ(g.heightZ) + '  ·  ' + fmtP(g.heightPct) + ' pct')}
-                ${row('Weight', evalWeight + ' kg' + (g.weightAvailable ? '  ·  z ' + fmtZ(g.weightZ) + '  ·  ' + fmtP(g.weightPct) + ' pct' : '  (weight-for-age n/a at this age — use BMI)'))}
+                ${row('Height', esc(evalHeight) + ' cm  ·  z ' + fmtZ(g.heightZ) + '  ·  ' + fmtP(g.heightPct) + ' pct')}
+                ${row('Weight', esc(evalWeight) + ' kg' + (g.weightAvailable ? '  ·  z ' + fmtZ(g.weightZ) + '  ·  ' + fmtP(g.weightPct) + ' pct' : '  (weight-for-age n/a at this age — use BMI)'))}
                 ${row('BMI', g.bmiVal.toFixed(1) + ' kg/m²  ·  z ' + fmtZ(g.bmiZ) + '  ·  ' + fmtP(g.bmiPct) + ' pct')}
                 ${row('Height status', g.stuntingClass)}
                 ${row('Weight / BMI status', g.underweightClass)}
-                ${row('Height age', g.heightAge.label)}
+                ${row('Height age', esc(g.heightAge.label))}
               </table>
               <div class="foot">Decision support only — not a diagnostic device. A clinician must verify all results.
               Percentiles computed with the LMS method: WHO 2006 reference under 5 years; IAP 2015 (Khadilkar) Indian reference for height, weight and BMI from 5-18 years. The IAP 2015 curves were fit from the paper's own published percentile tables (the authors' original L,M,S triplets are unpublished) — overweight/obesity for 5-18y use the IAP/IOTF 23 and 27 adult-equivalent BMI cutoffs rather than a fixed z-score.</div>
@@ -814,7 +832,7 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
               <h1>Pediatric Clinical Summary</h1>
               <div class="sub">${idLine}</div>
               <table><thead><tr><th>Module</th><th>Result</th><th>Interpretation</th></tr></thead><tbody>${rows}</tbody></table>
-              <div class="foot">Decision support only — not a diagnostic device. A clinician must verify every value. A "—" interpretation means that module had insufficient input. References: Khadilkar 2015 · TW3-C (Chinese) RUS — provisional research curve (±0.5y, digitized from a published figure); NOT Tanner–Whitehouse TW3 · QRISK3-2017 · CKD-EPI 2021 · Bedside Schwartz 2009 · FRAX India Asian · FIB-4 (Sterling et al.).</div>
+              <div class="foot">Decision support only — not a diagnostic device. A clinician must verify every value. A "—" interpretation means that module had insufficient input. References: Khadilkar 2015 · TW3-C (Chinese) RUS — provisional research curve (±0.5y, digitized from a published figure); NOT Tanner–Whitehouse TW3 · QRISK3-2017 · CKD-EPI 2021 · Bedside Schwartz 2009 · CKiD U25 2021 · KDIGO · AAP 2017 / ACC-AHA 2017 BP · FRAX: result from the official University of Sheffield calculator, entered by the clinician (threshold = US NOF/BHOF) · FIB-4 (Sterling et al.).</div>
               </body></html>`);
             win.document.close();
             win.focus();
@@ -824,10 +842,11 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
           const TABS = [
             { id: 'overview', label: 'Overview' },
             { id: 'growth',   label: 'Growth' },
+            { id: 'record',   label: 'Patient Record' },
             { id: 'boneage',  label: 'Bone Age' },
             { id: 'renal',    label: 'Renal GFR' },
             { id: 'liver',    label: 'FIB-4 Liver' },
-            { id: 'frax',     label: 'FRAX Plus' },
+            { id: 'frax',     label: 'FRAX' },
             { id: 'qrisk',    label: 'QRISK3 CVD' },
             { id: 'timeline', label: 'Ledger' },
           ];
@@ -837,7 +856,6 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
           // sections are just visually de-emphasised so entry is faster and quieter.
           // Demographics is never dimmed: it drives every module.
           const labsRelevant = ['renal','liver','qrisk','timeline','overview'].includes(activeTab);
-          const fraxRelevant = ['frax','overview'].includes(activeTab);
 
           // The slice the extracted panels read. Deliberately explicit rather
           // than spreading everything: a panel should not be able to reach a
@@ -849,132 +867,33 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
           // hand-maintained dependency array -- and a wrong entry there is a
           // temporal-dead-zone crash at mount, not a merely stale value.
           const clinicalState = {
+            // The whole bone-age domain as ONE slice: its state module, its handler
+            // module, and the few values App derives from them. Listing the names
+            // again here (and a third time in useBoneAge) is what let a wired-up
+            // handler reach a panel as undefined -- the button rendered and did
+            // nothing. Spreading the bags makes that impossible by construction.
+            boneAge: { ...boneAgeState, ...boneAgeHandlers,
+                       age, boneMetrics, evalAge, evalGender, evalHeight, height },
             age, dob, gender, height, weight,
             evalAge, evalHeight, evalWeight,
             patientName, patientMrn, examDate,
-            liverMetrics, hasManualLiver, platelets,
+            liverMetrics, hasManualLiver, bpCalc,
             renalMetrics, hasManualRenal, creatinine,
             fraxMetrics, hasManualFrax,
+            fraxMofEntered, setFraxMofEntered, fraxHfEntered, setFraxHfEntered,
+            canLogSnapshot,
+            sexEntered, heightOk, weightOk, bpOk,
             // ── the input column's slice (useInputs): the ONLY setters for the
             // shared measurements, because it is the only thing that writes them
             setGender, setHeight, setWeight,
             handleAgeChange, handleDobChange, ageParts,
-            labsRelevant, fraxRelevant,
+            labsRelevant,
             setCreatinine, setAlbuminuria,
             systolic, setSystolic, diastolic, setDiastolic,
             ast, setAst, alt, setAlt, platelets, setPlatelets,
-            prevFracture, setPrevFracture,
-            parentHipFracture, setParentHipFracture,
-            smoking, setSmoking, glucocorticoids, setGlucocorticoids,
-            rheumatoid, setRheumatoid, secondaryOsteo, setSecondaryOsteo,
-            alcohol, setAlcohol,
             // ── the shell's slice (useShell): header, identity bar, tabs
             resetAll, exportFullReport, TABS, activeTab,
             setPatientName, setPatientMrn, setExamDate,
-            DECLARABLE_FLAGS,
-            LC_API,
-            addOrSelectBox,
-            adjBusy,
-            adjItems,
-            adjMsg,
-            adjReviewer,
-            aiBusy,
-            aiEstimate,
-            analysisUrl,
-            attachImage,
-            boneAge,
-            boneAgeSource,
-            boneMetrics,
-            boneReport,
-            bonesIntoGrids,
-            boxes,
-            carpalStages,
-            clearBox,
-            covBusy,
-            coverage,
-            curveToText,
-            declaredFlags,
-            endLocDrag,
-            estimateDomain,
-            fatherHeight,
-            fbAge,
-            fbBusy,
-            fbConfidence,
-            fbMethod,
-            fbMsg,
-            fbNote,
-            fbRater,
-            lcBtn,
-            lcBusy,
-            lcLocked,
-            lcMsg,
-            letterResult,
-            loadAdjudication,
-            loadCoverage,
-            loadLetterTables,
-            loadMonitoring,
-            locBusy,
-            locImg,
-            locMsg,
-            locRef,
-            localCohort,
-            lcohBusy,
-            loadLocalCohort,
-            localizeBones,
-            ltBusy,
-            ltMsg,
-            ltSection,
-            ltSex,
-            ltStatus,
-            ltTables,
-            monBusy,
-            monitoring,
-            motherHeight,
-            onLocMove,
-            patientCode,
-            radiograph,
-            resolveAdjudication,
-            reviseAssessment,
-            runEstimate,
-            rusStages,
-            saveBoxes,
-            saveDraft,
-            saveLetterTables,
-            selBone,
-            setAdjReviewer,
-            setAssessment,
-            setBoneAge,
-            setBoneAgeSource,
-            setCarpalStages,
-            setEstimateDomain,
-            setFatherHeight,
-            setFbAge,
-            setFbConfidence,
-            setFbMethod,
-            setFbNote,
-            setFbRater,
-            setImageDomain,
-            setLcBusy,
-            setLcMsg,
-            setLocImg,
-            setLtCurve,
-            setLtPoint,
-            setLtSection,
-            setLtSex,
-            setLtSexCurve,
-            setLtTables,
-            setMotherHeight,
-            setPatientCode,
-            setRefExpected,
-            setRusStages,
-            setShowAudit,
-            showAudit,
-            startBoxDrag,
-            submitFeedback,
-            toggleAudit,
-            toggleDeclaredFlag,
-            tw3Config,
-            useGridAsReference,
             albuminuria,
             assessment,
             cholRatio,
@@ -1025,7 +944,6 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
             setTimeline,
             showChart,
             smokeCat,
-            systolic,
             timeline,
           };
 
@@ -1053,6 +971,7 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
                     {activeTab === 'overview' && <OverviewPanel />}
                     {activeTab === 'growth' && <GrowthPanel />}
                     {activeTab === 'boneage' && <BoneAgePanel />}
+                    {activeTab === 'record' && <RecordPanel />}
                     {/* ══ RENAL TAB ══ */}
                     {activeTab === 'renal' && <RenalPanel />}
                     {activeTab === 'liver' && <LiverPanel />}
@@ -1071,33 +990,52 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
                     <div className="general-grid">
                       <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e8ecf0' }}>
                         <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Body Mass Index</div>
-                        {height !== "" && weight !== "" ? (
+                        {heightOk && weightOk ? (
                           <>
                             <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
                               <span style={{ fontSize:'28px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{generalMetrics.bmi.toFixed(1)}</span>
                               <span style={{ fontSize:'12px', color:'#94a3b8' }}>kg/m²</span>
                             </div>
-                            <div style={{ marginTop:'6px' }}>
-                              <StatusBadge text={generalMetrics.bmiCat} variant={generalMetrics.bmiVariant} />
-                            </div>
-                            <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'4px' }}>Asian cutoffs: Normal &lt; 23, OW ≥ 23, Obese ≥ 27.5</div>
+                            {generalMetrics.bmiAdult ? (
+                              <>
+                                <div style={{ marginTop:'6px' }}>
+                                  <StatusBadge text={generalMetrics.bmiCat} variant={generalMetrics.bmiVariant} />
+                                </div>
+                                <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'4px' }}>Asian adult cutoffs: Normal &lt; 23, OW ≥ 23, Obese ≥ 27.5</div>
+                              </>
+                            ) : (
+                              <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'6px', lineHeight:'1.5' }}>
+                                {ageOk ? 'Under 18: interpret with BMI-for-age on the Growth tab, not adult cut-offs.' : 'Enter age to categorise (adult cut-offs apply from 18 y).'}
+                              </div>
+                            )}
                           </>
                         ) : <div style={{ fontSize:'12px', color:'#94a3b8', padding:'6px 0' }}>Enter height &amp; weight</div>}
                       </div>
                       <div style={{ background:'#f8fafc', borderRadius:'12px', padding:'14px 16px', border:'1px solid #e8ecf0' }}>
-                        <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Mean Arterial Pressure</div>
-                        {systolic !== "" && diastolic !== "" ? (
+                        <div style={{ fontSize:'10px', fontWeight:'800', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:'6px' }}>Blood Pressure</div>
+                        {!(bpOk && ageOk) ? (
+                          <div style={{ fontSize:'12px', color:'#94a3b8', padding:'6px 0' }}>Enter age and a plausible systolic &amp; diastolic BP</div>
+                        ) : !bpCalc.data ? (
+                          <div style={{ fontSize:'12px', color:'#94a3b8', padding:'6px 0' }}>{bpCalc.error ? 'Calculation failed: ' + bpCalc.error : 'Calculating…'}</div>
+                        ) : (
                           <>
                             <div style={{ display:'flex', alignItems:'baseline', gap:'8px' }}>
-                              <span style={{ fontSize:'28px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{generalMetrics.map.toFixed(1)}</span>
-                              <span style={{ fontSize:'12px', color:'#94a3b8' }}>mmHg</span>
+                              <span style={{ fontSize:'28px', fontWeight:'900', color:'#1e293b', lineHeight:1 }}>{systolic}/{diastolic}</span>
+                              <span style={{ fontSize:'12px', color:'#94a3b8' }}>mmHg · MAP {bpCalc.data.map}</span>
                             </div>
-                            <div style={{ marginTop:'6px' }}>
-                              <StatusBadge text={generalMetrics.mapCat} variant={generalMetrics.mapVariant} />
-                            </div>
-                            <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'4px' }}>Normal range: 70–100 mmHg</div>
+                            {bpCalc.data.available ? (
+                              <>
+                                <div style={{ marginTop:'6px' }}>
+                                  <StatusBadge text={bpCalc.data.category_label}
+                                    variant={{ normal:'low', elevated:'mid', stage1:'mid', stage2:'high', severe:'high' }[bpCalc.data.category]} />
+                                </div>
+                                <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'4px', lineHeight:'1.5' }}>{bpCalc.data.guideline} · {bpCalc.data.notes.join(' ')}</div>
+                              </>
+                            ) : (
+                              <div style={{ fontSize:'10px', color:'#94a3b8', marginTop:'6px', lineHeight:'1.5' }}>{bpCalc.data.reason}</div>
+                            )}
                           </>
-                        ) : <div style={{ fontSize:'12px', color:'#94a3b8', padding:'6px 0' }}>Enter systolic &amp; diastolic BP</div>}
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1107,7 +1045,7 @@ import { BoneAgePanel } from "./panels/BoneAgePanel.jsx";
 
               {/* ── FOOTER ── */}
               <footer className="clinical-footer">
-                Reference: Khadilkar V et al. (2015) Indian Pediatrics · TW3 (Tanner-Whitehouse 3, 2001) · QRISK3-2017 (Hippisley-Cox, BMJ 2017; ClinRisk LGPL) · CKD-EPI 2021 · Modified Bedside Schwartz (2009) · FRAX India Asian · FIB-4 (Sterling et al.) · For clinical decision support only.
+                Reference: Khadilkar V et al. (2015) Indian Pediatrics · TW3 (Tanner-Whitehouse 3, 2001) · QRISK3-2017 (Hippisley-Cox, BMJ 2017; ClinRisk LGPL) · CKD-EPI 2021 · Modified Bedside Schwartz (2009) · FRAX (official calculator result, entered) · FIB-4 (Sterling et al.) · For clinical decision support only.
               </footer>
 
             </div>

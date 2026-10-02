@@ -13,7 +13,7 @@ age); it must never influence stage scoring (directive §11, §39).
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Mapping, Optional
 
 from .constants import RUS_BONES, RUS_BONE_COUNT, SEXES, STAGES

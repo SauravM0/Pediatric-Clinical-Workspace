@@ -8,8 +8,8 @@
 > is spent.
 
 The remaining accuracy headroom (toward the RSNA-achievable ~4–6 months) is in
-**cropping, calibration, architecture/input, and a learned India recalibration** —
-see `plans/PLAN-3-screening-model-accuracy.md` for the full plan. The reproducible
+**cropping, calibration, architecture/input, and a learned India recalibration**.
+The reproducible
 recipe that produced the shipped model is pinned in
 `backend/ai/training_recipe.json`.
 
@@ -69,10 +69,47 @@ app. The UI's "AI rough screening" line and its `±~N mo` badge update from the 
 metadata automatically. Nothing else changes; inference stays local CPU/ONNX.
 
 ## Notes
-- `torch` / `torchvision` are **training-only** deps (see `requirements-ml.txt`);
+- `torch` / `torchvision` are **training-only** deps (root `requirements-ml.txt`, install into a separate environment);
   the clinic runtime only needs `onnxruntime`.
 - Hands are always left, so the augmentation never flips horizontally (that would
   corrupt laterality).
 - To go beyond whole-image accuracy you need **true auto-TW3** (per-bone stage
   classification → your TW3 tables). That needs stage-labelled crops, which the
   in-app annotation + dataset exporter are set up to collect.
+
+## Measured and rejected without retraining (18 September 2026)
+
+Everything below used the **shipped** model with v1 preprocessing. Method: the
+trainer's 15% val split was reconstructed exactly (seed 42 over `train-labels.csv`
+order — it reproduces the recorded val MAE, **8.59** vs 8.6) and split in half
+by sex: half A to **fit**, half B to **select and calibrate**. The locked RSNA
+validation set (1,425) was evaluated **at most once** per candidate, and not at
+all for a candidate that failed on half B. The shipped baseline reproduces
+exactly on it: **MAE 8.993**.
+
+| Candidate | Val half B | Locked test | Decision |
+|---|---|---|---|
+| Shipped (identity) | 8.558 | 8.993 · 90% coverage 0.8954 | — |
+| Per-sex linear recalibration | 8.555 | not run | no gain |
+| Per-sex quadratic | 8.426 | not run | superseded |
+| Per-sex cubic (best on B) | 8.412 | **8.856** · coverage 0.8828 | **rejected** |
+| Monotone binned recalibration | 8.452 | not run | inferior |
+| 5-view test-time augmentation (±6°, ×0.96/1.04, inside the training envelope) | **9.010** (worse) | not run | **rejected** |
+
+Why the cubic was rejected despite a lower mean: −0.14 months (1.5%) is
+clinically nothing, it made subgroups worse (boys 5–8 y 8.93 → 10.39; girls
+12–15 y 8.60 → 9.33) and the re-calibrated 90% interval under-covered (0.883).
+A change that improves the average by moving error onto particular children is
+not an improvement.
+
+**Coverage 0.8954 vs 0.90 is within noise** (SE ≈ 0.008 at n = 1,425). The
+methodological flaw behind it is still real: the trainer picks the best of 25
+epochs on the same split `calibrate_conformal` later uses, so the intervals are
+calibrated on the selection set. **Next training run: carve a separate
+calibration split (never used for epoch selection) and calibrate on that.**
+
+**Conclusion:** the remaining error is in the model, not its output. The levers
+are a retrain (higher resolution than 224 px, stronger backbone, a proper
+calibration split — needs a GPU; this machine is CPU-only) or adopting digiBONE
+(see `DIGIBONE.md`). Scripts: the study was run from throwaway scripts; the
+numbers above are the record.

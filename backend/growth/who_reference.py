@@ -38,14 +38,20 @@ module only adds three things on top:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 
-import rcpchgrowth as rg
+try:  # optional since step 7: WHO's own LMS tables answer when installed
+    import rcpchgrowth as rg
+except ImportError:  # pragma: no cover - depends on the environment
+    rg = None
 
 from . import hermite
 from . import who_lms_reference as _who_lms
 from .measures import MEASURES, SEAM_2Y_KEYS, SEAM_5Y_KEYS
 
-_SEX_MAP = {"boys": rg.MALE, "girls": rg.FEMALE}
+# rcpchgrowth's own constants are the strings "male"/"female"; spelled out so
+# this module imports without the package (test_measure_registry checks them).
+_SEX_MAP = {"boys": "male", "girls": "female"}
 # rcpchgrowth adapter. Derived from the canonical registry (measures.py) rather
 # than re-declared, so a newly registered measure cannot silently be missing a
 # WHO binding -- test_measure_registry asserts these strings equal the real
@@ -96,6 +102,21 @@ def _rg_args(measure: str, sex: str) -> tuple[str, str]:
     return _MEASURE_MAP[measure], _SEX_MAP[sex]
 
 
+# Memoised because the callers ask the same question over and over. Measured on
+# validation.run_full_validation(): 34,356 calls for 1,722 distinct arguments --
+# 20x redundancy, with the hottest argument recomputed 263 times. The cost is not
+# incidental: rcpchgrowth's fetch_lms does a linear scan calling round() on every
+# row, which profiled at 78.4 MILLION round() calls -- 38s of an 88.9s run, 43%
+# of the whole suite, to answer 1,722 distinct questions.
+#
+# Safe to cache because the function is pure in its arguments given ONE piece of
+# process state: whether our own WHO LMS tables are live (_who_lms.lms_available()).
+# That flips only in tests, which already call who_lms_reference.reset_cache() --
+# it clears this cache too, so the seam cannot serve values from the other source.
+#
+# Bounded, not unbounded: age and z arrive from query parameters, so an unbounded
+# cache is caller-controlled memory growth.
+@lru_cache(maxsize=65536)
 def _raw_who_value_at_z(measure: str, sex: str, age_years: float, z: float) -> float | None:
     # M1.4 strangler seam. Our own WHO LMS tables answer once they are installed
     # AND have reproduced rcpchgrowth's output across a dense grid; until then
@@ -107,6 +128,8 @@ def _raw_who_value_at_z(measure: str, sex: str, age_years: float, z: float) -> f
         if v is not None:
             return v
 
+    if rg is None:
+        return None      # own tables not live and no fallback installed
     measurement_method, rg_sex = _rg_args(measure, sex)
     for nudge in _BOUNDARY_NUDGES_YEARS:
         try:
@@ -120,6 +143,13 @@ def _raw_who_value_at_z(measure: str, sex: str, age_years: float, z: float) -> f
         except (LookupError, ValueError):
             continue
     return None
+
+
+def reset_cache() -> None:
+    """Drop memoised WHO lookups. Called by who_lms_reference.reset_cache(), so a
+    test that installs or removes our own LMS tables cannot then be served a
+    value computed from the other source."""
+    _raw_who_value_at_z.cache_clear()
 
 
 def _seam_derivative(measure: str, sex: str, anchor_age: float, z: float) -> float:
@@ -176,6 +206,8 @@ def who_z_for_value(measure: str, sex: str, age_years: float, value: float) -> f
             if z is not None:
                 return z
 
+        if rg is None:
+            return None
         measurement_method, rg_sex = _rg_args(measure, sex)
         for nudge in _BOUNDARY_NUDGES_YEARS:
             try:
@@ -201,7 +233,3 @@ def who_z_for_value(measure: str, sex: str, age_years: float, value: float) -> f
     if value >= v_hi:
         return hi
     return float(brentq(lambda z: who_value_at_z(measure, sex, age_years, z) - value, lo, hi, xtol=1e-6))
-
-
-def who_has_data(measure: str, sex: str, age_years: float) -> bool:
-    return who_value_at_z(measure, sex, age_years, 0.0) is not None

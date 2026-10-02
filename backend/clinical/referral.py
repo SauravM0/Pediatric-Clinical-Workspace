@@ -123,8 +123,13 @@ def parent_summary(findings: list[Finding], t: Triage) -> dict:
 
 def _questions(findings: list[Finding]) -> list[str]:
     """Questions generated from what actually fired, so a parent walks in able to
-    ask about the specific thing rather than a generic list."""
-    ids = {f.rule_id for f in findings}
+    ask about the specific thing rather than a generic list.
+
+    Only rules that FIRED count. A rule that could not run still produces an
+    ``insufficient_data`` finding under its own rule_id, and counting those told
+    a parent to ask "what does the bone age result mean" about a child who has
+    never had a bone-age film."""
+    ids = {f.rule_id for f in findings if f.severity != INSUFFICIENT_DATA}
     questions: list[str] = []
     if {"SHORT_STATURE", "SEVERE_SHORT_STATURE"} & ids:
         questions.append("Is my child's height outside the normal range for their age?")

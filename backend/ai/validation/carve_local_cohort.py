@@ -32,7 +32,7 @@ from __future__ import annotations
 import statistics
 import sys
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Optional
+from typing import Any, Optional
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session

@@ -323,6 +323,123 @@ def detect_acquisition_domain(img: LoadedImage) -> dict:
             "auto_detected": False}
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Is this image a radiograph at all?
+#
+# Measured 2026-08-14: the estimator returned a confident age for images with no
+# anatomy in them whatsoever -- flat grey 0.6 yr, random noise 4.7 yr [3.2-6.3],
+# a scanned document 0.4 yr -- all with accepted=True and no flag of any kind.
+# In the UI that renders as a bone age, a 90% conformal interval and a green
+# "Use as bone age" button, which is exactly the "silently generate a normal
+# report after a quality failure" that validation_protocol.md §4 forbids.
+#
+# WHAT THIS IS NOT
+# ----------------
+# It is not a hand detector. It cannot tell a hand from a foot, a chest or an
+# adult's wrist; those need a validated classifier and this project does not
+# claim auto-detection it has not validated (see auto_quality_flags). It rejects
+# only images with no plausible radiographic STRUCTURE -- the degenerate uploads
+# a mis-picked file actually produces.
+#
+# WHY FOUR NARROW RULES AND NOT ONE SCORE
+# ---------------------------------------
+# Measured on the three real films available against five synthetic negatives,
+# no single statistic separates them:
+#
+#   image            std     autocorr    entropy(32 bins)
+#   real film        31.8    0.9926      3.68
+#   real film        39.4    0.9977      4.02
+#   real photo       61.3    0.9983      4.22
+#   flat grey         0.0    0.0000      0.00
+#   random noise     74.0    0.0034      5.00
+#   document        108.9    0.8886      0.90
+#   smooth gradient  73.7    1.0000      5.00
+#
+# `std` does not separate at all (a document out-scores every real film).
+# `autocorr` catches noise and flat but the gradient scores 1.0000 -- HIGHER
+# than any real image. Entropy catches the document and the ramp but not noise.
+# So each rule targets one failure mode and the thresholds sit far from the real
+# films rather than being fitted to them.
+#
+# CALIBRATION IS THIN AND THAT SHAPES THE THRESHOLDS
+# --------------------------------------------------
+# Three real positives is not a validation set. Every bound below is therefore
+# placed to make a FALSE REJECT very unlikely, accepting that unusual-but-real
+# images pass. Wrongly refusing a genuine film is worse than the bug: the
+# clinician loses a working tool and learns to distrust the gate.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Below this the image is blank or near-blank. Real films measured 31.8-61.3.
+STRUCTURE_MIN_STD: Final[float] = 8.0
+# Neighbouring pixels must predict each other. Real films 0.9926-0.9990;
+# random noise 0.0034. Anything optical is far above this.
+STRUCTURE_MIN_AUTOCORR: Final[float] = 0.90
+# A two-tone image (text on white) carries almost no grey structure. Real films
+# 3.68-4.22 bits; the document 0.90.
+STRUCTURE_MIN_ENTROPY: Final[float] = 1.5
+# A flat histogram means every intensity is equally likely, which anatomy never
+# produces. Real max 4.22; a linear ramp and uniform noise both hit 5.00.
+STRUCTURE_MAX_ENTROPY: Final[float] = 4.75
+# ...but high entropy alone must not condemn a busy film, so the ramp rule also
+# requires near-perfect smoothness. Real films top out at 0.9990.
+STRUCTURE_RAMP_AUTOCORR: Final[float] = 0.9995
+
+
+def _structure_metrics(a: np.ndarray) -> dict[str, float]:
+    """Cheap, deterministic descriptors of the analysis image."""
+    x = a.astype(np.float32)
+
+    def corr(u: np.ndarray, v: np.ndarray) -> float:
+        u = u.ravel() - u.mean()
+        v = v.ravel() - v.mean()
+        d = float(np.sqrt((u * u).sum() * (v * v).sum()))
+        return float((u * v).sum() / d) if d > 0 else 0.0
+
+    hist = np.histogram(a, bins=32, range=(0, 255))[0].astype(np.float64)
+    p = hist / max(hist.sum(), 1.0)
+    nz = p[p > 0]
+    return {
+        "std": float(a.std()),
+        "autocorr": min(corr(x[:, :-1], x[:, 1:]), corr(x[:-1, :], x[1:, :])),
+        "entropy": float(-(nz * np.log2(nz)).sum()),
+    }
+
+
+def radiograph_structure_check(img: LoadedImage) -> dict:
+    """Does this image plausibly contain radiographic structure?
+
+    Returns ``plausible`` plus the measurement that decided it, so a refusal can
+    show its working rather than asserting. Only degenerate images fail; see the
+    block comment above for the deliberate limits of the claim.
+    """
+    m = _structure_metrics(img.analysis)
+    detail = (f"std {m['std']:.1f}, neighbour correlation {m['autocorr']:.3f}, "
+              f"intensity entropy {m['entropy']:.2f} bits")
+
+    # Order matters for the WORDING, not the verdict. A document scan fails both
+    # the two-tone and the correlation rule (measured entropy 0.90, autocorr
+    # 0.889), and if the correlation rule is asked first the clinician is told
+    # "this is noise" about a page of text. The most specific description wins.
+    if m["std"] < STRUCTURE_MIN_STD:
+        why = (f"the image is essentially blank ({detail}) — a radiograph varies "
+               f"far more than this (measured 31.8–61.3 on real films)")
+    elif m["entropy"] < STRUCTURE_MIN_ENTROPY:
+        why = (f"the image is effectively two-tone ({detail}) — consistent with "
+               f"text or a document scan rather than a film")
+    elif m["autocorr"] < STRUCTURE_MIN_AUTOCORR:
+        why = (f"neighbouring pixels are unrelated ({detail}) — this is noise, "
+               f"not an optical image; real films measure above 0.99")
+    elif m["entropy"] > STRUCTURE_MAX_ENTROPY and m["autocorr"] > STRUCTURE_RAMP_AUTOCORR:
+        why = (f"every intensity is equally likely and the image is perfectly "
+               f"smooth ({detail}) — a featureless gradient, not anatomy")
+    else:
+        return {"plausible": True, "reason": None, "evidence": [detail],
+                "measurements": m}
+
+    return {"plausible": False, "reason": why, "evidence": [detail],
+            "measurements": m}
+
+
 def auto_quality_flags(img: LoadedImage) -> tuple[list[str], list[str]]:
     """Deterministic auto-detected quality flags + advisory notes.
 
@@ -404,22 +521,47 @@ def resolve_image_domain(img: LoadedImage, declared: Optional[str]) -> dict:
     }
 
 
-def gate_ai_estimate(auto_flags: list[str], declared_flags: list[str]) -> dict:
+def gate_ai_estimate(auto_flags: list[str], declared_flags: list[str],
+                     structure: Optional[dict] = None) -> dict:
     """Combine auto + clinician-declared flags and decide whether a whole-hand AI
     estimate may be shown. Returns a block matching report_output_schema.json's
-    image_quality section, plus the hard/soft split and provenance of each flag."""
+    image_quality section, plus the hard/soft split and provenance of each flag.
+
+    ``structure`` is the result of :func:`radiograph_structure_check`. A failure
+    there blocks the estimate WITHOUT inventing a new quality flag: the flag
+    vocabulary is a contract pinned to case_input_schema.json, and "this file is
+    not a radiograph" is not a finding about a film -- it is the same kind of
+    statement as image_domain, which for the same reason got its own field
+    rather than a flag. It is reported in ``structure_ok``/``structure_reason``.
+    """
     declared = sorted({f.strip().upper() for f in declared_flags if f and f.strip()})
     known = [f for f in declared if f in CANONICAL_QUALITY_FLAGS]
     unknown = [f for f in declared if f not in CANONICAL_QUALITY_FLAGS]
     all_flags = sorted(set(auto_flags) | set(known))
     hard = sorted(f for f in all_flags if f in HARD_QUALITY_FLAGS)
     soft = sorted(f for f in all_flags if f not in HARD_QUALITY_FLAGS)
-    accepted = not hard
-    reason = None if accepted else (
-        "Image-quality gate failed (" + ", ".join(hard) + "). A whole-hand AI "
-        "bone-age estimate is not valid on this film; manual assessment required."
-    )
+
+    structure_ok = True if structure is None else bool(structure.get("plausible", True))
+    accepted = not hard and structure_ok
+
+    if not structure_ok:
+        reason = (
+            "This file does not look like a radiograph: "
+            + str(structure.get("reason"))
+            + ". No bone age is shown — check the file, or grade the bones manually."
+        )
+    elif hard:
+        reason = (
+            "Image-quality gate failed (" + ", ".join(hard) + "). A whole-hand AI "
+            "bone-age estimate is not valid on this film; manual assessment required."
+        )
+    else:
+        reason = None
+
     return {
+        "structure_ok": structure_ok,
+        "structure_reason": None if structure_ok else structure.get("reason"),
+        "structure_measurements": (structure or {}).get("measurements"),
         "accepted": accepted,
         "flags": all_flags,
         "hard_flags": hard,

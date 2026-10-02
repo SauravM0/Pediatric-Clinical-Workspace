@@ -123,20 +123,38 @@ def quintic_eval(t_age: float, x0: float, x1: float, y0: float, m0: float, a0: f
             + y1 * h01 + (m1 * h) * h11 + (a1 * h * h) * h21)
 
 
+# Sample grid for _min_quintic_derivative, and its powers. Built once: the
+# function is called tens of thousands of times per validation run and the grid
+# never varies.
+_BRIDGE_TS = np.linspace(0.0, 1.0, 81)
+_BRIDGE_T2 = _BRIDGE_TS ** 2
+_BRIDGE_T3 = _BRIDGE_TS ** 3
+_BRIDGE_T4 = _BRIDGE_TS ** 4
+_BRIDGE_T5 = _BRIDGE_TS ** 5
+
+
 def _min_quintic_derivative(y0: float, m0: float, a0: float, y1: float, m1: float, a1: float, h: float) -> float:
     """Minimum of the segment's derivative w.r.t. age, found by dense
     sampling of the *values* (central differences) -- simplest and most
     reliable way to check monotonicity for the quintic bridge."""
-    ts = np.linspace(0.0, 1.0, 81)
-    ages = ts * h
-    vals = np.array([
-        y0 * (1 - 10*t**3 + 15*t**4 - 6*t**5) + (m0*h) * (t - 6*t**3 + 8*t**4 - 3*t**5)
-        + (a0*h*h) * (0.5*t**2 - 1.5*t**3 + 1.5*t**4 - 0.5*t**5)
-        + y1 * (10*t**3 - 15*t**4 + 6*t**5) + (m1*h) * (-4*t**3 + 7*t**4 - 3*t**5)
-        + (a1*h*h) * (0.5*t**3 - t**4 + 0.5*t**5)
-        for t in ts
-    ])
-    derivs = np.diff(vals) / np.diff(ages)
+    # Vectorised over the sample grid, and the grid itself is a module constant.
+    # Same quintic, same operations, same order -- only the loop moves from
+    # Python into numpy. This is the hottest function in the growth engine:
+    # 47,343 calls per full validation run, 21.7s of a 36.2s profile (60%),
+    # every one of them re-running np.linspace and evaluating t**3/t**4/t**5
+    # 81 times in interpreted scalar code.
+    t2 = _BRIDGE_T2
+    t3, t4, t5 = _BRIDGE_T3, _BRIDGE_T4, _BRIDGE_T5
+    vals = (y0 * (1 - 10*t3 + 15*t4 - 6*t5)
+            + (m0*h) * (_BRIDGE_TS - 6*t3 + 8*t4 - 3*t5)
+            + (a0*h*h) * (0.5*t2 - 1.5*t3 + 1.5*t4 - 0.5*t5)
+            + y1 * (10*t3 - 15*t4 + 6*t5)
+            + (m1*h) * (-4*t3 + 7*t4 - 3*t5)
+            + (a1*h*h) * (0.5*t3 - t4 + 0.5*t5))
+    # np.diff(ts * h), not dt * h: the two differ in the last bits, and
+    # keeping the original form makes the result bit-identical to the
+    # scalar version this replaces.
+    derivs = np.diff(vals) / np.diff(_BRIDGE_TS * h)
     return float(derivs.min())
 
 

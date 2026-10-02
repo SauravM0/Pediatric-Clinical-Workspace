@@ -66,7 +66,7 @@ def _require_torch():
     except ImportError as exc:  # pragma: no cover - environment-dependent
         raise ConversionError(
             "torch is not installed. This tool runs OFFLINE on a machine that has "
-            "it (see requirements-dev.txt); torch is deliberately absent from the "
+            "it (see requirements-ml.txt); torch is deliberately absent from the "
             "deployable, which is the whole reason this converter exists."
         ) from exc
     import torch

@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pediatric Clinical Workspace · Growth · Bone Age · Cardio-Renal</title>
-    <!-- Vendored locally for fully-offline operation (cleanup §6.4). No CDN, no external calls. -->
-    <script src="vendor/tailwind.min.js"></script>
     <style>
         * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; letter-spacing: 0 !important; }
         body { background: #f0f2f5; }
@@ -67,7 +65,8 @@
         .ckd-chip { flex: 1; text-align: center; padding: 6px 4px; border-radius: 8px; font-size: 10px; font-weight: 800; border: 2px solid transparent; transition: all 0.15s; }
         .ckd-active-g1 { background: #1e293b; color: white; border-color: #1e293b; }
         .ckd-active-g2 { background: #eab308; color: white; border-color: #ca8a04; }
-        .ckd-active-g3 { background: #f97316; color: white; border-color: #ea580c; }
+        .ckd-active-g3a { background: #fb923c; color: white; border-color: #f97316; }
+        .ckd-active-g3b { background: #ea580c; color: white; border-color: #c2410c; }
         .ckd-active-g4 { background: #ef4444; color: white; border-color: #dc2626; }
         .ckd-active-g5 { background: #7f1d1d; color: white; border-color: #991b1b; }
         .ckd-inactive { background: #f8fafc; color: #94a3b8; border-color: #e2e8f0; }
@@ -217,6 +216,10 @@
         .report-only { display: none; }
         body.report-mode .report-only { display: block !important; margin-bottom: 10px; }
     </style>
+    <!-- Tailwind, compiled at build time by build.mjs (step 7) instead of by a
+         450 kB runtime on every page load. Placed LAST in <head>, where the old
+         runtime injected its <style>, so CSS precedence is unchanged. -->
+    <link rel="stylesheet" href="static/app.css?v=68dd9bfc8241">
 </head>
 <body class="min-h-screen antialiased text-slate-900">
 
@@ -236,6 +239,6 @@
          This was `<script type="text/babel">` plus a 3.1 MB Babel bundle that
          re-transpiled the whole app on every page load. app.js is committed, so
          a fresh clone still runs offline with one command and no npm install. -->
-    <script src="static/app.js?v=697a57da946e"></script>
+    <script src="static/app.js?v=7ae0cc0f0005"></script>
 </body>
 </html>

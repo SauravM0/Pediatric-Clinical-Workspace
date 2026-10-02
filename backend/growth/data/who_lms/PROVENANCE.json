@@ -1,0 +1,54 @@
+{
+  "downloaded": {
+    "on": "2026-09-19",
+    "by": "Claude Code session, approved by the clinic owner",
+    "raw_files_kept_in": "datasets/who-lms-source/ (xlsx as published; gitignored)",
+    "converted_with": "stdlib xlsx->csv (first sheet, values unchanged) into datasets/who-lms-csv/",
+    "urls": [
+      "https://cdn.who.int/media/docs/default-source/child-growth/child-growth-standards/indicators/length-height-for-age/expandable-tables/lhfa-{boys,girls}-zscore-expanded-tables.xlsx",
+      "https://cdn.who.int/media/docs/default-source/child-growth/child-growth-standards/indicators/weight-for-age/expanded-tables/wfa-{boys,girls}-zscore-expanded-tables.xlsx",
+      "https://cdn.who.int/media/docs/default-source/child-growth/child-growth-standards/indicators/body-mass-index-for-age/expanded-tables/bfa-{boys,girls}-zscore-expanded-tables.xlsx",
+      "https://cdn.who.int/media/docs/default-source/child-growth/growth-reference-5-19-years/height-for-age-(5-19-years)/hfa-{boys,girls}-z-who-2007-exp.xlsx",
+      "https://cdn.who.int/media/docs/default-source/child-growth/growth-reference-5-19-years/weight-for-age-(5-10-years)/hfa-{boys,girls}-z-who-2007-exp_<uuid>.xlsx  (WHO names these 'hfa' but they are WEIGHT: median 24.1 kg at 7.5 y, verified)",
+      "https://cdn.who.int/media/docs/default-source/child-growth/growth-reference-5-19-years/bmi-for-age-(5-19-years)/bmi-{boys,girls}-z-who-2007-exp.xlsx"
+    ]
+  },
+  "licence_caveat": "WHO materials are published under CC BY-NC-SA 3.0 IGO (attribution, NON-COMMERCIAL, share-alike). Fine for this non-commercial clinical tool; a commercial product needs WHO permission (permissions@who.int).",
+  "installed_on": "2026-09-19",
+  "source": "WHO published tables",
+  "source_path": "datasets\\who-lms-csv",
+  "files": [
+    "who_boys_bmi.csv",
+    "who_boys_height.csv",
+    "who_boys_weight.csv",
+    "who_girls_bmi.csv",
+    "who_girls_height.csv",
+    "who_girls_weight.csv"
+  ],
+  "reference": "WHO Multicentre Growth Reference Study (WHO 2006 / 2007)",
+  "table_sha256": {
+    "who_boys_height.csv": "1cff58ef316cbad3dab7548420ca816b45e12ae6f6a5bfaff18c490cb7bd59b3",
+    "who_boys_weight.csv": "55735a9dbc9fa47cbbddb21114e9f826b078f6d052896f703bae1c2a3e05f9a7",
+    "who_boys_bmi.csv": "4f165e7c76acc089250daaad7ac4ac61e8224054d25467bea7e31a4d4b1c1ee3",
+    "who_girls_height.csv": "00fb3e28f463fd0622c0d572d9cc1bc69fef75d76f82f9186759634f70adfaa3",
+    "who_girls_weight.csv": "739efac762ef2e03585e112cda09f3f0740c034695c84685239d8af57e8cc79f",
+    "who_girls_bmi.csv": "970581b8daa0b71372b92a37f9e8fd2c0f497ddfd824d510be034caff789f43c"
+  },
+  "gate": {
+    "active": true,
+    "reason": "ok"
+  },
+  "equivalence": {
+    "checked": 11046,
+    "worst": {
+      "height": 0.00572,
+      "weight": 0.00292,
+      "bmi": 0.00125
+    },
+    "tolerance": {
+      "height": 0.02,
+      "weight": 0.02,
+      "bmi": 0.02
+    }
+  }
+}

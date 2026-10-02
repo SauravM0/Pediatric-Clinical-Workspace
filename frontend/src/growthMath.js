@@ -104,6 +104,16 @@
         // Probability bar: maps % to 0..100% capped
         function probToPercent(p, max) { return Math.min(Math.max((p / max) * 100, 1), 99); }
 
-export { IQR_TO_SD, CENTILE_Z, zForValueFromCentileStats,
+        // Standard normal CDF (Abramowitz & Stegun 26.2.17, |error| < 7.5e-8).
+        // Moved here from qrisk3.js when QRISK3 moved to the backend: its only
+        // remaining user is the adult-height percentile in app.jsx.
+        function normalCDF(z) {
+          const t = 1 / (1 + 0.2316419 * Math.abs(z));
+          const d = 0.39894228 * Math.exp(-z * z / 2);
+          const p = d * t * (0.31938153 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+          return z >= 0 ? 1 - p : p;
+        }
+
+export { normalCDF, IQR_TO_SD, CENTILE_Z, zForValueFromCentileStats,
          ageForMedianFromSeries, spreadFromSeries, sdsToPercent,
          probToPercent };

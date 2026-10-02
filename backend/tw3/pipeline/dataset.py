@@ -10,7 +10,6 @@ from __future__ import annotations
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List
-import json
 
 from .report_parser import parse_report, RUS_ALIASES
 
