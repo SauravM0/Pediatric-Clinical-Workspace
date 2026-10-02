@@ -50,6 +50,8 @@ CSP = ("default-src 'self'; script-src 'self'; "
 def _csv_env(name: str) -> list[str]:
     return [x.strip().lower() for x in os.environ.get(name, "").split(",") if x.strip()]
 
+def remote_clients_allowed() -> bool:
+    return os.environ.get("PCW_ALLOW_REMOTE_CLIENTS", "").strip().lower() in ("1", "true", "yes")
 
 def allowed_hosts() -> set[str]:
     return set(_LOOPBACK_NAMES) | set(_csv_env("PCW_ALLOWED_HOSTS"))
@@ -94,11 +96,12 @@ class NetworkGuardMiddleware(BaseHTTPMiddleware):
         from backend.security.deps import auth_disabled
 
         hosts = allowed_hosts()
-        if _host_name(request.headers.get("host", "")) not in hosts:
+        is_probe = request.url.path == "/api/health" and request.method in ("GET", "HEAD")
+        if not is_probe and _host_name(request.headers.get("host", "")) not in hosts:
             return JSONResponse({"detail": "host not allowed"}, status_code=400)
 
         client = request.client.host if request.client else None
-        if auth_disabled() and not is_local_client(client):
+        if auth_disabled() and not is_probe and not remote_clients_allowed() and not is_local_client(client):
             return JSONResponse(
                 {"detail": "authentication is off, so this workspace only answers requests "
                            "from this computer. Enable PCW_AUTH_ENABLED to serve a network."},
