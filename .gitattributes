@@ -1,0 +1,6 @@
+# The WHO L,M,S tables are sealed with a SHA-256 of their exact bytes
+# (backend/growth/data/who_lms/PROVENANCE.json -> table_sha256). Git must therefore
+# never rewrite their line endings: on Windows it was storing them as LF and
+# checking them out as CRLF, so every Linux deploy saw different bytes, the seal
+# failed, and the WHO tables (ages 0-5) were switched off.
+backend/growth/data/who_lms/*.csv -text
