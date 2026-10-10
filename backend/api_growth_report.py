@@ -23,6 +23,7 @@ fails the export instead of shipping a bad PDF.
 from __future__ import annotations
 
 import json
+import os
 from typing import Literal
 
 from fastapi import Depends, APIRouter, HTTPException, Request
@@ -81,11 +82,19 @@ async def get_growth_report_pdf(request: Request, body: ReportRequest) -> Respon
     # call. Only the MODE is in the URL; the data is injected before any page
     # script runs, as a JSON literal; json.dumps escapes quotes and backslashes,
     # and < is escaped too so no value can ever read as markup.
-    target_url = f"{str(request.base_url).rstrip('/')}/?report=1"
+    # The headless browser lives in this same container/process tree, so it goes to the
+    # server over loopback -- not out to the public URL and back through the host's
+    # proxy. Loopback is always an allowed Host and a local client for the network guard.
+    port = os.environ.get("PORT") or request.url.port or 8077
+    target_url = f"http://127.0.0.1:{port}/?report=1"
     payload = json.dumps(body.model_dump()).replace("<", "\\u003c")
 
     async with async_playwright() as pw:
-        browser = await pw.chromium.launch()
+        # Inside a container Chromium cannot create its own sandbox; the Dockerfile
+        # sets PCW_CHROMIUM_NO_SANDBOX=1 (the container is the sandbox). Elsewhere the
+        # default, sandboxed launch is kept.
+        launch_args = ["--no-sandbox"] if os.environ.get("PCW_CHROMIUM_NO_SANDBOX") == "1" else []
+        browser = await pw.chromium.launch(args=launch_args)
         try:
             page = await browser.new_page(viewport={"width": 900, "height": 1200})
             await page.add_init_script(f"window.__PCW_REPORT__ = {payload};")
